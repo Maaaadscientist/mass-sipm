@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
     
    for (int i = 0; i < numHistograms; ++i) {
       // Create a new TH2F object and assign it to the array
-      hists[i] = new TH2F(Form("run%dwaveform%d", runNumber, i), "Title", 2010, 0, 16080, 2000, -100, 400);
+      hists[i] = new TH2F(Form("run%dwaveform%d", runNumber, i), "Title", 2010, 0, 16080, 2000, 0, 65535);
    }
    TTree* tree = new TTree(Form("run%d", runNumber),"signal Q of all ADC channels");
    const int numBranches = 16;
@@ -171,6 +171,7 @@ int main(int argc, char **argv) {
          branchValues[ch] = sigQ;
          //std::cout << "channle:" << ch << " number of waveforms: " << count << std::endl;
          offset += chsize /4;
+         amplitudes.clear();
       }
       tree->Fill();
    }
