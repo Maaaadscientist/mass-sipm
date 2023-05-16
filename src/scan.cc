@@ -7,7 +7,7 @@
 #include <cmath>
 #include <random>
 #include <memory>
-
+#include <algorithm>
 
 #include <cstdio>
 #include <iomanip>
@@ -21,7 +21,8 @@
 #define TQDC_MIN_STEP         4.0  // min step in bits along voltage axis
 // for scale representation only
 #define TQDC_BITS_TO_MV        (1/TQDC_MIN_STEP)*2*1000.0/16384.0 // 2^14 bits/2V - 4 counts ~0.030517578125
-#define TQDC_BITS_TO_PC        TQDC_BITS_TO_MV*0.02*TIME_DISCRETIZATION //  50 Ohm ~0.0048828125
+//#define TQDC_BITS_TO_PC        TQDC_BITS_TO_MV*0.02*TIME_DISCRETIZATION //  50 Ohm ~0.0048828125
+#define TQDC_BITS_TO_PC     1.0   //TQDC_BITS_TO_MV*0.02*TIME_DISCRETIZATION //  50 Ohm ~0.0048828125
 
 typedef struct {
    size_t ev;			// event number
@@ -54,6 +55,10 @@ int main(int argc, char **argv) {
    if (options.Exists("output")) outputName = options.GetAs<std::string>("output");
    int runNumber = 0;
    if (options.Exists("run"))  runNumber = options.GetAs<int>("run");
+   int maxEvents = 9999999;
+   if (options.Exists("maxEvents"))  maxEvents = options.GetAs<int>("maxEvents");
+   int skipEvents = 0;
+   if (options.Exists("skipEvents"))  skipEvents = options.GetAs<int>("skipEvents");
    TFile *file1 = new TFile(outputName.c_str(), "recreate");
    
    const int numHistograms = 16; // Number of histograms in the array
@@ -121,7 +126,11 @@ int main(int argc, char **argv) {
          if (FileIndex.po+uiEVENT_HEADER[1] > sSizeOfFile) break;
       }
    }
-   for (int nev = 0 ; nev < num_events ;nev++) {
+   if (skipEvents > num_events){ 
+      LOG_ERROR << "skipEvents larger than maxEvents";
+      std::abort(); 
+   }
+   for (int nev = skipEvents ; nev < std::min(num_events, maxEvents + skipEvents)  ;nev++) {
       int offset = 0;
       std::uint32_t word;
       fseek(fp,vFInd.at(nev).po + sizeof(word) *  offset ,SEEK_SET);

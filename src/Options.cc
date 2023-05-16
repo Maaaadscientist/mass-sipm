@@ -19,6 +19,8 @@ Options::Options(int argc, char **argv,
     ("input,i",po::value<std::string>(), "input csv file with datasets")
     ("output,o", po::value<std::string>(),"output file name")
     ("run,r", po::value<int>(),"a number recording the run number")
+    ("skipEvents,s", po::value<int>(),"skip first N events")
+    ("maxEvents,m", po::value<int>(),"max events")
     ("config,c", po::value<std::string>()->required(),
      "Master configuration file (required)");
   allOptions_.add(generalOptions);
