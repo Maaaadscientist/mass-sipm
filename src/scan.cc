@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
     
    for (int i = 0; i < numHistograms; ++i) {
       // Create a new TH2F object and assign it to the array
-      hists[i] = new TH2F(Form("run%dwaveform%d", runNumber, i), "Title", 2010, 0, 16080, 2000, 0, 65535);
+      hists[i] = new TH2F(Form("run%dwaveform%d", runNumber, i), "Title", 2010, 0, 16080, 2000, -65536/2, 65536/2);
    }
    TTree* tree = new TTree(Form("run%d", runNumber),"signal Q of all ADC channels");
    const int numBranches = 16;
@@ -145,7 +145,7 @@ int main(int argc, char **argv) {
          int chsize =  word & 0x0000FFFF;
          fseek(fp, sizeof(word) ,SEEK_CUR);
          int first_data = 0;
-         std::uint16_t vol;
+         std::int16_t vol;
          int BS = chsize / 2 - 2;
          int count = 0;
          std::vector<float> amplitudes;
@@ -156,12 +156,7 @@ int main(int argc, char **argv) {
                first_data = (first_data * count + vol ) / (count + 1);
             float time = count * 8.;
             float amp = 0;
-            if (first_data - vol > 40000) 
-               amp = (vol + 65535) * TQDC_BITS_TO_PC;
-            else if (first_data - vol < -40000)
-               amp = (vol - 65535) * TQDC_BITS_TO_PC;
-            else 
-               amp = vol * TQDC_BITS_TO_PC;
+            amp = vol * TQDC_BITS_TO_PC;
             amplitudes.push_back(amp);
             hists[ch]->Fill(time, amp);
             BS --;
