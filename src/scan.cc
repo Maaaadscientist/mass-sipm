@@ -21,8 +21,7 @@
 #define TQDC_MIN_STEP         4.0  // min step in bits along voltage axis
 // for scale representation only
 #define TQDC_BITS_TO_MV        (1/TQDC_MIN_STEP)*2*1000.0/16384.0 // 2^14 bits/2V - 4 counts ~0.030517578125
-//#define TQDC_BITS_TO_PC        TQDC_BITS_TO_MV*0.02*TIME_DISCRETIZATION //  50 Ohm ~0.0048828125
-#define TQDC_BITS_TO_PC     1.0   //TQDC_BITS_TO_MV*0.02*TIME_DISCRETIZATION //  50 Ohm ~0.0048828125
+#define TQDC_BITS_TO_PC        TQDC_BITS_TO_MV*0.02*TIME_DISCRETIZATION //  50 Ohm ~0.0048828125
 
 typedef struct {
    size_t ev;			// event number
@@ -144,16 +143,12 @@ int main(int argc, char **argv) {
          //std::cout << std::hex << "0x" << std::setw(8) << std::setfill('0') << word << std::dec << std::endl;
          int chsize =  word & 0x0000FFFF;
          fseek(fp, sizeof(word) ,SEEK_CUR);
-         int first_data = 0;
          std::int16_t vol;
          int BS = chsize / 2 - 2;
          int count = 0;
          std::vector<float> amplitudes;
          while (BS != 0) {
             fread(&vol, sizeof(vol), 1 ,fp);
-            if (count == 0) first_data = vol;
-            else if (count < 30 && abs(first_data - vol) < 300) 
-               first_data = (first_data * count + vol ) / (count + 1);
             float time = count * 8.;
             float amp = 0;
             amp = vol * TQDC_BITS_TO_PC;
