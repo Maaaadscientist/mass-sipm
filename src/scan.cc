@@ -12,8 +12,14 @@
 #include <cstdio>
 #include <iomanip>
 #include <TFile.h>
+
+#include <TVirtualFFT.h>
+
+#include <TH1.h>
 #include <TH2F.h>
 #include <TTree.h>
+
+
 #include "Options.h"
 #include "Logger.h"
 
@@ -63,17 +69,32 @@ int main(int argc, char **argv) {
    const int numHistograms = 16; // Number of histograms in the array
    TH2F* hists[numHistograms]; // Array of TH2F pointers
     
+   
+   int N = 2010; // Number of samples
+   TH2F* hists_bkgfreq_real[numHistograms];
+   TH2F* hists_bkgfreq_imag[numHistograms];
+   TH2F* hists_filtered[numHistograms];
+   TH2F* hists_sigfreq_real[numHistograms];
+   TH2F* hists_sigfreq_imag[numHistograms];
    for (int i = 0; i < numHistograms; ++i) {
       // Create a new TH2F object and assign it to the array
-      hists[i] = new TH2F(Form("run%dwaveform%d", runNumber, i), "Title", 2010, 0, 16080, 2000, -65536/2, 65536/2);
+      hists[i] = new TH2F(Form("run%dwaveform%d", runNumber, i), "Title", 2010, 0, 16080, 2000, -200, 200);
+      hists_bkgfreq_real[i] = new TH2F(Form("run%dbkgfreqreal%d", runNumber, i), "frequency amp real", N, 0, N, N, -N/2, N/2);
+      hists_bkgfreq_imag[i] = new TH2F(Form("run%dbkgfreqimag%d", runNumber, i), "frequency amp imag", N, 0, N, N, -N/2, N/2);
+      hists_filtered[i] = new TH2F(Form("run%dwaveformfiltered%d", runNumber, i), "Title", 2010, 0, 16080, 2000, -200, 200);
+      hists_sigfreq_real[i] = new TH2F(Form("run%dsigfreqreal%d", runNumber, i), "frequency amp real", N, 0, N, N, -N/2, N/2);
+      hists_sigfreq_imag[i] = new TH2F(Form("run%dsigfreqimag%d", runNumber, i), "frequency amp imag", N, 0, N, N, -N/2, N/2);
    }
    TTree* tree = new TTree(Form("run%d", runNumber),"signal Q of all ADC channels");
    const int numBranches = 16;
    int branchValues[numBranches];
+   int filterValues[numBranches];
 
    for (int i = 0; i < numBranches; i++) {
-      std::string branchName = "ch_" + std::to_string(i);
+      std::string branchName = "sigQ_ch_" + std::to_string(i);
       tree->Branch(branchName.c_str(), &branchValues[i], (branchName + "/I").c_str());
+      std::string branchName_filter = "sigQ_filtered_ch_" + std::to_string(i);
+      tree->Branch(branchName_filter.c_str(), &filterValues[i], (branchName_filter + "/I").c_str());
    }
    
    //input file name
@@ -87,7 +108,6 @@ int main(int argc, char **argv) {
    }
    
    FILE *fp;
-   int word_offset = 0; // offset in words
    std::uint32_t uiEVENT_HEADER[3] = {0,0,0};
    // Determine the actual number of words in the file
 
@@ -129,6 +149,7 @@ int main(int argc, char **argv) {
       LOG_ERROR << "skipEvents larger than maxEvents";
       std::abort(); 
    }
+   TH1F *waveform = new TH1F("wave", "wave", 2010, 0, 2010);
    for (int nev = skipEvents ; nev < std::min(num_events, maxEvents + skipEvents)  ;nev++) {
       int offset = 0;
       std::uint32_t word;
@@ -147,21 +168,68 @@ int main(int argc, char **argv) {
          int BS = chsize / 2 - 2;
          int count = 0;
          std::vector<float> amplitudes;
+         std::vector<float> amplitudes_filtered;
          while (BS != 0) {
             fread(&vol, sizeof(vol), 1 ,fp);
             float time = count * 8.;
             float amp = 0;
             amp = vol * TQDC_BITS_TO_PC;
             amplitudes.push_back(amp);
+            waveform->SetBinContent(count + 1, amp);
             hists[ch]->Fill(time, amp);
             BS --;
             count ++;
          }
+         //Compute the transform and look at the magnitude of the output
+         TH1 *hm =0;
+         TVirtualFFT::SetTransform(0);
+         hm = waveform->FFT(hm, "MAG R2C M"); 
+         //That's the way to get the current transform object:
+         TVirtualFFT *fft = TVirtualFFT::GetCurrentTransform();
+         //Use the following method to get the full output:
+         Double_t *re_full = new Double_t[N];
+         Double_t *im_full = new Double_t[N];
+      
+         fft->GetPointsComplex(re_full,im_full);
+         for (int i = 0 ; i < N ; i++) {
+            hists_sigfreq_real[ch]->Fill(i, re_full[i]);
+            hists_sigfreq_imag[ch]->Fill(i, im_full[i]);
+            //re_full[i] = re_full[i] * N / (i + N);
+            //im_full[i] = im_full[i] * N / (i + N);
+            if (i > 100) {
+              re_full[i] = 0;
+              im_full[i] = 0;
+            }
+            hists_bkgfreq_real[ch]->Fill(i, re_full[i]);
+            hists_bkgfreq_imag[ch]->Fill(i, im_full[i]);
+         }
+         //Now let's make a backward transform:
+         TVirtualFFT *fft_back = TVirtualFFT::FFT(1, &N, "C2R M K");
+         fft_back->SetPointsComplex(re_full,im_full);
+         fft_back->Transform();
+         TH1 *hb = 0;
+         //Let's look at the output
+         hb = TH1::TransformHisto(fft_back,hb,"Re");
+         for (int i = 0 ; i < N ; i++) {
+            float amp_backward = hb->GetBinContent(i + 1) / N;
+            amplitudes_filtered.push_back(amp_backward);
+            //std::cout << amp_backward << std::endl;
+            hists_filtered[ch]->Fill(i * 8.0, amp_backward);
+         }
          auto [baseline, sigQ] = calculateBaselineAndSigQ(amplitudes, 1255, 1300, 1.5); 
+         auto [baseline2, sigQ_filter] = calculateBaselineAndSigQ(amplitudes_filtered, 1255, 1300, 1.5); 
          branchValues[ch] = sigQ;
+         filterValues[ch] = sigQ_filter;
          //std::cout << "channle:" << ch << " number of waveforms: " << count << std::endl;
          offset += chsize /4;
          amplitudes.clear();
+         amplitudes_filtered.clear();
+         delete hm;
+         delete hb;
+         delete [] re_full;
+         delete [] im_full;
+         delete fft_back;
+         delete fft;
       }
       tree->Fill();
    }
@@ -169,6 +237,11 @@ int main(int argc, char **argv) {
    // Write the histograms to the file
    for (int i = 0; i < numHistograms; ++i) {
       hists[i]->Write();
+      hists_sigfreq_real[i]->Write();
+      hists_sigfreq_imag[i]->Write();
+      hists_filtered[i]->Write();
+      hists_bkgfreq_real[i]->Write();
+      hists_bkgfreq_imag[i]->Write();
    }
        
    // Cleanup: Delete the histograms and free memory
