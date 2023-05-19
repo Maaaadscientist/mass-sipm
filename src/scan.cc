@@ -29,10 +29,18 @@
 #define TQDC_BITS_TO_MV        (1/TQDC_MIN_STEP)*2*1000.0/16384.0 // 2^14 bits/2V - 4 counts ~0.030517578125
 #define TQDC_BITS_TO_PC        TQDC_BITS_TO_MV*0.02*TIME_DISCRETIZATION //  50 Ohm ~0.0048828125
 
+#define N 2010
 typedef struct {
    size_t ev;			// event number
    size_t po;			// event header position
 } FILEINDEX;
+
+double butterworthLowpassFilter(double input, double cutoffFreq, int order) {
+    
+    double output = 1 / sqrt(1 + pow((input / cutoffFreq), 2 * order)) ;
+    return output;
+}
+
 
 std::pair<float, float> calculateBaselineAndSigQ(const std::vector<float> &SiPMWave, int signalStart, int signalEnd, float thres) {
     float baseline = 0;
@@ -67,13 +75,14 @@ int main(int argc, char **argv) {
    TFile *file1 = new TFile(outputName.c_str(), "recreate");
    
    const int numHistograms = 16; // Number of histograms in the array
+   int n = N;
    TH2F* hists[numHistograms]; // Array of TH2F pointers
     
    
-   int N = 2010; // Number of samples
    TH2F* hists_bkgfreq_real[numHistograms];
    TH2F* hists_bkgfreq_imag[numHistograms];
    TH2F* hists_filtered[numHistograms];
+   TH2F* hists_overthres[numHistograms];
    TH2F* hists_sigfreq_real[numHistograms];
    TH2F* hists_sigfreq_imag[numHistograms];
    for (int i = 0; i < numHistograms; ++i) {
@@ -84,17 +93,18 @@ int main(int argc, char **argv) {
       hists_filtered[i] = new TH2F(Form("run%dwaveformfiltered%d", runNumber, i), "Title", 2010, 0, 16080, 2000, -200, 200);
       hists_sigfreq_real[i] = new TH2F(Form("run%dsigfreqreal%d", runNumber, i), "frequency amp real", N, 0, N, N, -N/2, N/2);
       hists_sigfreq_imag[i] = new TH2F(Form("run%dsigfreqimag%d", runNumber, i), "frequency amp imag", N, 0, N, N, -N/2, N/2);
+      hists_overthres[i] = new TH2F(Form("run%doverthres%d", runNumber, i), "wavefrom over threshold", 2010, 0, 2010, 1000, 0, 50);
    }
    TTree* tree = new TTree(Form("run%d", runNumber),"signal Q of all ADC channels");
    const int numBranches = 16;
-   int branchValues[numBranches];
-   int filterValues[numBranches];
+   double branchValues[numBranches];
+   double filterValues[numBranches];
+   double baselinediff[numBranches];
 
    for (int i = 0; i < numBranches; i++) {
-      std::string branchName = "sigQ_ch_" + std::to_string(i);
-      tree->Branch(branchName.c_str(), &branchValues[i], (branchName + "/I").c_str());
-      std::string branchName_filter = "sigQ_filtered_ch_" + std::to_string(i);
-      tree->Branch(branchName_filter.c_str(), &filterValues[i], (branchName_filter + "/I").c_str());
+      tree->Branch(("sigQ_ch_" + std::to_string(i)).c_str(), &branchValues[i], ("sigQ_ch_" + std::to_string(i)+ "/D").c_str());
+      tree->Branch(("sigQ_filtered_ch_" + std::to_string(i)).c_str(), &filterValues[i], ("sigQ_filtered_ch_" + std::to_string(i)+ "/D").c_str());
+      tree->Branch(("baselinediff" + std::to_string(i)).c_str(), &baselinediff[i], ("baselinediff" + std::to_string(i) + "/D").c_str());
    }
    
    //input file name
@@ -150,6 +160,11 @@ int main(int argc, char **argv) {
       std::abort(); 
    }
    TH1F *waveform = new TH1F("wave", "wave", 2010, 0, 2010);
+   double lowpass[N];
+   for (int i = 0 ; i < N; i++) {
+      std::cout << i << "\t: "<< butterworthLowpassFilter(i*1.0,200, 5) << std::endl;
+      lowpass[i] = butterworthLowpassFilter(i*1.0,200, 5);
+   }
    for (int nev = skipEvents ; nev < std::min(num_events, maxEvents + skipEvents)  ;nev++) {
       int offset = 0;
       std::uint32_t word;
@@ -196,21 +211,19 @@ int main(int argc, char **argv) {
             hists_sigfreq_imag[ch]->Fill(i, im_full[i]);
             //re_full[i] = re_full[i] * N / (i + N);
             //im_full[i] = im_full[i] * N / (i + N);
-            if (i > 100) {
-              re_full[i] = 0;
-              im_full[i] = 0;
-            }
+            re_full[i] *= lowpass[i];
+            im_full[i] *= lowpass[i];
             hists_bkgfreq_real[ch]->Fill(i, re_full[i]);
             hists_bkgfreq_imag[ch]->Fill(i, im_full[i]);
          }
          //Now let's make a backward transform:
-         TVirtualFFT *fft_back = TVirtualFFT::FFT(1, &N, "C2R M K");
+         TVirtualFFT *fft_back = TVirtualFFT::FFT(1, &n, "C2R M K");
          fft_back->SetPointsComplex(re_full,im_full);
          fft_back->Transform();
          TH1 *hb = 0;
          //Let's look at the output
          hb = TH1::TransformHisto(fft_back,hb,"Re");
-         for (int i = 0 ; i < N ; i++) {
+         for (int i = 0; i < N; i++) {
             float amp_backward = hb->GetBinContent(i + 1) / N;
             amplitudes_filtered.push_back(amp_backward);
             //std::cout << amp_backward << std::endl;
@@ -220,7 +233,11 @@ int main(int argc, char **argv) {
          auto [baseline2, sigQ_filter] = calculateBaselineAndSigQ(amplitudes_filtered, 1255, 1300, 1.5); 
          branchValues[ch] = sigQ;
          filterValues[ch] = sigQ_filter;
-         //std::cout << "channle:" << ch << " number of waveforms: " << count << std::endl;
+         for (int i = 0; i < N; i++) {
+            hists_overthres[ch]->Fill(i, amplitudes_filtered[i] - baseline2);
+         }
+         baselinediff[ch] = baseline2 - baseline;
+         //std::cout << "channel:" << ch << " number of waveforms: " << count << std::endl;
          offset += chsize /4;
          amplitudes.clear();
          amplitudes_filtered.clear();
@@ -240,6 +257,7 @@ int main(int argc, char **argv) {
       hists_sigfreq_real[i]->Write();
       hists_sigfreq_imag[i]->Write();
       hists_filtered[i]->Write();
+      hists_overthres[i]->Write();
       hists_bkgfreq_real[i]->Write();
       hists_bkgfreq_imag[i]->Write();
    }
