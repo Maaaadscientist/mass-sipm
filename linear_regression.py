@@ -68,6 +68,7 @@ groups = data.groupby(['run','tile'])
 # Initialize lists to store the breakdown voltages
 breakdown_voltages = []
 
+lines = ""
 # Process each group separately
 for group_name, group_data in groups:
     run, tile = group_name
@@ -85,7 +86,9 @@ for group_name, group_data in groups:
     # Draw linear fit plot
     x_with_bkv = np.concatenate((voltage, [x_intercept]))
     draw_linear_fit(voltage, x_with_bkv, gain, np.zeros_like(gain), intercept, x_intercept, slope, (run, tile))
+    lines += str(run) + "," + str(tile) + "," + "%.4f" % x_intercept + "\n"
+
+with open("vbd.csv", "a") as file:
+    file.write(lines)
 
 
-for i,vbd in enumerate(breakdown_voltages):
-    print(vbd)
