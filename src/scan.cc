@@ -60,12 +60,12 @@ std::pair<std::vector<int>, std::vector<int>> getDCR( const std::vector<float> &
     }
     return {po, last};
 }
-std::pair<float, float> calculateBaselineAndSigQ(const std::vector<float> &SiPMWave, int signalStart, int signalEnd, float thres) {
+std::pair<float, float> calculateBaselineAndSigQ(const std::vector<float> &SiPMWave, int signalStart, int signalEnd) {
     float baseline = 0;
     float sigQ = 0;
 
     // Identify the start and end indices of regions where the signal is above the threshold
-    for (int i = 0; i < signalStart - 100; i++) {
+    for (int i = 0; i < signalStart - 200; i++) {
         //if (i < 20)
             //baseline = (baseline * i + SiPMWave[i] ) / (i + 1);
         //else if (abs(baseline - SiPMWave[i]) < thres)
@@ -90,6 +90,10 @@ int main(int argc, char **argv) {
    if (options.Exists("maxEvents"))  maxEvents = options.GetAs<int>("maxEvents");
    int skipEvents = 0;
    if (options.Exists("skipEvents"))  skipEvents = options.GetAs<int>("skipEvents");
+   int ov = 0;
+   if (options.Exists("voltage"))  ov = options.GetAs<int>("voltage");
+   std::string suffix = "suffix";
+   if (options.Exists("type"))  suffix = options.GetAs<std::string>("type");
    TFile *file1 = new TFile(outputName.c_str(), "recreate");
    
    const int numHistograms = 16; // Number of histograms in the array
@@ -111,32 +115,32 @@ int main(int argc, char **argv) {
    TH1F* dcr1D_dsp[numHistograms];
    for (int i = 0; i < numHistograms; ++i) {
       // Create a new TH2F object and assign it to the array
-      hists[i] = new TH2F(Form("run%dwaveform%d", runNumber, i), "Title", 2010, 0, 16080, 2000, -200, 200);
-      hists_bkgfreq_real[i] = new TH2F(Form("run%dbkgfreqreal%d", runNumber, i), "frequency amp real", N/2, 0, N/2, N, -N/2, N/2);
-      hists_bkgfreq_imag[i] = new TH2F(Form("run%dbkgfreqimag%d", runNumber, i), "frequency amp imag", N/2, 0, N/2, N, -N/2, N/2);
-      hists_bkgfreq_amp[i] = new TH2F(Form("run%dbkgfreqAmp%d", runNumber, i), "frequency amp amplitude", N/2, 0, N/2, N, -N/2, N/2);
-      hists_filtered[i] = new TH2F(Form("run%dwaveformfiltered%d", runNumber, i), "Title", 2010, 0, 16080, 2000, -200, 200);
-      hists_sigfreq_real[i] = new TH2F(Form("run%dsigfreqreal%d", runNumber, i), "frequency amp real", N/2, 0, N/2, N, -N/2, N/2);
-      hists_sigfreq_imag[i] = new TH2F(Form("run%dsigfreqimag%d", runNumber, i), "frequency amp imag", N/2, 0, N/2, N, -N/2, N/2);
-      hists_sigfreq_amp[i] = new TH2F(Form("run%dsigfreqAmp%d", runNumber, i), "frequency amp amplitude", N/2, 0, N/2, N, -N/2, N/2);
-      hists_overthres[i] = new TH2F(Form("run%doverthres%d", runNumber, i), "wavefrom over threshold", 2010, 0, 2010, 1000, 0, 50);
-      dcr[i] = new TH2F(Form("run%ddcr2D%d", runNumber, i), "DCR", 100, 0, 2, 20, 0, 20);
-      dcr1D[i] = new TH1F(Form("run%ddcr1D%d", runNumber, i), "DCR", 100, 0, 2);
-      dcr_dsp[i] = new TH2F(Form("run%ddcr2D_afterfilter%d", runNumber, i), "DCR after filter", 100, 0, 2, 20, 0, 20);
-      dcr1D_dsp[i] = new TH1F(Form("run%ddcr1D_afterfilter%d", runNumber, i), "DCR after filter", 100, 0, 2);
+      hists[i] = new TH2F(Form("waveform%d", i), "Title", 2010, 0, 16080, 2000, -200, 200);
+      hists_bkgfreq_real[i] = new TH2F(Form("freqRealfiltered%d", i), "frequency amp real", N/2, 0, N/2, N, -N/2, N/2);
+      hists_bkgfreq_imag[i] = new TH2F(Form("freqImagfiltered%d", i), "frequency amp imag", N/2, 0, N/2, N, -N/2, N/2);
+      hists_bkgfreq_amp[i] = new TH2F(Form("freqAmpfiltered%d", i), "frequency amp amplitude", N/2, 0, N/2, N, -N/2, N/2);
+      hists_filtered[i] = new TH2F(Form("waveformfiltered%d", i), "Title", 2010, 0, 16080, 2000, -200, 200);
+      hists_sigfreq_real[i] = new TH2F(Form("freqReal%d", i), "frequency amp real", N/2, 0, N/2, N, -N/2, N/2);
+      hists_sigfreq_imag[i] = new TH2F(Form("freqImag%d", i), "frequency amp imag", N/2, 0, N/2, N, -N/2, N/2);
+      hists_sigfreq_amp[i] = new TH2F(Form("freqAmp%d", i), "frequency amp amplitude", N/2, 0, N/2, N, -N/2, N/2);
+      hists_overthres[i] = new TH2F(Form("overthres%d", i), "wavefrom over threshold", 2010, 0, 2010, 1000, 0, 50);
+      dcr[i] = new TH2F(Form("dcr2D%d", i), "DCR", 100, 0, 2, 20, 0, 20);
+      dcr1D[i] = new TH1F(Form("dcr1D%d",  i), "DCR", 100, 0, 2);
+      dcr_dsp[i] = new TH2F(Form("dcr2D_afterfilter%d", i), "DCR after filter", 100, 0, 2, 20, 0, 20);
+      dcr1D_dsp[i] = new TH1F(Form("dcr1D_afterfilter%d", i), "DCR after filter", 100, 0, 2);
    }
-   TTree* tree = new TTree(Form("run%d", runNumber),"signal Q of all ADC channels");
+   TTree* tree = new TTree(Form("run%d_ov%d_%s", runNumber, ov, suffix.c_str()),"signal Q of all ADC channels");
    const int numBranches = 16;
    double branchValues[numBranches];
    double filterValues[numBranches];
-   double baselinediff[numBranches];
-   double baselinevalue[numBranches];
+   double baselineValues[numBranches];
+   double baselineValuesF[numBranches];
 
    for (int i = 0; i < numBranches; i++) {
-      tree->Branch(("sigQ_ch_" + std::to_string(i)).c_str(), &branchValues[i], ("sigQ_ch_" + std::to_string(i)+ "/D").c_str());
-      tree->Branch(("sigQ_filtered_ch_" + std::to_string(i)).c_str(), &filterValues[i], ("sigQ_filtered_ch_" + std::to_string(i)+ "/D").c_str());
-      tree->Branch(("baselinediff" + std::to_string(i)).c_str(), &baselinediff[i], ("baselinediff" + std::to_string(i) + "/D").c_str());
-      tree->Branch(("baselinevalue" + std::to_string(i)).c_str(), &baselinevalue[i], ("baselinevalue" + std::to_string(i) + "/D").c_str());
+      tree->Branch(Form("sigQ_ch%d", i), &branchValues[i], Form("sigQ_ch%d/D", i));
+      tree->Branch(Form("sigQ_filtered_ch%d", i), &filterValues[i], Form("sigQ_filtered_ch%d/D", i));
+      tree->Branch(Form("baseline_ch%d", i), &baselineValues[i], Form("baseline_ch%d/D", i));
+      tree->Branch(Form("baseline_filtered_ch%d", i), &baselineValuesF[i], Form("baseline_filtered_ch%d/D", i));
    }
    
    //input file name
@@ -181,7 +185,7 @@ int main(int argc, char **argv) {
          FileIndex.ev = num_events;   // absolute event number by data file
          FileIndex.po = ftell(fp)-3*sizeof(uint32_t);
          num_events++;
-         std::cout << num_events << std::endl;
+         //std::cout << num_events << std::endl;
          vFInd.push_back(FileIndex);
          fseek(fp,FileIndex.po+uiEVENT_HEADER[1],SEEK_SET);		// from zero position - jump over all event length
          if (FileIndex.po+uiEVENT_HEADER[1] > sSizeOfFile) break;
@@ -194,7 +198,7 @@ int main(int argc, char **argv) {
    TH1F *waveform = new TH1F("wave", "wave", 2010, 0, 2010);
    double lowpass[N];
    for (int i = 0 ; i < N; i++) {
-      std::cout << i << "\t: "<< butterworthLowpassFilter(i*1.0,200, 5) << std::endl;
+      //std::cout << i << "\t: "<< butterworthLowpassFilter(i*1.0,200, 5) << std::endl;
       lowpass[i] = butterworthLowpassFilter(i*1.0,200, 5);
    }
    for (int nev = skipEvents ; nev < std::min(num_events, maxEvents + skipEvents)  ;nev++) {
@@ -263,13 +267,13 @@ int main(int argc, char **argv) {
             //std::cout << amp_backward << std::endl;
             hists_filtered[ch]->Fill(i * 8.0, amp_backward);
          }
-         auto [baseline, sigQ] = calculateBaselineAndSigQ(amplitudes, 1255, 1300, 1.5); 
-         auto [baseline2, sigQ_filter] = calculateBaselineAndSigQ(amplitudes_filtered, 1255, 1300, 1.5); 
+         auto [baseline, sigQ] = calculateBaselineAndSigQ(amplitudes, 1255, 1300); 
+         auto [baseline2, sigQ_filter] = calculateBaselineAndSigQ(amplitudes_filtered, 1255, 1300); 
          for (int t = 0; t < 100; ++t) {
              auto [dcr_po, dcr_last] = getDCR(amplitudes, baseline, 1255, (t+1) * 0.02);
              //if (t == 20)
              //    std::cout << "thres :" <<  (t+1) * 0.05 << " dcr in one waveform:" << dcr_po.size() << std::endl;
-             for (int k = 0; k < dcr_po.size(); k++) {
+             for (unsigned int k = 0; k < dcr_po.size(); k++) {
                  dcr1D[ch]->Fill((t+0.5) * 0.02);
                  dcr[ch]->Fill((t+0.5) * 0.02, dcr_last[k]);
              }
@@ -278,7 +282,7 @@ int main(int argc, char **argv) {
              auto [dcr_po, dcr_last] = getDCR(amplitudes_filtered, baseline2, 1255, (t+1) * 0.02);
              //if (t == 20)
              //    std::cout << "thres :" <<  (t+1) * 0.05 << " dcr in one waveform:" << dcr_po.size() << std::endl;
-             for (int k = 0; k < dcr_po.size(); k++) {
+             for (unsigned int k = 0; k < dcr_po.size(); k++) {
                  dcr1D_dsp[ch]->Fill((t+0.5) * 0.02);
                  dcr_dsp[ch]->Fill((t+0.5) * 0.02, dcr_last[k]);
              }
@@ -288,8 +292,8 @@ int main(int argc, char **argv) {
          for (int i = 0; i < N; i++) {
             hists_overthres[ch]->Fill(i, amplitudes_filtered[i] - baseline2);
          }
-         baselinediff[ch] = baseline2 - baseline;
-         baselinevalue[ch] = baseline2;
+         baselineValues[ch] = baseline;
+         baselineValuesF[ch] = baseline2;
          //std::cout << "channel:" << ch << " number of waveforms: " << count << std::endl;
          offset += chsize /4;
          amplitudes.clear();
@@ -305,6 +309,8 @@ int main(int argc, char **argv) {
    }
    tree->Write();
    // Write the histograms to the file
+   TDirectory* directory = file1->mkdir(Form("dir_run%d_ov%d_%s", runNumber, ov, suffix.c_str()));
+   directory->cd();
    for (int i = 0; i < numHistograms; ++i) {
       hists[i]->Write();
       hists_sigfreq_real[i]->Write();
@@ -313,6 +319,7 @@ int main(int argc, char **argv) {
       hists_filtered[i]->Write();
       hists_overthres[i]->Write();
       hists_bkgfreq_real[i]->Write();
+      hists_bkgfreq_imag[i]->Write();
       hists_bkgfreq_amp[i]->Write();
       dcr[i]->Write();
       dcr1D[i]->Write();
