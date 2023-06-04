@@ -41,7 +41,25 @@ double butterworthLowpassFilter(double input, double cutoffFreq, int order) {
     return output;
 }
 
-
+std::pair<std::vector<int>, std::vector<int>> getDCR( const std::vector<float> &SiPMWave, float baseline, int signalStart, float thres) {
+    std::vector<int> po;
+    std::vector<int> last;
+    for (int i = 0; i < signalStart - 200; i++) {
+        if (SiPMWave[i] - thres >= baseline) {
+            po.push_back(i);
+            for (int j = i + 1; j < signalStart - 100; j++) {
+                if ( SiPMWave[j] - thres < baseline) {
+                    last.push_back(j - i);
+                    i = j;
+                    break;
+                }
+                else
+                    continue;
+            }
+        }
+    }
+    return {po, last};
+}
 std::pair<float, float> calculateBaselineAndSigQ(const std::vector<float> &SiPMWave, int signalStart, int signalEnd, float thres) {
     float baseline = 0;
     float sigQ = 0;
@@ -87,6 +105,10 @@ int main(int argc, char **argv) {
    TH2F* hists_sigfreq_real[numHistograms];
    TH2F* hists_sigfreq_imag[numHistograms];
    TH2F* hists_sigfreq_amp[numHistograms];
+   TH2F* dcr[numHistograms];
+   TH1F* dcr1D[numHistograms];
+   TH2F* dcr_dsp[numHistograms];
+   TH1F* dcr1D_dsp[numHistograms];
    for (int i = 0; i < numHistograms; ++i) {
       // Create a new TH2F object and assign it to the array
       hists[i] = new TH2F(Form("run%dwaveform%d", runNumber, i), "Title", 2010, 0, 16080, 2000, -200, 200);
@@ -98,6 +120,10 @@ int main(int argc, char **argv) {
       hists_sigfreq_imag[i] = new TH2F(Form("run%dsigfreqimag%d", runNumber, i), "frequency amp imag", N/2, 0, N/2, N, -N/2, N/2);
       hists_sigfreq_amp[i] = new TH2F(Form("run%dsigfreqAmp%d", runNumber, i), "frequency amp amplitude", N/2, 0, N/2, N, -N/2, N/2);
       hists_overthres[i] = new TH2F(Form("run%doverthres%d", runNumber, i), "wavefrom over threshold", 2010, 0, 2010, 1000, 0, 50);
+      dcr[i] = new TH2F(Form("run%ddcr2D%d", runNumber, i), "DCR", 100, 0, 2, 20, 0, 20);
+      dcr1D[i] = new TH1F(Form("run%ddcr1D%d", runNumber, i), "DCR", 100, 0, 2);
+      dcr_dsp[i] = new TH2F(Form("run%ddcr2D_afterfilter%d", runNumber, i), "DCR after filter", 100, 0, 2, 20, 0, 20);
+      dcr1D_dsp[i] = new TH1F(Form("run%ddcr1D_afterfilter%d", runNumber, i), "DCR after filter", 100, 0, 2);
    }
    TTree* tree = new TTree(Form("run%d", runNumber),"signal Q of all ADC channels");
    const int numBranches = 16;
@@ -239,6 +265,24 @@ int main(int argc, char **argv) {
          }
          auto [baseline, sigQ] = calculateBaselineAndSigQ(amplitudes, 1255, 1300, 1.5); 
          auto [baseline2, sigQ_filter] = calculateBaselineAndSigQ(amplitudes_filtered, 1255, 1300, 1.5); 
+         for (int t = 0; t < 100; ++t) {
+             auto [dcr_po, dcr_last] = getDCR(amplitudes, baseline, 1255, (t+1) * 0.02);
+             //if (t == 20)
+             //    std::cout << "thres :" <<  (t+1) * 0.05 << " dcr in one waveform:" << dcr_po.size() << std::endl;
+             for (int k = 0; k < dcr_po.size(); k++) {
+                 dcr1D[ch]->Fill((t+0.5) * 0.02);
+                 dcr[ch]->Fill((t+0.5) * 0.02, dcr_last[k]);
+             }
+         }
+         for (int t = 0; t < 100; ++t) {
+             auto [dcr_po, dcr_last] = getDCR(amplitudes_filtered, baseline2, 1255, (t+1) * 0.02);
+             //if (t == 20)
+             //    std::cout << "thres :" <<  (t+1) * 0.05 << " dcr in one waveform:" << dcr_po.size() << std::endl;
+             for (int k = 0; k < dcr_po.size(); k++) {
+                 dcr1D_dsp[ch]->Fill((t+0.5) * 0.02);
+                 dcr_dsp[ch]->Fill((t+0.5) * 0.02, dcr_last[k]);
+             }
+         }
          branchValues[ch] = sigQ;
          filterValues[ch] = sigQ_filter;
          for (int i = 0; i < N; i++) {
@@ -270,6 +314,10 @@ int main(int argc, char **argv) {
       hists_overthres[i]->Write();
       hists_bkgfreq_real[i]->Write();
       hists_bkgfreq_amp[i]->Write();
+      dcr[i]->Write();
+      dcr1D[i]->Write();
+      dcr_dsp[i]->Write();
+      dcr1D_dsp[i]->Write();
    }
        
    // Cleanup: Delete the histograms and free memory
