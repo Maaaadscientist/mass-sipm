@@ -61,7 +61,7 @@ for file_path in files:
         script_tmp += 'sleep 5\n'
         script_tmp += f'rm -f {file_name}\n'
         script_tmp += 'cd -\n'
-        with open(f'{output_dir}/jobs/{run_type}_run_{run_number}_ov{ov}_{sipm_type}_{channel}.sh','w') as file_tmp:
+        with open(f'{output_dir}/jobs/{output_name}.sh','w') as file_tmp:
             file_tmp.write(script_tmp)
     elif run_type == "light":
         run_number = components[2]
