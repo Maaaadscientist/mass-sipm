@@ -56,8 +56,8 @@ for file_path in files:
         script_tmp += 'cp /junofs/users/wanghanwen/sipm-massive/test.yaml .\n'
         script_tmp += 'cp /junofs/users/wanghanwen/sipm-massive/env_lcg.sh .\n'
         script_tmp += '. ./env_lcg.sh\n'
-        output_name = "_".join(components[0:-4]) + ".root"
-        script_tmp += f'/junofs/users/wanghanwen/sipm-massive/bin/scan -i {file_name} -c test.yaml -r {run_number} -v {ov} -t {run_type}_{sipm_type}_ch{channel} -o {output_dir}/{output_name}\n'
+        output_name = "_".join(components[0:-3])
+        script_tmp += f'/junofs/users/wanghanwen/sipm-massive/bin/scan -i {file_name} -c test.yaml -r {run_number} -v {ov} -t {run_type}_{sipm_type}_ch{channel} -o {output_dir}/{output_name}.root\n'
         script_tmp += 'sleep 5\n'
         script_tmp += f'rm -f {file_name}\n'
         script_tmp += 'cd -\n'
@@ -75,12 +75,12 @@ for file_path in files:
         script_tmp += 'cp /junofs/users/wanghanwen/sipm-massive/test.yaml .\n'
         script_tmp += 'cp /junofs/users/wanghanwen/sipm-massive/env_lcg.sh .\n'
         script_tmp += '. ./env_lcg.sh\n'
-        output_name = "_".join(components[0:-4]) + ".root"
-        script_tmp += f'/junofs/users/wanghanwen/sipm-massive/bin/scan -i {file_name} -c test.yaml -r {run_number} -v 0 -t {run_type}_{sipm_type}_ch{channel} -o {output_dir}/{output_name}\n'
+        output_name = "_".join(components[0:-3])
+        script_tmp += f'/junofs/users/wanghanwen/sipm-massive/bin/scan -i {file_name} -c test.yaml -r {run_number} -v 0 -t {run_type}_{sipm_type}_ch{channel} -o {output_dir}/{output_name}.root\n'
         script_tmp += 'sleep 5\n'
         script_tmp += f'rm -f {file_name}\n'
         script_tmp += 'cd -\n'
-        with open(f'{output_dir}/jobs/{run_type}_run_{run_number}_{sipm_type}_{channel}.sh','w') as file_tmp:
+        with open(f'{output_dir}/jobs/{output_name}.sh','w') as file_tmp:
             file_tmp.write(script_tmp)
        
 
