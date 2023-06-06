@@ -1,5 +1,6 @@
 apply_filter: true
 amplitude_gate_average: false
+DCR_amplitude_threshold: 1.0
 Butterworth_cutoff_frequency: 200
 Butterworth_order: 5
 signal_start: 1255

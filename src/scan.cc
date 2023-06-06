@@ -162,6 +162,7 @@ int main(int argc, char **argv) {
    bool applyFilter = Options::NodeAs<bool>(config, {"apply_filter"});
    bool gateAverage = Options::NodeAs<bool>(config, {"amplitude_gate_average"});
    float cutOffFreq = Options::NodeAs<float>(config, {"Butterworth_cutoff_frequency"});
+   float dcrThreshold = Options::NodeAs<float>(config, {"DCR_amplitude_threshold"});
    unsigned int filterOrder = Options::NodeAs<float>(config, {"Butterworth_order"});
    unsigned int signalStart = Options::NodeAs<unsigned int>(config, {"signal_start"});
    unsigned int signalEnd = Options::NodeAs<unsigned int>(config, {"signal_end"});
@@ -378,7 +379,7 @@ int main(int argc, char **argv) {
                  dcr_dsp[ch]->Fill((t+0.5) * 0.02, dcr_last[k]);
              }
          }
-         auto [po_tmp, last_tmp, dcr_amps, dcr_charges] = getDCR(waveforms_filtered, baseline2, signalStart, 1.0);
+         auto [po_tmp, last_tmp, dcr_amps, dcr_charges] = getDCR(waveforms_filtered, baseline2, signalStart, dcrThreshold);
          for (size_t i = 0; i < dcr_amps.size(); ++i) {
              dcrAmplitude[ch].push_back(dcr_amps[i]);
              dcrTime[ch].push_back(last_tmp[i]);
