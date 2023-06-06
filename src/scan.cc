@@ -161,6 +161,8 @@ int main(int argc, char **argv) {
    YAML::Node const config = options.GetConfig();
    bool applyFilter = Options::NodeAs<bool>(config, {"apply_filter"});
    bool gateAverage = Options::NodeAs<bool>(config, {"amplitude_gate_average"});
+   unsigned int signalStart = Options::NodeAs<unsigned int>(config, {"signal_start"});
+   unsigned int signalEnd = Options::NodeAs<unsigned int>(config, {"signal_end"});
    std::string outputName = "output.root";
    if (options.Exists("output")) outputName = options.GetAs<std::string>("output");
    int runNumber = 0;
@@ -352,14 +354,14 @@ int main(int argc, char **argv) {
             //std::cout << amp_backward << std::endl;
             hists_filtered[ch]->Fill(i * 8.0, amp_backward);
          }
-         auto [baseline, sigQ] = calculateBaselineAndSigQ(waveforms, 1255, 1300); 
-         auto [baseline2, sigQ_filter] = calculateBaselineAndSigQ(waveforms_filtered, 1255, 1300); 
-         auto signalAmpTmp = calculateSigAmp(waveforms_filtered, 1255, 1300, baseline2, gateAverage);
-         auto time_interval = getSignalTime(waveforms_filtered, baseline2, 1255, 1300, 1.0);
+         auto [baseline, sigQ] = calculateBaselineAndSigQ(waveforms, signalStart, signalEnd); 
+         auto [baseline2, sigQ_filter] = calculateBaselineAndSigQ(waveforms_filtered, signalStart, signalEnd); 
+         auto signalAmpTmp = calculateSigAmp(waveforms_filtered, signalStart, signalEnd, baseline2, gateAverage);
+         auto time_interval = getSignalTime(waveforms_filtered, baseline2, signalStart, signalEnd, 1.0);
          signalAmplitude[ch] = signalAmpTmp;
          signalTime[ch] = time_interval;
          for (int t = 0; t < 200; ++t) {
-             auto [dcr_po, dcr_last, dcr_amp, dcr_charge] = getDCR(waveforms, baseline, 1255, (t+1) * 0.02);
+             auto [dcr_po, dcr_last, dcr_amp, dcr_charge] = getDCR(waveforms, baseline, signalStart, (t+1) * 0.02);
              //    std::cout << "thres :" <<  (t+1) * 0.05 << " dcr in one waveform:" << dcr_po.size() << std::endl;
              for (unsigned int k = 0; k < dcr_last.size(); k++) {
                  dcr1D[ch]->Fill((t+0.5) * 0.02);
@@ -367,14 +369,14 @@ int main(int argc, char **argv) {
              }
          }
          for (int t = 0; t < 200; ++t) {
-             auto [dcr_po, dcr_last, dcr_amp, dcr_charge] = getDCR(waveforms_filtered, baseline2, 1255, (t+1) * 0.02);
+             auto [dcr_po, dcr_last, dcr_amp, dcr_charge] = getDCR(waveforms_filtered, baseline2, signalStart, (t+1) * 0.02);
              //    std::cout << "thres :" <<  (t+1) * 0.05 << " dcr in one waveform:" << dcr_po.size() << std::endl;
              for (unsigned int k = 0; k < dcr_last.size(); k++) {
                  dcr1D_dsp[ch]->Fill((t+0.5) * 0.02);
                  dcr_dsp[ch]->Fill((t+0.5) * 0.02, dcr_last[k]);
              }
          }
-         auto [po_tmp, last_tmp, dcr_amps, dcr_charges] = getDCR(waveforms_filtered, baseline2, 1255, 1.0);
+         auto [po_tmp, last_tmp, dcr_amps, dcr_charges] = getDCR(waveforms_filtered, baseline2, signalStart, 1.0);
          for (size_t i = 0; i < dcr_amps.size(); ++i) {
              dcrAmplitude[ch].push_back(dcr_amps[i]);
              dcrTime[ch].push_back(last_tmp[i]);
