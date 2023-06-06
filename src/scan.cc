@@ -361,7 +361,7 @@ int main(int argc, char **argv) {
          for (int t = 0; t < 200; ++t) {
              auto [dcr_po, dcr_last, dcr_amp, dcr_charge] = getDCR(waveforms, baseline, 1255, (t+1) * 0.02);
              //    std::cout << "thres :" <<  (t+1) * 0.05 << " dcr in one waveform:" << dcr_po.size() << std::endl;
-             for (unsigned int k = 0; k < dcr_po.size(); k++) {
+             for (unsigned int k = 0; k < dcr_last.size(); k++) {
                  dcr1D[ch]->Fill((t+0.5) * 0.02);
                  dcr[ch]->Fill((t+0.5) * 0.02, dcr_last[k]);
              }
@@ -369,7 +369,7 @@ int main(int argc, char **argv) {
          for (int t = 0; t < 200; ++t) {
              auto [dcr_po, dcr_last, dcr_amp, dcr_charge] = getDCR(waveforms_filtered, baseline2, 1255, (t+1) * 0.02);
              //    std::cout << "thres :" <<  (t+1) * 0.05 << " dcr in one waveform:" << dcr_po.size() << std::endl;
-             for (unsigned int k = 0; k < dcr_po.size(); k++) {
+             for (unsigned int k = 0; k < dcr_last.size(); k++) {
                  dcr1D_dsp[ch]->Fill((t+0.5) * 0.02);
                  dcr_dsp[ch]->Fill((t+0.5) * 0.02, dcr_last[k]);
              }
