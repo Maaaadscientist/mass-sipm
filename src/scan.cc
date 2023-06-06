@@ -161,6 +161,8 @@ int main(int argc, char **argv) {
    YAML::Node const config = options.GetConfig();
    bool applyFilter = Options::NodeAs<bool>(config, {"apply_filter"});
    bool gateAverage = Options::NodeAs<bool>(config, {"amplitude_gate_average"});
+   float cutOffFreq = Options::NodeAs<float>(config, {"Butterworth_cutoff_frequency"});
+   unsigned int filterOrder = Options::NodeAs<float>(config, {"Butterworth_order"});
    unsigned int signalStart = Options::NodeAs<unsigned int>(config, {"signal_start"});
    unsigned int signalEnd = Options::NodeAs<unsigned int>(config, {"signal_end"});
    std::string outputName = "output.root";
@@ -286,7 +288,7 @@ int main(int argc, char **argv) {
    double lowpass[N];
    for (int i = 0 ; i < N; i++) {
       //std::cout << i << "\t: "<< butterworthLowpassFilter(i*1.0,200, 5) << std::endl;
-      lowpass[i] = butterworthLowpassFilter(i*1.0,200, 5);
+      lowpass[i] = butterworthLowpassFilter(i*1.0, cutOffFreq, filterOrder);
    }
    for (int nev = skipEvents ; nev < std::min(num_events, maxEvents + skipEvents)  ;nev++) {
       int offset = 0;
