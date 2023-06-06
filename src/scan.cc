@@ -163,7 +163,10 @@ int main(int argc, char **argv) {
    bool gateAverage = Options::NodeAs<bool>(config, {"amplitude_gate_average"});
    float cutOffFreq = Options::NodeAs<float>(config, {"Butterworth_cutoff_frequency"});
    float dcrThreshold = Options::NodeAs<float>(config, {"DCR_amplitude_threshold"});
-   unsigned int filterOrder = Options::NodeAs<float>(config, {"Butterworth_order"});
+   float thresMin = Options::NodeAs<float>(config, {"DCR_threshold_min"});
+   float thresMax = Options::NodeAs<float>(config, {"DCR_threshold_max"});
+   unsigned int numThresBins = Options::NodeAs<unsigned int>(config, {"DCR_threshold_bins"});
+   unsigned int filterOrder = Options::NodeAs<unsigned int>(config, {"Butterworth_order"});
    unsigned int signalStart = Options::NodeAs<unsigned int>(config, {"signal_start"});
    unsigned int signalEnd = Options::NodeAs<unsigned int>(config, {"signal_end"});
    std::string outputName = "output.root";
@@ -208,10 +211,10 @@ int main(int argc, char **argv) {
       hists_sigfreq_imag[i] = new TH2F(Form("freqImag%d", i), "frequency amp imag", N/2, 0, N/2, N, -N/2, N/2);
       hists_sigfreq_amp[i] = new TH2F(Form("freqAmp%d", i), "frequency amp amplitude", N/2, 0, N/2, N, -N/2, N/2);
       hists_overthres[i] = new TH2F(Form("overthres%d", i), "wavefrom over threshold", 2010, 0, 2010, 1000, 0, 50);
-      dcr[i] = new TH2F(Form("dcr2D%d", i), "DCR", 200, 0, 4, 20, 0, 20);
-      dcr1D[i] = new TH1F(Form("dcr1D%d",  i), "DCR", 200, 0, 4);
-      dcr_dsp[i] = new TH2F(Form("dcr2D_afterfilter%d", i), "DCR after filter", 200, 0, 4, 20, 0, 20);
-      dcr1D_dsp[i] = new TH1F(Form("dcr1D_afterfilter%d", i), "DCR after filter", 200, 0, 4);
+      dcr[i] = new TH2F(Form("dcr2D%d", i), "DCR", numThresBins, thresMin, thresMax, 20, 0, 20);
+      dcr1D[i] = new TH1F(Form("dcr1D%d",  i), "DCR", numThresBins, thresMin, thresMax);
+      dcr_dsp[i] = new TH2F(Form("dcr2D_afterfilter%d", i), "DCR after filter",numThresBins, thresMin, thresMax, 20, 0, 20);
+      dcr1D_dsp[i] = new TH1F(Form("dcr1D_afterfilter%d", i), "DCR after filter", numThresBins, thresMin, thresMax);
    }
    TTree* tree = new TTree(Form("run%d_ov%d_%s", runNumber, ov, suffix.c_str()),"signal Q of all ADC channels");
    const int numBranches = 16;
@@ -363,20 +366,20 @@ int main(int argc, char **argv) {
          auto time_interval = getSignalTime(waveforms_filtered, baseline2, signalStart, signalEnd, 1.0);
          signalAmplitude[ch] = signalAmpTmp;
          signalTime[ch] = time_interval;
-         for (int t = 0; t < 200; ++t) {
-             auto [dcr_po, dcr_last, dcr_amp, dcr_charge] = getDCR(waveforms, baseline, signalStart, (t+1) * 0.02);
+         for (unsigned int t = 0; t < numThresBins; ++t) {
+             auto [dcr_po, dcr_last, dcr_amp, dcr_charge] = getDCR(waveforms, baseline, signalStart, (t+1) * (thresMax - thresMin) / numThresBins);
              //    std::cout << "thres :" <<  (t+1) * 0.05 << " dcr in one waveform:" << dcr_po.size() << std::endl;
              for (unsigned int k = 0; k < dcr_last.size(); k++) {
-                 dcr1D[ch]->Fill((t+0.5) * 0.02);
-                 dcr[ch]->Fill((t+0.5) * 0.02, dcr_last[k]);
+                 dcr1D[ch]->Fill((t+0.5) *  (thresMax - thresMin) / numThresBins);
+                 dcr[ch]->Fill((t+0.5) *  (thresMax - thresMin) / numThresBins, dcr_last[k]);
              }
          }
-         for (int t = 0; t < 200; ++t) {
-             auto [dcr_po, dcr_last, dcr_amp, dcr_charge] = getDCR(waveforms_filtered, baseline2, signalStart, (t+1) * 0.02);
+         for (unsigned int t = 0; t < numThresBins; ++t) {
+             auto [dcr_po, dcr_last, dcr_amp, dcr_charge] = getDCR(waveforms_filtered, baseline2, signalStart, (t+1) *  (thresMax - thresMin) / numThresBins);
              //    std::cout << "thres :" <<  (t+1) * 0.05 << " dcr in one waveform:" << dcr_po.size() << std::endl;
              for (unsigned int k = 0; k < dcr_last.size(); k++) {
-                 dcr1D_dsp[ch]->Fill((t+0.5) * 0.02);
-                 dcr_dsp[ch]->Fill((t+0.5) * 0.02, dcr_last[k]);
+                 dcr1D_dsp[ch]->Fill((t+0.5) *  (thresMax - thresMin) / numThresBins);
+                 dcr_dsp[ch]->Fill((t+0.5) *  (thresMax - thresMin) / numThresBins, dcr_last[k]);
              }
          }
          auto [po_tmp, last_tmp, dcr_amps, dcr_charges] = getDCR(waveforms_filtered, baseline2, signalStart, dcrThreshold);
