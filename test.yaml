@@ -1,2 +1,6 @@
 apply_filter: true
 amplitude_gate_average: false
+Butterworth_cutoff_frequency: 200
+Butterworth_order: 5
+signal_start: 1255
+signal_end: 1300
