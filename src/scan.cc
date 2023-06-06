@@ -30,6 +30,7 @@
 #define TQDC_BITS_TO_PC        TQDC_BITS_TO_MV*0.02*TIME_DISCRETIZATION //  50 Ohm ~0.0048828125
 #define N 2010
 #define numHistograms 16
+#define MINIMUM_DIFF 0.3
 typedef struct {
    size_t ev;			// event number
    size_t po;			// event header position
@@ -51,9 +52,18 @@ std::tuple<std::vector<int>, std::vector<int>, std::vector<double>, std::vector<
         if (SiPMWave[i] - thres >= baseline) {
             po.push_back(i);
             tmp.push_back(SiPMWave[i]);
+            int start = i;
+            for (int k = i; k >= 0; --k) {
+                //std::cout<< "tracing before:" <<k << std::endl;
+                if (abs(SiPMWave[k] -  baseline) <= MINIMUM_DIFF) {
+                    start = k;
+                    break;
+                }
+            }
             for (int j = i + 1; j < signalStart - 100; j++) {
-                if ( SiPMWave[j] - thres < baseline) {
-                    last.push_back(j - i);
+                //std::cout<< "tracing after:" <<j << std::endl;
+                if ( abs(SiPMWave[j] -  baseline) <= MINIMUM_DIFF) {
+                    last.push_back(j - start);
                     i = j;
                     break;
                 }
@@ -73,6 +83,33 @@ std::tuple<std::vector<int>, std::vector<int>, std::vector<double>, std::vector<
         }
     }
     return {po, last, amp, charge};
+}
+
+int getSignalTime( const std::vector<float> &SiPMWave, float baseline, int signalStart, int signalEnd, float thres) {
+    int time_interval = 0.;
+    for (int i = signalStart; i < signalEnd; i++) {
+        if (SiPMWave[i] - thres >= baseline) {
+            int start = i;
+            for (int k = i; k >= signalStart; --k) {
+                if (abs(SiPMWave[k] -  baseline) <= MINIMUM_DIFF) {
+                    start = k;
+                    break;
+                }
+                if (k == signalStart)
+                    start = k;
+            }
+            int end = i + 1;
+            for (int j = i + 1; j < signalEnd + 100; j++) {
+                if (abs(SiPMWave[j] -  baseline) <= MINIMUM_DIFF) {
+                    end = j;
+                    break;
+                }
+            }
+            time_interval = end - start;
+        }
+    }
+    //std::cout<< "time_interval" << time_interval << std::endl;
+    return time_interval; 
 }
 float calculateSigAmp(const std::vector<float> &SiPMWave, size_t signalStart, size_t signalEnd, float baseline, bool gateAverage) {
     float amp = 0;
@@ -174,6 +211,7 @@ int main(int argc, char **argv) {
    TTree* tree = new TTree(Form("run%d_ov%d_%s", runNumber, ov, suffix.c_str()),"signal Q of all ADC channels");
    const int numBranches = 16;
    double signalCharge[numBranches];
+   int signalTime[numBranches];
    double signalAmplitude[numBranches];
    double pedestalBL[numBranches];
    std::vector<double> dcrAmplitude[numBranches];
@@ -183,6 +221,7 @@ int main(int argc, char **argv) {
    for (int i = 0; i < numBranches; i++) {
       tree->Branch(Form("sigQ_ch%d", i), &signalCharge[i], Form("sigQ_ch%d/D", i));
       tree->Branch(Form("sigAmp_ch%d", i), &signalAmplitude[i], Form("sigAmp_ch%d/D", i));
+      tree->Branch(Form("sigTime_ch%d", i), &signalTime[i], Form("sigTime_ch%d/I", i));
       tree->Branch(Form("baseline_ch%d", i), &pedestalBL[i], Form("baseline_ch%d/D", i));
       tree->Branch(Form("dcrAmp_ch%d", i), &dcrAmplitude[i]);
       tree->Branch(Form("dcrTime_ch%d", i), &dcrTime[i]);
@@ -316,7 +355,9 @@ int main(int argc, char **argv) {
          auto [baseline, sigQ] = calculateBaselineAndSigQ(waveforms, 1255, 1300); 
          auto [baseline2, sigQ_filter] = calculateBaselineAndSigQ(waveforms_filtered, 1255, 1300); 
          auto signalAmpTmp = calculateSigAmp(waveforms_filtered, 1255, 1300, baseline2, gateAverage);
+         auto time_interval = getSignalTime(waveforms_filtered, baseline2, 1255, 1300, 1.0);
          signalAmplitude[ch] = signalAmpTmp;
+         signalTime[ch] = time_interval;
          for (int t = 0; t < 200; ++t) {
              auto [dcr_po, dcr_last, dcr_amp, dcr_charge] = getDCR(waveforms, baseline, 1255, (t+1) * 0.02);
              //    std::cout << "thres :" <<  (t+1) * 0.05 << " dcr in one waveform:" << dcr_po.size() << std::endl;
