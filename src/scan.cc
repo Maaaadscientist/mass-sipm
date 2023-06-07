@@ -279,7 +279,7 @@ int main(int argc, char **argv) {
          FileIndex.ev = num_events;   // absolute event number by data file
          FileIndex.po = ftell(fp)-3*sizeof(uint32_t);
          num_events++;
-         std::cout << "locating event:" << num_events << std::endl;
+         //std::cout << "locating event:" << num_events << std::endl;
          vFInd.push_back(FileIndex);
          fseek(fp,FileIndex.po+uiEVENT_HEADER[1],SEEK_SET);		// from zero position - jump over all event length
          if (FileIndex.po+uiEVENT_HEADER[1] > sSizeOfFile) break;
@@ -301,8 +301,20 @@ int main(int argc, char **argv) {
       //std::cout << i << "\t: "<< butterworthLowpassFilter(i*1.0,200, 5) << std::endl;
       lowpass[i] = butterworthLowpassFilter(i*1.0, cutOffFreq, filterOrder);
    }
-   for (int nev = skipEvents ; nev < std::min(num_events, maxEvents + skipEvents)  ;nev++) {
-      std::cout << "scanning event:" << nev << std::endl;
+   auto scanningStartTime = std::chrono::steady_clock::now();
+   for (int nev = skipEvents ; nev < std::min(num_events, maxEvents + skipEvents)  ; ++nev) {
+      if ((nev % 200 == 0 and nev > 0 ) or nev == std::min(num_events, maxEvents + skipEvents) - 1) {
+         if (nev == std::min(num_events, maxEvents + skipEvents) - 1) {
+            std::cout << "############### Scanning finished! ################" << std::endl;
+         }
+         std::cout << "scanning events:" << nev << std::endl;
+         auto scanningMidTime = std::chrono::steady_clock::now();
+         // Calculate the elapsed time
+         auto midElapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(scanningMidTime - scanningStartTime);
+         // Output the elapsed time
+         std::cout << "Scanning events time passed: " << midElapsedTime.count() / 1000. << " seconds" << std::endl;
+         std::cout << "Time per event: " << midElapsedTime.count() / (float)nev << " milliseconds" << std::endl;
+      }
       int offset = 0;
       std::uint32_t word;
       fseek(fp,vFInd.at(nev).po + sizeof(word) *  offset ,SEEK_SET);
