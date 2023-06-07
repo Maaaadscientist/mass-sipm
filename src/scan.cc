@@ -307,13 +307,13 @@ int main(int argc, char **argv) {
          if (nev == std::min(num_events, maxEvents + skipEvents) - 1) {
             std::cout << "############### Scanning finished! ################" << std::endl;
          }
-         std::cout << "scanning events:" << nev << std::endl;
+         std::cout << "scanning events:" << nev + 1 << std::endl;
          auto scanningMidTime = std::chrono::steady_clock::now();
          // Calculate the elapsed time
          auto midElapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(scanningMidTime - scanningStartTime);
          // Output the elapsed time
          std::cout << "Scanning events time passed: " << midElapsedTime.count() / 1000. << " seconds" << std::endl;
-         std::cout << "Time per event: " << midElapsedTime.count() / (float)nev << " milliseconds" << std::endl;
+         std::cout << "Time per event: " << midElapsedTime.count() / (float) (nev + 1) << " milliseconds" << std::endl;
       }
       int offset = 0;
       std::uint32_t word;
