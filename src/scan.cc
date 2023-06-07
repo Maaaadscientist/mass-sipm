@@ -278,7 +278,7 @@ int main(int argc, char **argv) {
          FileIndex.ev = num_events;   // absolute event number by data file
          FileIndex.po = ftell(fp)-3*sizeof(uint32_t);
          num_events++;
-         //std::cout << num_events << std::endl;
+         std::cout << "locating event:" << num_events << std::endl;
          vFInd.push_back(FileIndex);
          fseek(fp,FileIndex.po+uiEVENT_HEADER[1],SEEK_SET);		// from zero position - jump over all event length
          if (FileIndex.po+uiEVENT_HEADER[1] > sSizeOfFile) break;
@@ -295,6 +295,7 @@ int main(int argc, char **argv) {
       lowpass[i] = butterworthLowpassFilter(i*1.0, cutOffFreq, filterOrder);
    }
    for (int nev = skipEvents ; nev < std::min(num_events, maxEvents + skipEvents)  ;nev++) {
+      std::cout << "scanning event:" << nev << std::endl;
       int offset = 0;
       std::uint32_t word;
       fseek(fp,vFInd.at(nev).po + sizeof(word) *  offset ,SEEK_SET);
