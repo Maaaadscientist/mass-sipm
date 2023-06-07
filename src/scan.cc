@@ -270,6 +270,7 @@ int main(int argc, char **argv) {
    FileIndex.po = 0;
    std::vector<FILEINDEX> vFInd;
 
+   auto locatingStartTime = std::chrono::steady_clock::now();
    while (!feof(fp)) {
       fread(&buffer, sizeof(std::uint32_t), 1 , fp);
       if (buffer == 0x2A502A50) {
@@ -284,6 +285,12 @@ int main(int argc, char **argv) {
          if (FileIndex.po+uiEVENT_HEADER[1] > sSizeOfFile) break;
       }
    }
+   auto locatingEndTime = std::chrono::steady_clock::now();
+   // Calculate the elapsed time
+   auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(locatingEndTime - locatingStartTime);
+   // Output the elapsed time
+   std::cout << "Locating events time: " << elapsedTime.count() / 1000. << " seconds\n" << std::endl;
+   std::cout << "Time per event: " << elapsedTime.count() / (float)vFInd.size() << " milliseconds\n" << std::endl;
    if (skipEvents > num_events){ 
       LOG_ERROR << "skipEvents larger than maxEvents";
       std::abort(); 
