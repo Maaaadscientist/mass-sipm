@@ -47,11 +47,9 @@ std::tuple<std::vector<int>, std::vector<int>, std::vector<double>, std::vector<
     std::vector<int> last;
     std::vector<double> amp;
     std::vector<double> charge;
-    std::vector<double> tmp;
     for (int i = 0; i < signalStart - 200; i++) {
         if (SiPMWave[i] - thres >= baseline) {
             po.push_back(i);
-            tmp.push_back(SiPMWave[i]);
             int start = i;
             for (int k = i; k >= 0; --k) {
                 //std::cout<< "tracing before:" <<k << std::endl;
@@ -68,18 +66,18 @@ std::tuple<std::vector<int>, std::vector<int>, std::vector<double>, std::vector<
                     break;
                 }
                 else {
-                    tmp.push_back(SiPMWave[j]);
                     continue;
-                    
                 }
             }
-            double amp_tmp;
-            double dcrQ_tmp;
-            dcrQ_tmp = std::accumulate(tmp.begin(), tmp.end(), 0.0) - baseline * tmp.size();
-            amp_tmp = *max_element(std::begin(tmp), std::end(tmp)) - baseline;
-            amp.push_back(amp_tmp);
+            double amp_tmp = 0.;
+            double dcrQ_tmp = 0.;
+            //dcrQ_tmp = std::accumulate(tmp.begin(), tmp.end(), 0.0) - baseline * tmp.size();
+            for (int index = start; index <= start + 45 ; ++index) {
+                dcrQ_tmp += SiPMWave[index] - baseline;
+                if ( SiPMWave[index] > amp_tmp) amp_tmp = SiPMWave[index];
+            }
+            amp.push_back(amp_tmp - baseline);
             charge.push_back(dcrQ_tmp);
-            tmp.clear();
         }
     }
     return {po, last, amp, charge};
@@ -136,12 +134,12 @@ float calculateSigAmp(const std::vector<float> &SiPMWave, size_t signalStart, si
     return amp - baseline;  
 }
 
-std::pair<float, float> calculateBaselineAndSigQ(const std::vector<float> &SiPMWave, int signalStart, int signalEnd) {
+std::pair<float, float> calculateBaselineAndSigQ(const std::vector<float> &SiPMWave, int upperBound, int signalStart, int signalEnd) {
     float baseline = 0;
     float sigQ = 0;
 
     // Identify the start and end indices of regions where the signal is above the threshold
-    for (int i = 0; i < signalStart - 200; i++) {
+    for (int i = 0; i < upperBound; i++) {
         //if (i < 20)
             //baseline = (baseline * i + SiPMWave[i] ) / (i + 1);
         //else if (abs(baseline - SiPMWave[i]) < thres)
@@ -169,6 +167,7 @@ int main(int argc, char **argv) {
    unsigned int filterOrder = Options::NodeAs<unsigned int>(config, {"Butterworth_order"});
    unsigned int signalStart = Options::NodeAs<unsigned int>(config, {"signal_start"});
    unsigned int signalEnd = Options::NodeAs<unsigned int>(config, {"signal_end"});
+   unsigned int upperBound = Options::NodeAs<unsigned int>(config, {"baseline_bound"});
    std::string outputName = "output.root";
    if (options.Exists("output")) outputName = options.GetAs<std::string>("output");
    int runNumber = 0;
@@ -380,8 +379,8 @@ int main(int argc, char **argv) {
             //std::cout << amp_backward << std::endl;
             hists_filtered[ch]->Fill(i * 8.0, amp_backward);
          }
-         auto [baseline, sigQ] = calculateBaselineAndSigQ(waveforms, signalStart, signalEnd); 
-         auto [baseline2, sigQ_filter] = calculateBaselineAndSigQ(waveforms_filtered, signalStart, signalEnd); 
+         auto [baseline, sigQ] = calculateBaselineAndSigQ(waveforms, upperBound, signalStart, signalEnd); 
+         auto [baseline2, sigQ_filter] = calculateBaselineAndSigQ(waveforms_filtered, upperBound, signalStart, signalEnd); 
          auto signalAmpTmp = calculateSigAmp(waveforms_filtered, signalStart, signalEnd, baseline2, gateAverage);
          auto time_interval = getSignalTime(waveforms_filtered, baseline2, signalStart, signalEnd, 1.0);
          signalAmplitude[ch] = signalAmpTmp;

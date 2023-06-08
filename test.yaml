@@ -5,6 +5,7 @@ Butterworth_cutoff_frequency: 200
 Butterworth_order: 5
 signal_start: 1255
 signal_end: 1300
+baseline_bound: 400
 DCR_threshold_min: 0
 DCR_threshold_max: 4
 DCR_threshold_bins: 200
