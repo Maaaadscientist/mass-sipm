@@ -86,3 +86,6 @@ for file_path in files:
 
 os.system(f"chmod +x {output_dir}/jobs/*.sh")
 os.system(f"cp submit_jobs.sh {output_dir}")
+os.system(f"chmod +x {output_dir}/submit_jobs.sh ")
+os.system(f"cp check_failed_jobs.sh {output_dir}")
+os.system(f"chmod +x {output_dir}/check_failed_jobs.sh ")
