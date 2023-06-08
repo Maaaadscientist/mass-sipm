@@ -58,11 +58,12 @@ std::tuple<std::vector<int>, std::vector<int>, std::vector<double>, std::vector<
                     break;
                 }
             }
+            int end = i;
             for (int j = i + 1; j < signalStart - 100; j++) {
                 //std::cout<< "tracing after:" <<j << std::endl;
                 if ( abs(SiPMWave[j] -  baseline) <= MINIMUM_DIFF) {
-                    last.push_back(j - start);
                     i = j;
+                    end = j;
                     break;
                 }
                 else {
@@ -76,6 +77,7 @@ std::tuple<std::vector<int>, std::vector<int>, std::vector<double>, std::vector<
                 dcrQ_tmp += SiPMWave[index] - baseline;
                 if ( SiPMWave[index] > amp_tmp) amp_tmp = SiPMWave[index];
             }
+            last.push_back(end - start);
             amp.push_back(amp_tmp - baseline);
             charge.push_back(dcrQ_tmp);
         }
