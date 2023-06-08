@@ -11,13 +11,16 @@ import json
 
 ROOT.gSystem.Load("libRooFit")
 
+var_dict = {"sigQ": "ADC", "sigAmp":"Amplitude", "dcrQ":"ADC"}
+seq_list = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"]
+
 def get_gaussian_scale(mean, sigma, lower_bound, upper_bound):
     # Calculate the probability using the CDF
     probability = stats.norm.cdf(upper_bound, mean, sigma) - stats.norm.cdf(lower_bound, mean, sigma)
     return probability
 
 def fit_single_gaussian_peak(input_file, tree_name, variable_name, peak_mean, peak_sigma, peak_seq):
-    pattern = r'run(\d+)_ov(\d+)_(\w+)_(\w+)_(\d+)'
+    pattern = r'run(\d+)_ov(\d+)_(\w+)_(\w+)_ch(\d+)'
 
     tree_match = re.match(pattern, tree_name)
     if tree_match:
@@ -26,11 +29,12 @@ def fit_single_gaussian_peak(input_file, tree_name, variable_name, peak_mean, pe
         run_type = tree_match.group(3)   # "main"
         sipm_type = tree_match.group(4)   # "tile"
         channel = tree_match.group(5) # "2"
-    pattern_variable = r'sigQ_ch(\d+)'
+    pattern_variable = r'(\w+)_ch(\d+)'
     variable_match = re.match(pattern_variable, variable_name)
 
     if variable_match:
-        tile = variable_match.group(1)
+        variable_name_short = variable_match.group(1)
+        tile = variable_match.group(2)
     file1 = ROOT.TFile(input_file)
     tree = file1.Get(tree_name)
     
@@ -42,7 +46,10 @@ def fit_single_gaussian_peak(input_file, tree_name, variable_name, peak_mean, pe
     theWorkSpace = ROOT.RooWorkspace("theWorkSpace")
     # Create Gaussian model
     mean = ROOT.RooRealVar("mean", "mean", peak_mean, peak_mean - 1, peak_mean + 1)
-    sigma = ROOT.RooRealVar("sigma", "sigma", peak_sigma, peak_sigma * 0.1, peak_sigma * 1.2)
+    if sipm_type == "tile":
+        sigma = ROOT.RooRealVar("sigma", "sigma", peak_sigma, peak_sigma * 0.1, peak_sigma * 1.2)
+    elif sipm_type == "reff":
+        sigma = ROOT.RooRealVar("sigma", "sigma", peak_sigma * 0.1, peak_sigma * 0.01, peak_sigma * 1.2)
     theWorkSpace.Import(x)
     theWorkSpace.Import(mean)
     theWorkSpace.Import(sigma)
@@ -95,9 +102,9 @@ def fit_single_gaussian_peak(input_file, tree_name, variable_name, peak_mean, pe
 
     canvas = ROOT.TCanvas("c1","c1", 1200, 800)
     frame = x.frame()
-    frame.SetXTitle("ADC")
+    frame.SetXTitle(var_dict[variable_name_short])
     frame.SetYTitle("Events")
-    frame.SetTitle("fit result of peak" + str(peak_mean))
+    frame.SetTitle(f"{var_dict[variable_name_short]} fit result of peak {peak_mean:.2f} (the {seq_list[peak_seq]} peak)")
     data.plotOn(frame)
     theWorkSpace.pdf("final").plotOn(frame, ROOT.RooFit.LineColor(ROOT.kBlue))
     theWorkSpace.pdf("final").plotOn(frame, ROOT.RooFit.Components("background"), ROOT.RooFit.LineStyle(ROOT.kDashed), ROOT.RooFit.LineColor(ROOT.kRed))
@@ -120,7 +127,7 @@ def fit_single_gaussian_peak(input_file, tree_name, variable_name, peak_mean, pe
     legend.AddEntry(signal_line, "S+B", "l")
     legend.AddEntry(background_line, "B only", "l")
     legend.Draw("same")
-    canvas.SaveAs(f'{run_type}_run{run}_ov{ov}_{sipm_type}_ch{channel}_po{tile}_peak{peak_seq}.pdf')
+    canvas.SaveAs(f'{variable_name_short}_{run_type}_run{run}_ov{ov}_{sipm_type}_ch{channel}_po{tile}_peak{peak_seq}.pdf')
 
     print("Results:")
     print(f"  Peak: Mean = {mean_value}, Sigma = {sigma_value},  Events = {total_entries}")
@@ -197,7 +204,7 @@ def find_local_maximum(array, totalrange, window_size):
     return peaks  # No local maximum found
 
 if __name__ == "__main__":
-    if len(sys.argv) < 7:
+    if len(sys.argv) < 8:
         print("Usage: python find_gaussian_peaks.py <input_file> <tree_name> <variable_name> <num_bins> <minRange> <maxRange> <output_path>")
     else:
         input_file = sys.argv[1]
@@ -208,7 +215,8 @@ if __name__ == "__main__":
         maxRange = float(sys.argv[6])
     file1 = ROOT.TFile(input_file)
     tree = file1.Get(tree_name)
-    pattern = r'run(\d+)_ov(\d+)_(\w+)_(\w+)_(\d+)'
+    pattern = r'run(\d+)_ov(\d+)_(\w+)_(\w+)_ch(\d+)'
+    print(tree_name)
 
     tree_match = re.match(pattern, tree_name)
     if tree_match:
@@ -218,11 +226,12 @@ if __name__ == "__main__":
         sipm_type = tree_match.group(4)   # "tile"
         channel = tree_match.group(5) # "2"
 
-    pattern_variable = r'sigQ_ch(\d+)'
+    pattern_variable = r'(\w+)_ch(\d+)'
     variable_match = re.match(pattern_variable, variable_name)
 
     if variable_match:
-        tile = variable_match.group(1)
+        variable_name_short = variable_match.group(1)
+        tile = variable_match.group(2)
     if len(sys.argv) == 8:
         output_path = sys.argv[7]
     else:
@@ -237,7 +246,15 @@ if __name__ == "__main__":
     spectrum = ROOT.TSpectrum()
     #########################  TSpectrum search ######################
     # (TH1, sigma , "options", threshold)
-    n_peaks = spectrum.Search(hist, 0.5 , "", 0.2)
+    c1 = ROOT.TCanvas("c1","c1",600,600)
+    if sipm_type == "reff":
+        n_peaks = spectrum.Search(hist, 0.5 , "", 0.01)
+    elif variable_name_short == "dcrQ":
+        n_peaks = spectrum.Search(hist, 2 , "", 0.05)
+    else:
+        n_peaks = spectrum.Search(hist, 0.5 , "", 0.2)
+    c1.SaveAs("check.pdf")
+    c1.Clear()
     ##################################################################
     peaks_tspectrum = []
     for i in range(n_peaks):
@@ -269,6 +286,6 @@ if __name__ == "__main__":
             combined_dict[key].append(value)
     df = pd.DataFrame(combined_dict)
     # Save the DataFrame to a CSV file
-    df.to_csv(f'{run_type}_run{run}_ov{ov}_{sipm_type}_ch{channel}_po{tile}.csv', index=False)
-    os.system(f"mv {run_type}_run{run}_ov{ov}*.csv {output_path}")
-    os.system(f"mv {run_type}_run{run}_ov{ov}*.pdf {output_path}")
+    df.to_csv(f'{variable_name_short}_{run_type}_run{run}_ov{ov}_{sipm_type}_ch{channel}_po{tile}.csv', index=False)
+    os.system(f"mv {variable_name_short}_{run_type}_run{run}_ov{ov}*.csv {output_path}")
+    os.system(f"mv {variable_name_short}_{run_type}_run{run}_ov{ov}*.pdf {output_path}")
