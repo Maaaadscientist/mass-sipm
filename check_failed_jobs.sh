@@ -2,7 +2,7 @@
 
 # Check if the threshold argument is provided
 if [[ -z $1 ]]; then
-  echo "Usage: ./check_failed_jobs.sh <threshold_in_mb>"
+  echo "Usage: ./check_failed_jobs.sh <threshold_in_MB>"
   exit 1
 fi
 
@@ -24,7 +24,7 @@ for file in $files; do
     size_mb=$(du -m "$file" | cut -f1)
 
     # Compare the file size with the threshold
-    if (( size_mb < threshold_mb ))
+    if (( size_mb <= threshold_mb ))
     then
         echo "Failed job: $file (Size: ${size_mb}MB)"
         # Remove the ".root" suffix and add the file name to the array
