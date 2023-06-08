@@ -204,7 +204,7 @@ def find_local_maximum(array, totalrange, window_size):
     return peaks  # No local maximum found
 
 if __name__ == "__main__":
-    if len(sys.argv) < 8:
+    if len(sys.argv) < 7:
         print("Usage: python find_gaussian_peaks.py <input_file> <tree_name> <variable_name> <num_bins> <minRange> <maxRange> <output_path>")
     else:
         input_file = sys.argv[1]
@@ -246,15 +246,10 @@ if __name__ == "__main__":
     spectrum = ROOT.TSpectrum()
     #########################  TSpectrum search ######################
     # (TH1, sigma , "options", threshold)
-    c1 = ROOT.TCanvas("c1","c1",600,600)
     if sipm_type == "reff":
         n_peaks = spectrum.Search(hist, 0.5 , "", 0.01)
-    elif variable_name_short == "dcrQ":
-        n_peaks = spectrum.Search(hist, 2 , "", 0.05)
     else:
         n_peaks = spectrum.Search(hist, 0.5 , "", 0.2)
-    c1.SaveAs("check.pdf")
-    c1.Clear()
     ##################################################################
     peaks_tspectrum = []
     for i in range(n_peaks):

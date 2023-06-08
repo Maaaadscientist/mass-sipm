@@ -38,6 +38,18 @@ done
 read -p "Ready to resubmit jobs? (y/n): " choice
 if [[ $choice == "y" ]]
 then
+
+    # Directory to be added to PATH
+    htcondor_dir="/afs/ihep.ac.cn/soft/common/sysgroup/hep_job/bin"
+    
+    # Check if the directory is already in the PATH
+    if echo "$PATH" | grep -q "$htcondor_dir"; then
+      echo "Directory already exists in PATH. No changes needed."
+    else
+      # Add the directory to the PATH variable
+      export PATH="$htcondor_dir:$PATH"
+      echo "Directory added to PATH."
+    fi
     # Loop through the array and resubmit jobs
     for file in "${files_to_resubmit[@]}"
     do
