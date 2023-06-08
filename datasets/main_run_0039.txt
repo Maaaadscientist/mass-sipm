@@ -1,0 +1,15 @@
+/eos/juno/groups/TAO/taoprod/mass_test/run_data/main_run_0039/main_run_0039_ov_3.00_sipmgr_01_reff_080c635b_20230424_214417.data
+/eos/juno/groups/TAO/taoprod/mass_test/run_data/main_run_0039/main_run_0039_ov_3.00_sipmgr_01_tile_0cd96b60_20230424_214417.data
+/eos/juno/groups/TAO/taoprod/mass_test/run_data/main_run_0039/main_run_0039_ov_3.00_sipmgr_02_reff_080c635b_20230424_214604.data
+/eos/juno/groups/TAO/taoprod/mass_test/run_data/main_run_0039/main_run_0039_ov_3.00_sipmgr_02_tile_0cd96b60_20230424_214604.data
+/eos/juno/groups/TAO/taoprod/mass_test/run_data/main_run_0039/main_run_0039_ov_3.00_sipmgr_03_reff_080c635b_20230424_214749.data
+/eos/juno/groups/TAO/taoprod/mass_test/run_data/main_run_0039/main_run_0039_ov_3.00_sipmgr_03_tile_0cd96b60_20230424_214749.data
+/eos/juno/groups/TAO/taoprod/mass_test/run_data/main_run_0039/main_run_0039_ov_3.00_sipmgr_04_reff_080c635b_20230424_214938.data
+/eos/juno/groups/TAO/taoprod/mass_test/run_data/main_run_0039/main_run_0039_ov_3.00_sipmgr_04_tile_0cd96b60_20230424_214938.data
+/eos/juno/groups/TAO/taoprod/mass_test/run_data/main_run_0039/main_run_0039_ov_3.00_sipmgr_05_reff_080c635b_20230424_215123.data
+/eos/juno/groups/TAO/taoprod/mass_test/run_data/main_run_0039/main_run_0039_ov_3.00_sipmgr_05_tile_0cd96b60_20230424_215123.data
+/eos/juno/groups/TAO/taoprod/mass_test/run_data/main_run_0039/main_run_0039_ov_3.00_sipmgr_06_reff_080c635b_20230424_215308.data
+/eos/juno/groups/TAO/taoprod/mass_test/run_data/main_run_0039/main_run_0039_ov_3.00_sipmgr_06_tile_0cd96b60_20230424_215308.data
+/eos/juno/groups/TAO/taoprod/mass_test/run_data/main_run_0039/main_run_0039_ov_3.00_sipmgr_07_reff_080c635b_20230424_215452.data
+/eos/juno/groups/TAO/taoprod/mass_test/run_data/main_run_0039/main_run_0039_ov_3.00_sipmgr_07_tile_0cd96b60_20230424_215452.data
+path=/eos/juno/groups/TAO/taoprod/mass_test/run_data/main_run_0039/

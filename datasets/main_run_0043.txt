@@ -1,0 +1,3 @@
+/eos/juno/groups/TAO/taoprod/mass_test/run_data/main_run_0043/main_run_0043_ov_5.00_sipmgr_01_reff_080c635b_20230425_104816.data
+/eos/juno/groups/TAO/taoprod/mass_test/run_data/main_run_0043/main_run_0043_ov_5.00_sipmgr_01_tile_0cd96b60_20230425_104816.data
+path=/eos/juno/groups/TAO/taoprod/mass_test/run_data/main_run_0043/
