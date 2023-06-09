@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import os, sys
-from copy import deepcopy
+
 if len(sys.argv) < 3:
     print("Usage: python prepare_jobs <input_dir> <output_dir>")
 else:
@@ -15,7 +15,7 @@ if not os.path.isdir(output_dir + "/jobs"):
     os.makedirs(output_dir + "/jobs")
 if not os.path.isdir(output_dir + "/plots"):
     os.makedirs(output_dir + "/plots")
-template = """for ov in {1..2}; do
+template = """for ov in {1..6}; do
   for ch in {0..15}; do
     # Construct the input filename
     input_file="${file_path}/${run_info}_ov_${ov}.00_sipmgr_$(printf "%02d" $sipmgr)_${root_type}.root"
