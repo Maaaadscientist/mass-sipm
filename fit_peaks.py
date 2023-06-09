@@ -280,6 +280,7 @@ if __name__ == "__main__":
         fit_info['type'] = sipm_type
         fit_info['position'] = tile 
         fit_info['run_type'] = run_type
+        fit_info['var'] = variable_name_short
         mean_tmp = mean
         for key, value in fit_info.items():
             combined_dict[key].append(value)
