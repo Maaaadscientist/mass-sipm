@@ -32,10 +32,10 @@ template = """for ov in {1..6}; do
       amp_bins=$((20 * (amp_range_end - amp_range_start)))
 
       # Construct and execute the command
-      charge_fit_command="$python draw_histos.py ${input_file} run${run_number}_ov${ov}_main_${root_type}_ch${sipmgr} sigQ_ch${ch} ${charge_bins} ${charge_range_start} ${charge_range_end} ${output_file}/plots"
+      charge_fit_command="$python draw_histos.py ${input_file} run${run_number}_ov${ov}_main_${root_type}_ch${sipmgr} sigQ_ch${ch} ${charge_bins} ${charge_range_start} ${charge_range_end} ${output_file}/hists"
       echo "Executing command: ${charge_fit_command}"
       $charge_fit_command
-      amp_fit_command="$python draw_histos.py ${input_file} run${run_number}_ov${ov}_main_${root_type}_ch${sipmgr} sigAmp_ch${ch} ${amp_bins} ${amp_range_start} ${amp_range_end} ${output_file}/plots"
+      amp_fit_command="$python draw_histos.py ${input_file} run${run_number}_ov${ov}_main_${root_type}_ch${sipmgr} sigAmp_ch${ch} ${amp_bins} ${amp_range_start} ${amp_range_end} ${output_file}/hists"
       echo "Executing command: ${amp_fit_command}"
       $amp_fit_command
     done

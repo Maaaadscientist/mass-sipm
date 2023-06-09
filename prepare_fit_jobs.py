@@ -16,7 +16,7 @@ if not os.path.isdir(output_dir + "/jobs"):
 if not os.path.isdir(output_dir + "/plots"):
     os.makedirs(output_dir + "/plots")
 template = """for ov in {1..6}; do
-  for ch in {0..15}; do
+  for ch in {0..16}; do
     # Construct the input filename
     input_file="${file_path}/${run_info}_ov_${ov}.00_sipmgr_$(printf "%02d" $sipmgr)_${root_type}.root"
 
@@ -71,3 +71,4 @@ for ch in range(1,17):
 os.system(f"chmod +x {output_dir}/jobs/*.sh")
 os.system(f"cp submit_jobs.sh {output_dir}")
 os.system(f"chmod +x {output_dir}/submit_jobs.sh ")
+os.system(f"cp combine_csv.py {output_dir}")
