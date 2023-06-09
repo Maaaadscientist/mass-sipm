@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os, sys
+from copy import deepcopy
 
 if len(sys.argv) < 3:
     print("Usage: python prepare_jobs <input_dir> <output_dir>")
@@ -91,7 +92,7 @@ for ch in range(1,17):
   script += f'run_number="{run_number}"\n'
   script += f'output_file="{output_dir}"\n'
   for job_type in ["fit","hist"]:
-    with open(f'{output_dir}/jobs/{job_type}_job.sh','w') as file_tmp:
+    with open(f'{output_dir}/jobs/{job_type}_job_{ch}.sh','w') as file_tmp:
       script_tmp = deepcopy(script)
       script_tmp += template_hist if job_type == "hist" else template_fit
       script_tmp += '\n'
