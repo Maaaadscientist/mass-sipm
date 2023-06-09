@@ -22,7 +22,7 @@ if __name__ == "__main__":
         maxRange = float(sys.argv[6])
     file1 = ROOT.TFile(input_file)
     tree = file1.Get(tree_name)
-    pattern = r'run(\d+)_ov(\d+)_(\w+)_(\w+)_(\d+)'
+    pattern = r'run(\d+)_ov(\d+)_(\w+)_(\w+)_ch(\d+)'
     print(tree_name)
 
     tree_match = re.match(pattern, tree_name)
