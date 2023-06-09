@@ -246,10 +246,11 @@ if __name__ == "__main__":
     spectrum = ROOT.TSpectrum()
     #########################  TSpectrum search ######################
     # (TH1, sigma , "options", threshold)
-    n_peaks = spectrum.Search(hist, 0.5 , "", 0.2)
+    n_peaks = spectrum.Search(hist, 0.5 , "", 0.1)
     if sipm_type == "reff":
         n_peaks = spectrum.Search(hist, 0.5 , "", 0.01)
-    if variable_name_short == "sigAmp" and int(ov) >= 4:
+    #if variable_name_short == "sigAmp" and int(ov) >= 4:
+    if variable_name_short == "sigAmp":
         n_peaks = spectrum.Search(hist, 0.5 , "", 0.05)
     if variable_name_short == "sigQ" and int(ov) >= 5:
         n_peaks = spectrum.Search(hist, 0.5 , "", 0.05)

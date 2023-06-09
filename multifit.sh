@@ -7,14 +7,15 @@ python="/opt/homebrew/bin/python3.10"
 #ov=1
 sipmgr=1
 root_type="tile"
-for ov in {1..6}; do
+file_path="main_run_0077"
+run_info="main_run_0077"
+output_file="newfit"
+
+for ov in {1..2}; do
   for ch in {0..15}; do
     # Construct the input filename
-    input_file="main_run_0077/main_run_0077_ov_${ov}.00_sipmgr_$(printf "%02d" $sipmgr)_${root_type}.root"
+    input_file="${file_path}/${run_info}_ov_${ov}.00_sipmgr_$(printf "%02d" $sipmgr)_${root_type}.root"
   
-  
-    # Construct the output filename
-    output_file="newfit"
   
     # Calculate the bins and range based on ov value
     charge_range_start=-20
