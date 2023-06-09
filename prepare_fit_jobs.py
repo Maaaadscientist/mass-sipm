@@ -39,7 +39,7 @@ template = """for ov in {1..6}; do
     $amp_fit_command
   done
 done"""
-for ch in range(1,16):
+for ch in range(1,17):
     script  = ''
     script += '#!/bin/bash\n'
     script += f'directory="{output_dir}"\n'
