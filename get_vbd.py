@@ -172,7 +172,7 @@ for position in range(16):
   plt.xticks(channels) 
    
   # Display the plot 
-  plt.savefig(f'{output_dir}/vbd_run{run_number}_sipm{position}.pdf') 
+  plt.savefig(f'{output_dir}/breakdownVoltage_run{run_number}_sipm{position}.pdf') 
   plt.clf()
     
 # Close the figure to save memory
