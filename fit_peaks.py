@@ -19,7 +19,7 @@ def get_gaussian_scale(mean, sigma, lower_bound, upper_bound):
     probability = stats.norm.cdf(upper_bound, mean, sigma) - stats.norm.cdf(lower_bound, mean, sigma)
     return probability
 
-def fit_single_gaussian_peak(input_file, tree_name, variable_name, peak_mean, peak_sigma, peak_seq):
+def fit_single_gaussian_peak(hist, variable_name, peak_mean, peak_sigma, peak_seq):
     pattern = r'run(\d+)_ov(\d+)_(\w+)_(\w+)_ch(\d+)'
 
     tree_match = re.match(pattern, tree_name)
@@ -35,12 +35,10 @@ def fit_single_gaussian_peak(input_file, tree_name, variable_name, peak_mean, pe
     if variable_match:
         variable_name_short = variable_match.group(1)
         tile = variable_match.group(2)
-    file1 = ROOT.TFile(input_file)
-    tree = file1.Get(tree_name)
     
     # Create RooFit variables
     x = ROOT.RooRealVar(variable_name, variable_name, peak_mean -  0.5 *peak_sigma, peak_mean + 0.5 * peak_sigma)
-    data = ROOT.RooDataSet("data", "data", ROOT.RooArgSet(x), ROOT.RooFit.Import(tree))
+    data = ROOT.RooDataHist("data", "data", ROOT.RooArgSet(x), ROOT.RooFit.Import(hist))
 
     # Create the WorkSpace
     theWorkSpace = ROOT.RooWorkspace("theWorkSpace")
@@ -82,15 +80,15 @@ def fit_single_gaussian_peak(input_file, tree_name, variable_name, peak_mean, pe
     f_val = final_params.find("amplitude").getVal()
     f_error = final_params.find("amplitude").getError()
 
-    total_entries = data.numEntries()
+    total_entries = data.sumEntries()
     # Create a normalization object for the Gaussian PDF
     gauss_norm = theWorkSpace.pdf("signal").createIntegral(ROOT.RooArgSet(x), ROOT.RooFit.NormSet(x), ROOT.RooFit.Range("x"))
     # Create a normalization object for the exponential PDF
     expo_norm = theWorkSpace.pdf("background").createIntegral(ROOT.RooArgSet(x), ROOT.RooFit.NormSet(x), ROOT.RooFit.Range("x"))
 
     # Calculate the total number of events predicted by the signal PDF
-    total_events_signal = gauss_norm.getVal() * f_val * data.numEntries()
-    total_events_background = expo_norm.getVal() * (1 - f_val) * data.numEntries()
+    total_events_signal = gauss_norm.getVal() * f_val * total_entries
+    total_events_background = expo_norm.getVal() * (1 - f_val) * total_entries
     # Calculate the uncertainties of the signal and background number of events
     total_events_signal_unc = np.sqrt((total_entries * f_error)**2 + (f_val * total_entries)**2 * (f_error / f_val)**2)
     total_events_background_unc = np.sqrt((total_entries * f_error)**2 + ((1 - f_val) * total_entries)**2 * (f_error / (1 - f_val))**2)
@@ -249,10 +247,11 @@ if __name__ == "__main__":
     n_peaks = spectrum.Search(hist, 0.5 , "", 0.1)
     if sipm_type == "reff":
         n_peaks = spectrum.Search(hist, 0.5 , "", 0.01)
-    #if variable_name_short == "sigAmp" and int(ov) >= 4:
     if variable_name_short == "sigAmp":
         n_peaks = spectrum.Search(hist, 0.5 , "", 0.05)
     if variable_name_short == "sigQ" and int(ov) >= 5:
+        n_peaks = spectrum.Search(hist, 0.5 , "", 0.05)
+    if variable_name_short == "dcrQ":
         n_peaks = spectrum.Search(hist, 0.5 , "", 0.05)
     ##################################################################
     peaks_tspectrum = []
@@ -270,7 +269,7 @@ if __name__ == "__main__":
         if i != 0:
             if abs(mean - mean_tmp) < 0.5 * peaks_distance:
                 continue
-        fit_info = fit_single_gaussian_peak(input_file, tree_name, variable_name, mean , peaks_distance, i)
+        fit_info = fit_single_gaussian_peak(hist, variable_name, mean , peaks_distance, i)
         print(fit_info)
         fit_info['peak'] = i
         fit_info['events'] = n_entry
