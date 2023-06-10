@@ -81,7 +81,7 @@ template_dcr = """for ov in {1..6}; do
     charge_bins=$((1 * (charge_range_end - charge_range_start)))
 
     # Construct and execute the command
-    charge_fit_command="$python get_dcr.py ${input_file} run${run_number}_ov${ov}_main_${root_type}_ch${sipmgr} sigQ_ch${ch} ${charge_bins} ${charge_range_start} ${charge_range_end} ${output_file}/dcr"
+    charge_fit_command="$python get_dcr.py ${input_file} run${run_number}_ov${ov}_main_${root_type}_ch${sipmgr} dcrQ_ch${ch} ${charge_bins} ${charge_range_start} ${charge_range_end} ${output_file}/dcr"
     echo "Executing command: ${charge_fit_command}"
     $charge_fit_command
   done
@@ -117,9 +117,9 @@ for ch in range(1,17):
       script_tmp = deepcopy(script)
       if job_type == "hist":
         script_tmp += template_hist
-      elif job_type =="fit"
+      elif job_type =="fit":
         script_tmp += template_fit
-      elif job_type =="dcr"
+      elif job_type =="dcr":
         script_tmp += template_dcr
  
       script_tmp += '\n'
