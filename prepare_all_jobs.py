@@ -18,6 +18,8 @@ if not os.path.isdir(output_dir + "/plots"):
     os.makedirs(output_dir + "/plots")
 if not os.path.isdir(output_dir + "/hists"):
     os.makedirs(output_dir + "/hists")
+if not os.path.isdir(output_dir + "/dcr"):
+    os.makedirs(output_dir + "/dcr")
 template_hist = """for ov in {1..6}; do
   for ch in {0..16}; do
     # Construct the input filename
@@ -67,6 +69,24 @@ template_fit = """for ov in {1..6}; do
     $amp_fit_command
   done
 done"""
+template_dcr = """for ov in {1..6}; do
+  for ch in {0..16}; do
+    # Construct the input filename
+    input_file="${file_path}/${run_info}_ov_${ov}.00_sipmgr_$(printf "%02d" $sipmgr)_${root_type}.root"
+
+
+    # Calculate the bins and range based on ov value
+    charge_range_start=-10
+    charge_range_end=$((ov * 40 + 10))
+    charge_bins=$((1 * (charge_range_end - charge_range_start)))
+
+    # Construct and execute the command
+    charge_fit_command="$python get_dcr.py ${input_file} run${run_number}_ov${ov}_main_${root_type}_ch${sipmgr} sigQ_ch${ch} ${charge_bins} ${charge_range_start} ${charge_range_end} ${output_file}/dcr"
+    echo "Executing command: ${charge_fit_command}"
+    $charge_fit_command
+  done
+done"""
+
 for ch in range(1,17):
   script  = ''
   script += '#!/bin/bash\n'
@@ -83,6 +103,7 @@ for ch in range(1,17):
   script += 'cp /junofs/users/wanghanwen/sipm-massive/env_lcg.sh .\n'
   script += 'cp /junofs/users/wanghanwen/sipm-massive/fit_peaks.py .\n'
   script += 'cp /junofs/users/wanghanwen/sipm-massive/draw_histos.py .\n'
+  script += 'cp /junofs/users/wanghanwen/sipm-massive/get_dcr.py .\n'
   script += '. ./env_lcg.sh\n'
   script += 'python=$(which python3)\n'
   script += f'sipmgr={ch}\n'
@@ -91,10 +112,16 @@ for ch in range(1,17):
   script += f'run_info="{run_info}"\n'
   script += f'run_number="{run_number}"\n'
   script += f'output_file="{output_dir}"\n'
-  for job_type in ["fit","hist"]:
+  for job_type in ["fit","hist","dcr"]:
     with open(f'{output_dir}/jobs/{job_type}_job_{ch}.sh','w') as file_tmp:
       script_tmp = deepcopy(script)
-      script_tmp += template_hist if job_type == "hist" else template_fit
+      if job_type == "hist":
+        script_tmp += template_hist
+      elif job_type =="fit"
+        script_tmp += template_fit
+      elif job_type =="dcr"
+        script_tmp += template_dcr
+ 
       script_tmp += '\n'
       script_tmp += 'cd -\n'
       file_tmp.write(script_tmp)
