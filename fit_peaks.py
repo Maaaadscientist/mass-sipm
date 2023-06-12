@@ -249,7 +249,7 @@ if __name__ == "__main__":
         n_peaks = spectrum.Search(hist, 0.5 , "", 0.01)
     if variable_name_short == "sigAmp":
         n_peaks = spectrum.Search(hist, 0.5 , "", 0.05)
-    if variable_name_short == "sigQ" and int(ov) >= 5:
+    if variable_name_short == "sigQ" and int(ov) >= 4:
         n_peaks = spectrum.Search(hist, 0.5 , "", 0.05)
     if variable_name_short == "dcrQ":
         n_peaks = spectrum.Search(hist, 0.5 , "", 0.05)

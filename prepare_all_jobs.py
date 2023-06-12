@@ -105,7 +105,17 @@ for ch in range(1,17):
   script += 'cp /junofs/users/wanghanwen/sipm-massive/draw_histos.py .\n'
   script += 'cp /junofs/users/wanghanwen/sipm-massive/get_dcr.py .\n'
   script += '. ./env_lcg.sh\n'
+  script += 'expected_string="/cvmfs/sft.cern.ch/lcg/views/LCG_102/x86_64-centos7-gcc11-opt/bin/python3"\n'
   script += 'python=$(which python3)\n'
+  script += """
+if [ "$python" = "$expected_string" ]; then
+    echo "Command returned the expected string: python=$expected_string"
+else
+    echo "Command did not return the expected string."
+    cp /junofs/users/wanghanwen/sipm-massive/env_lcg.sh .
+    . ./env_lcg.sh
+fi"""
+  script += 'sleep 10\n'
   script += f'sipmgr={ch}\n'
   script += 'root_type="tile"\n'
   script += f'file_path="{input_dir}"\n'

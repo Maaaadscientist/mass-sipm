@@ -96,7 +96,8 @@ def fit_single_gaussian_peak(hist, variable_name, peak_mean, peak_sigma, peak_se
     frame = x.frame()
     frame.SetXTitle("ADC")
     frame.SetYTitle("Events")
-    frame.SetTitle("fit result of peak" + str(peak_mean))
+    #frame.SetTitle("fit result of peak" + str(peak_mean))
+    frame.SetTitle(f"Peak@{peak_mean} of {run_type} run ov {ov}V {sipm_type} ch{channel} po{tile}")
     data.plotOn(frame)
     theWorkSpace.pdf("final").plotOn(frame, ROOT.RooFit.LineColor(ROOT.kBlue))
     theWorkSpace.pdf("final").plotOn(frame, ROOT.RooFit.Components("background"), ROOT.RooFit.LineStyle(ROOT.kDashed), ROOT.RooFit.LineColor(ROOT.kRed))
@@ -208,6 +209,7 @@ if __name__ == "__main__":
     file1 = ROOT.TFile(input_file)
     tree = file1.Get(tree_name)
     pattern = r'run(\d+)_ov(\d+)_(\w+)_(\w+)_ch(\d+)'
+    n_entry = tree.GetEntries()
 
     tree_match = re.match(pattern, tree_name)
     if tree_match:
@@ -231,23 +233,20 @@ if __name__ == "__main__":
         os.makedirs(output_path)
     # Time window threshold
     #time_cut =6
-    for time_cut in range(1,11):
-      if int(tile) == 1 and int(ov) < 3:
-          print(time_cut, "continue")
-          continue;
+    for time_cut in range(1,6):
       # Create a histogram and fill it with the values from the TTree
       hist = ROOT.TH1F("hist", "Histogram of {}".format(variable_name), num_bins, minRange, maxRange)
       tree.Draw("{}>>hist".format(variable_name), f"dcrTime_ch{tile} >= {time_cut}")
       n_entry = tree.GetEntries()
       if variable_name_short == "dcrQ":
-          n_entry = hist.Integral()
+          n_entry_dcr = hist.Integral()
+      else:
+          n_entry_dcr = 0
       # Print the final result
       spectrum = ROOT.TSpectrum()
       #########################  TSpectrum search ######################
       # (TH1, sigma , "options", threshold)
-      c1 = ROOT.TCanvas("c1","c1",600,600)
       n_peaks = spectrum.Search(hist, 0.5 , "", 0.1)
-      c1.SaveAs("check.pdf")
       ##################################################################
       peaks_tspectrum = []
       for i in range(n_peaks):
@@ -272,6 +271,7 @@ if __name__ == "__main__":
           print(fit_info)
           fit_info['peak'] = i
           fit_info['events'] = n_entry
+          fit_info['events'] = n_entry_dcr
           fit_info['run_number'] = run
           fit_info['voltage'] = ov
           fit_info['channel'] = channel
