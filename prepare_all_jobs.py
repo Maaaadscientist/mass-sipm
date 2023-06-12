@@ -114,7 +114,7 @@ else
     echo "Command did not return the expected string."
     cp /junofs/users/wanghanwen/sipm-massive/env_lcg.sh .
     . ./env_lcg.sh
-fi"""
+fi\n"""
   script += 'sleep 10\n'
   script += f'sipmgr={ch}\n'
   script += 'root_type="tile"\n'
