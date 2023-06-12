@@ -303,6 +303,7 @@ int main(int argc, char **argv) {
       lowpass[i] = butterworthLowpassFilter(i*1.0, cutOffFreq, filterOrder);
    }
    auto scanningStartTime = std::chrono::steady_clock::now();
+   std::cout<< "Begin to skim: "<<nev<< " events"<<std::endl;
    for (int nev = skipEvents ; nev < std::min(num_events, maxEvents + skipEvents)  ; ++nev) {
       if ((nev % 200 == 0 and nev > 0 ) or nev == std::min(num_events, maxEvents + skipEvents) - 1) {
          if (nev == std::min(num_events, maxEvents + skipEvents) - 1) {
