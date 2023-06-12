@@ -7,9 +7,12 @@ else:
    input_tmp = sys.argv[1]
 input_dir = os.path.abspath(input_tmp)
 
-csv_dir = input_dir + "/plots"
+sub_dir = input_dir.split("/")[-1]
+
+csv_dir = input_dir
 all_data = []
 
+output_dir = "/" + "/".join(input_dir.split("/")[1:-1])
 for filename in os.listdir(csv_dir):
     if filename.endswith(".csv"):
         file_path = os.path.join(csv_dir, filename)
@@ -18,4 +21,4 @@ for filename in os.listdir(csv_dir):
 
 combined_data = pd.concat(all_data, ignore_index=True)
 
-combined_data.to_csv(f'{input_dir}/fit_results.csv', index=False)
+combined_data.to_csv(f'{output_dir}/fit_results_{sub_dir}.csv', index=False)
