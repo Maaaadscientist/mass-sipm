@@ -275,26 +275,6 @@ if __name__ == "__main__":
           n_entry_dcr = hist.Integral()
       else:
           n_entry_dcr = 0
-      # Print the final result
-      spectrum = ROOT.TSpectrum()
-      #########################  TSpectrum search ######################
-      # (TH1, sigma , "options", threshold)
-      n_peaks = spectrum.Search(hist, 0.5 , "", 0.1)
-      ##################################################################
-      peaks_tspectrum = []
-      for i in range(n_peaks):
-          peaks_tspectrum.append(float(spectrum.GetPositionX()[i]))
-      peaks_tspectrum.sort()
-      print("TSpectrum method:\n")
-      for i, peak in enumerate(peaks_tspectrum):
-          print("Peak {}: x = {}".format(i, peaks_tspectrum[i]))
-
-      mean_thres = [0., 5., 12., 18., 24., 30., 36.]
-      peaks_distance = peaks_tspectrum[0] - 0
-      if peaks_distance < mean_thres[int(ov)] and len( peaks_tspectrum) > 1:
-          peaks_distance = peaks_tspectrum[1] - 0
-          peaks_tspectrum.pop(0)
-      mean_tmp = 0
       combined_dict = defaultdict(list)
 
       # Read the CSV file into a pandas DataFrame
@@ -305,10 +285,6 @@ if __name__ == "__main__":
       means, sigmas = find_peak_info(df, int(run), run_type, sipm_type, int(tile), int(channel), int(ov), 'sigQ' )
       fit_range = means[0] - 0.
       for i, mean in enumerate(means):
-      #for i, mean in enumerate(peaks_tspectrum):
-      #    if i != 0:
-      #        if abs(mean - mean_tmp) < 0.5 * peaks_distance:
-      #            continue
           fit_info = fit_single_gaussian_peak(hist, variable_name, mean ,sigmas[i], fit_range , i, time_cut)
           print(fit_info)
           fit_info['peak'] = i
