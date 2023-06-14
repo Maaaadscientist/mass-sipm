@@ -9,3 +9,4 @@ baseline_bound: 400
 DCR_threshold_min: 0
 DCR_threshold_max: 4
 DCR_threshold_bins: 200
+DCR_range: [0, 1055]

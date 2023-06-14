@@ -289,7 +289,7 @@ if __name__ == "__main__":
           print(fit_info)
           fit_info['peak'] = i
           fit_info['events'] = n_entry
-          fit_info['events'] = n_entry_dcr
+          fit_info['dcr_events'] = n_entry_dcr
           fit_info['run_number'] = run
           fit_info['voltage'] = ov
           fit_info['channel'] = channel
