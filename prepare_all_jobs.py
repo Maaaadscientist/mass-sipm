@@ -123,7 +123,7 @@ fi\n"""
   script += f'run_number="{run_number}"\n'
   script += f'output_file="{output_dir}"\n'
   for job_type in ["fit","hist","dcr"]:
-    with open(f'{output_dir}/jobs/{job_type}_job_{ch}.sh','w') as file_tmp:
+    with open(f'{output_dir}/jobs/{job_type}_job_run{run_number}_{ch}.sh','w') as file_tmp:
       script_tmp = deepcopy(script)
       if job_type == "hist":
         script_tmp += template_hist
