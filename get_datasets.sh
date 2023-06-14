@@ -2,6 +2,7 @@
 
 base_dir="/eos/juno/groups/TAO/taoprod/mass_test/run_data"
 output_dir="datasets"
+export EOS_MGM_URL="root://junoeos01.ihep.ac.cn"
 
 # Get the list of directories
 directories=$(eos ls "$base_dir" | sort -r)
