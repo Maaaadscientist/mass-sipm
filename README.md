@@ -54,9 +54,9 @@ to check if some output files are of extremely small size (hundreds of bytes). U
 to check the `*.root` file whose size is smaller than 3 MB and resubmit corresponding jobs.
 
 ## Automatic Gaussian peaks finder and fitter
-`fit__peaks.py` is a script reading the values from a TTree and quickly finding the mean values and widths of all Gaussian peaks. Simply use with
+`fit_peaks.py` is a script reading the values from a TTree and quickly finding the mean values and widths of all Gaussian peaks. Simply use with
 ```
-python3 fit_gaussian_peaks.py <input_file> <tree_name> <variable_name> <num_bins> <minRange> <maxRange> <output_path>
+python3 fit_peaks.py <input_file> <tree_name> <variable_name> <num_bins> <minRange> <maxRange> <output_path>
 ```
 The args are defined in a similar way as those with the `draw_histogram.py`.
 - `<input_file>` : ROOT file as an input
@@ -77,14 +77,23 @@ Similarly, use another ssh client and go to this directory to submit the jobs, b
 ```
 ./submit_fit_jobs.sh
 ```
-will submit all the `fit*.sh` and `hist*.sh` under `jobs` directory. Once all the jobs finish, one can submit the DCR jobs (because DCR need the peak positions from the signal fit). Use the client with `LCG` environment and execute
+will submit all the `fit*.sh` and `hist*.sh` under `jobs` directory.
+
+## Perform the DCR fit
+Once all the jobs finish, one can submit the DCR jobs (because DCR need the peak positions from the signal fit). Use the client with `LCG` environment and execute
 ```
 python3 combine_csv.py fit_results
 ```
 and then use the client with default server environment and do
 ```
-..submit_fit_jobs.sh dcr
+./submit_fit_jobs.sh dcr
 ```
+This will submit all the DCR fit jobs to the cluser. To examine a single DCR fit, one can use
+`get_dcr.py` similarly as `fit_peaks.py` with 
+```
+python3 get_dcr.py <input_file> <tree_name> <variable_name> <num_bins> <minRange> <maxRange> <output_path>
+```
+Currently, this requires that a `fit_results_plots.csv` file is under the same directory with `get_dcr.py` and the script will read all the peak information from the signal fit to perform a DCR fit with fixed peak position and range.
 
 ## Calculate the gain and PDE
 Use `get_pde.py` to derive the results with built-in functions.
