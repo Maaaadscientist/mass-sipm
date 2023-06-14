@@ -59,12 +59,6 @@ def fit_single_gaussian_peak(hist, variable_name, peak_mean, peak_sigma, peak_se
     # Fit the model
     result = theWorkSpace.pdf("final").fitTo(data, ROOT.RooFit.Save())
 
-    # Create a TPaveText to display parameter values and uncertainties
-    param_box = ROOT.TPaveText(0.6, 0.6, 0.9, 0.9, "NDC")
-    param_box.SetFillColor(ROOT.kWhite)
-    param_box.SetBorderSize(1)
-    param_box.SetTextFont(42)
-    param_box.SetTextSize(0.035)
     
     # Get post-fit values and uncertainties
     final_params = result.floatParsFinal()
@@ -92,13 +86,15 @@ def fit_single_gaussian_peak(hist, variable_name, peak_mean, peak_sigma, peak_se
     # Calculate the uncertainties of the signal and background number of events
     total_events_signal_unc = np.sqrt((total_entries * f_error)**2 + (f_val * total_entries)**2 * (f_error / f_val)**2)
     total_events_background_unc = np.sqrt((total_entries * f_error)**2 + ((1 - f_val) * total_entries)**2 * (f_error / (1 - f_val))**2)
-    param_box.AddText(f"Initial Events: {total_entries:.0f}")
-    param_box.AddText(f"Signal Events: {total_events_signal:.0f} #pm {total_events_signal_unc:.0f}")
-    param_box.AddText(f"Bkg. Events: {total_events_background:.0f} #pm {total_events_background_unc:.0f}")
-    param_box.AddText(f"Mean = {mean_value:.3f} #pm {mean_error:.3f}")
-    param_box.AddText(f"Sigma = {sigma_value:.3f} #pm {sigma_error:.3f}")
 
     canvas = ROOT.TCanvas("c1","c1", 1200, 800)
+    # Divide the canvas into two asymmetric pads
+    pad1 =ROOT.TPad("pad1","This is pad1",0.05,0.05,0.72,0.97);
+    pad2 = ROOT.TPad("pad2","This is pad2",0.72,0.05,0.98,0.97);
+    pad1.Draw()
+    pad2.Draw()
+    pad1.cd()
+
     frame = x.frame()
     frame.SetXTitle(var_dict[variable_name_short])
     frame.SetYTitle("Events")
@@ -107,7 +103,6 @@ def fit_single_gaussian_peak(hist, variable_name, peak_mean, peak_sigma, peak_se
     theWorkSpace.pdf("final").plotOn(frame, ROOT.RooFit.LineColor(ROOT.kBlue))
     theWorkSpace.pdf("final").plotOn(frame, ROOT.RooFit.Components("background"), ROOT.RooFit.LineStyle(ROOT.kDashed), ROOT.RooFit.LineColor(ROOT.kRed))
     frame.Draw()
-    param_box.Draw("same")
     # Create TLine objects for the legend
     signal_line = ROOT.TLine()
     signal_line.SetLineWidth(4)
@@ -118,13 +113,25 @@ def fit_single_gaussian_peak(hist, variable_name, peak_mean, peak_sigma, peak_se
     background_line.SetLineWidth(4)
     background_line.SetLineColor(ROOT.kRed)
     background_line.SetLineStyle(ROOT.kDashed)
-    
+    pad2.cd()
     # Create a TLegend and add entries for signal and background PDFs
-    legend = ROOT.TLegend(0.1, 0.7, 0.3, 0.9)
-    legend.SetTextSize(0.05)
+    legend = ROOT.TLegend(0.01, 0.7, 0.9, 0.9)
+    legend.SetTextSize(0.15)
     legend.AddEntry(signal_line, "S+B", "l")
     legend.AddEntry(background_line, "B only", "l")
     legend.Draw("same")
+    # Create a TPaveText to display parameter values and uncertainties
+    param_box = ROOT.TPaveText(0.01, 0.6, 0.9, 0.1, "NDC")
+    param_box.SetFillColor(ROOT.kWhite)
+    param_box.SetBorderSize(1)
+    param_box.SetTextFont(42)
+    param_box.SetTextSize(0.08)
+    param_box.AddText(f"Initial Events: {total_entries:.0f}")
+    param_box.AddText(f"Signal Events: {total_events_signal:.0f} #pm {total_events_signal_unc:.0f}")
+    param_box.AddText(f"Bkg. Events: {total_events_background:.0f} #pm {total_events_background_unc:.0f}")
+    param_box.AddText(f"Mean = {mean_value:.3f} #pm {mean_error:.3f}")
+    param_box.AddText(f"Sigma = {sigma_value:.3f} #pm {sigma_error:.3f}")
+    param_box.Draw("same")
     if int(peak_seq) < 2:
       canvas.SaveAs(f'{variable_name_short}_{run_type}_run{run}_ov{ov}_{sipm_type}_ch{channel}_po{tile}_peak{peak_seq}.png')
 

@@ -1,6 +1,7 @@
 import ROOT
 import os, sys
 import re
+import math
 import numpy as np
 import scipy.stats as stats
 from scipy.signal import argrelextrema
@@ -11,12 +12,37 @@ import json
 
 ROOT.gSystem.Load("libRooFit")
 
+def find_peak_info(df, run, run_type, sipm_type, po, ch, ov, var):
+    print(run, run_type, sipm_type, po, ch, ov, var)
+    filtered_df = df.loc[(df['run_number'] == run) & (df['var'] == var)& (df['channel'] == ch) &
+                       (df['type'] == sipm_type) & (df['position'] == po) & (df['run_type'] == run_type) &
+                       (df['voltage'] == ov)]
+    means = []
+    sigmas = []
+    peaks_num = [0, 2, 3, 3, 4, 4, 5]
+    for i,mean in enumerate(filtered_df['mean']):
+        if i == 0:
+            continue
+        if i > peaks_num[i]:
+            break
+        means.append(mean)
+
+    for i,sigma in enumerate(filtered_df['sigma']):
+        if i == 0:
+            continue
+        if i > peaks_num[i]:
+            break
+        sigmas.append(sigma)
+    print(means)
+    print(sigmas)
+    return means, sigmas
+
 def get_gaussian_scale(mean, sigma, lower_bound, upper_bound):
     # Calculate the probability using the CDF
     probability = stats.norm.cdf(upper_bound, mean, sigma) - stats.norm.cdf(lower_bound, mean, sigma)
     return probability
 
-def fit_single_gaussian_peak(hist, variable_name, peak_mean, peak_sigma, peak_seq, cut):
+def fit_single_gaussian_peak(hist, variable_name, peak_mean, peak_sigma, peak_range, peak_seq, cut):
     pattern = r'run(\d+)_ov(\d+)_(\w+)_(\w+)_ch(\d+)'
 
     tree_match = re.match(pattern, tree_name)
@@ -34,31 +60,25 @@ def fit_single_gaussian_peak(hist, variable_name, peak_mean, peak_sigma, peak_se
         variable_name_short = variable_match.group(1)
         tile = variable_match.group(2)
     # Create RooFit variables
-    x = ROOT.RooRealVar(variable_name, variable_name, peak_mean -  0.5 *peak_sigma, peak_mean + 0.5 * peak_sigma)
+    x = ROOT.RooRealVar(variable_name, variable_name, peak_mean -  0.5 * peak_range, peak_mean + 0.5 * peak_range)
     data = ROOT.RooDataHist("data", "data", ROOT.RooArgSet(x), ROOT.RooFit.Import(hist))
 
     # Create the WorkSpace
     theWorkSpace = ROOT.RooWorkspace("theWorkSpace")
     # Create Gaussian model
-    mean = ROOT.RooRealVar("mean", "mean", peak_mean, peak_mean - 1, peak_mean + 1)
-    sigma = ROOT.RooRealVar("sigma", "sigma", peak_sigma, peak_sigma * 0.1, peak_sigma * 1.2)
+    mean = ROOT.RooRealVar("mean", "mean", peak_mean, peak_mean - 0.2 * peak_sigma, peak_mean + 0.2 * peak_sigma)
+    sigma = ROOT.RooRealVar("sigma", "sigma", peak_sigma, peak_sigma * 0.8, peak_sigma * 1.5)
     theWorkSpace.Import(x)
     theWorkSpace.Import(mean)
     theWorkSpace.Import(sigma)
     theWorkSpace.factory("RooGaussian::signal("+variable_name+", mean,sigma)")
     #theWorkSpace.factory("RooChebychev::background(" + variable_name + ", {a0[0.25,0,1], a1[-0.25,-1,1],a2[0.,-0.5,0.5]})")
-    theWorkSpace.factory("RooExponential::background(" +variable_name+ ", lp[0,-10,10])")
+    theWorkSpace.factory("RooExponential::background(" +variable_name+ ", lp[0,-20,20])")
     #theWorkSpace.factory("RooPolynomial::background(" + variable_name + ", {a0[0,-1,1],a1[0,-1,1], a2[0, -0.5,0.5] })")
     theWorkSpace.factory("SUM::final( amplitude[0.9, 0.5, 1] * signal, background)")
     # Fit the model
     result = theWorkSpace.pdf("final").fitTo(data, ROOT.RooFit.Save())
 
-    # Create a TPaveText to display parameter values and uncertainties
-    param_box = ROOT.TPaveText(0.6, 0.6, 0.9, 0.9, "NDC")
-    param_box.SetFillColor(ROOT.kWhite)
-    param_box.SetBorderSize(1)
-    param_box.SetTextFont(42)
-    param_box.SetTextSize(0.035)
     
     # Get post-fit values and uncertainties
     final_params = result.floatParsFinal()
@@ -86,23 +106,25 @@ def fit_single_gaussian_peak(hist, variable_name, peak_mean, peak_sigma, peak_se
     # Calculate the uncertainties of the signal and background number of events
     total_events_signal_unc = np.sqrt((total_entries * f_error)**2 + (f_val * total_entries)**2 * (f_error / f_val)**2)
     total_events_background_unc = np.sqrt((total_entries * f_error)**2 + ((1 - f_val) * total_entries)**2 * (f_error / (1 - f_val))**2)
-    param_box.AddText(f"Initial Events: {total_entries:.0f}")
-    param_box.AddText(f"Signal Events: {total_events_signal:.0f} #pm {total_events_signal_unc:.0f}")
-    param_box.AddText(f"Bkg. Events: {total_events_background:.0f} #pm {total_events_background_unc:.0f}")
-    param_box.AddText(f"Mean = {mean_value:.3f} #pm {mean_error:.3f}")
-    param_box.AddText(f"Sigma = {sigma_value:.3f} #pm {sigma_error:.3f}")
+    # Create a TPaveText to display parameter values and uncertainties
 
     canvas = ROOT.TCanvas("c1","c1", 1200, 800)
+    # Divide the canvas into two asymmetric pads
+    pad1 =ROOT.TPad("pad1","This is pad1",0.05,0.05,0.72,0.97);
+    pad2 = ROOT.TPad("pad2","This is pad2",0.72,0.05,0.98,0.97);
+    pad1.Draw()
+    pad2.Draw()
+    pad1.cd()
+
     frame = x.frame()
     frame.SetXTitle("ADC")
     frame.SetYTitle("Events")
     #frame.SetTitle("fit result of peak" + str(peak_mean))
-    frame.SetTitle(f"Peak@{peak_mean} of {run_type} run ov {ov}V {sipm_type} ch{channel} po{tile}")
+    frame.SetTitle(f"Peak@{peak_mean:.2f} of {run_type} run ov {ov}V {sipm_type} ch{channel} po{tile}")
     data.plotOn(frame)
     theWorkSpace.pdf("final").plotOn(frame, ROOT.RooFit.LineColor(ROOT.kBlue))
     theWorkSpace.pdf("final").plotOn(frame, ROOT.RooFit.Components("background"), ROOT.RooFit.LineStyle(ROOT.kDashed), ROOT.RooFit.LineColor(ROOT.kRed))
     frame.Draw()
-    param_box.Draw("same")
     # Create TLine objects for the legend
     signal_line = ROOT.TLine()
     signal_line.SetLineWidth(4)
@@ -113,14 +135,25 @@ def fit_single_gaussian_peak(hist, variable_name, peak_mean, peak_sigma, peak_se
     background_line.SetLineWidth(4)
     background_line.SetLineColor(ROOT.kRed)
     background_line.SetLineStyle(ROOT.kDashed)
-    
+    pad2.cd()
     # Create a TLegend and add entries for signal and background PDFs
-    legend = ROOT.TLegend(0.1, 0.7, 0.3, 0.9)
-    legend.SetTextSize(0.05)
+    legend = ROOT.TLegend(0.01, 0.7, 0.9, 0.9)
+    legend.SetTextSize(0.15)
     legend.AddEntry(signal_line, "S+B", "l")
     legend.AddEntry(background_line, "B only", "l")
     legend.Draw("same")
-    canvas.SaveAs(f'{variable_name_short}_timecut{cut}_{run_type}_run{run}_ov{ov}_{sipm_type}_ch{channel}_po{tile}_peak{peak_seq}.png')
+    param_box = ROOT.TPaveText(0.01, 0.6, 0.9, 0.1, "NDC")
+    param_box.SetFillColor(ROOT.kWhite)
+    param_box.SetBorderSize(1)
+    param_box.SetTextFont(42)
+    param_box.SetTextSize(0.08)
+    param_box.AddText(f"Initial events: {total_entries:.0f}")
+    param_box.AddText(f"Signal events: {total_events_signal:.0f} #pm {total_events_signal_unc:.0f}")
+    param_box.AddText(f"Bkg. events: {total_events_background:.0f} #pm {total_events_background_unc:.0f}")
+    param_box.AddText(f"Mean = {mean_value:.3f} #pm {mean_error:.3f}")
+    param_box.AddText(f"Sigma = {sigma_value:.3f} #pm {sigma_error:.3f}")
+    param_box.Draw("same")
+    canvas.SaveAs(f'{variable_name_short}_timecut{cut}_{run_type}_run{run}_ov{ov}_{sipm_type}_ch{channel}_po{tile}_peak{peak_seq}.pdf')
 
     print("Results:")
     print(f"  Peak: Mean = {mean_value}, Sigma = {sigma_value},  Events = {total_entries}")
@@ -197,7 +230,7 @@ def find_local_maximum(array, totalrange, window_size):
     return peaks  # No local maximum found
 
 if __name__ == "__main__":
-    if len(sys.argv) < 7:
+    if len(sys.argv) < 8:
         print("Usage: python find_gaussian_peaks.py <input_file> <tree_name> <variable_name> <num_bins> <minRange> <maxRange> <output_path>")
     else:
         input_file = sys.argv[1]
@@ -263,11 +296,20 @@ if __name__ == "__main__":
           peaks_tspectrum.pop(0)
       mean_tmp = 0
       combined_dict = defaultdict(list)
-      for i, mean in enumerate(peaks_tspectrum):
-          if i != 0:
-              if abs(mean - mean_tmp) < 0.5 * peaks_distance:
-                  continue
-          fit_info = fit_single_gaussian_peak(hist, variable_name, mean , peaks_distance, i, time_cut)
+
+      # Read the CSV file into a pandas DataFrame
+      
+      csv_file = 'fit_results.csv'
+      df = pd.read_csv(csv_file)
+
+      means, sigmas = find_peak_info(df, int(run), run_type, sipm_type, int(tile), int(channel), int(ov), 'sigQ' )
+      fit_range = means[0] - 0.
+      for i, mean in enumerate(means):
+      #for i, mean in enumerate(peaks_tspectrum):
+      #    if i != 0:
+      #        if abs(mean - mean_tmp) < 0.5 * peaks_distance:
+      #            continue
+          fit_info = fit_single_gaussian_peak(hist, variable_name, mean ,sigmas[i], fit_range , i, time_cut)
           print(fit_info)
           fit_info['peak'] = i
           fit_info['events'] = n_entry
@@ -287,4 +329,4 @@ if __name__ == "__main__":
       # Save the DataFrame to a CSV file
       df.to_csv(f'{variable_name_short}_timecut{time_cut}_{run_type}_run{run}_ov{ov}_{sipm_type}_ch{channel}_po{tile}.csv', index=False)
       os.system(f"mv {variable_name_short}_timecut{time_cut}_{run_type}_run{run}_ov{ov}*.csv {output_path}")
-      os.system(f"mv {variable_name_short}_timecut{time_cut}_{run_type}_run{run}_ov{ov}*.png {output_path}")
+      os.system(f"mv {variable_name_short}_timecut{time_cut}_{run_type}_run{run}_ov{ov}*.pdf {output_path}")
