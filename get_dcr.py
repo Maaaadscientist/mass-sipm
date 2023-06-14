@@ -279,7 +279,7 @@ if __name__ == "__main__":
 
       # Read the CSV file into a pandas DataFrame
       
-      csv_file = 'fit_results.csv'
+      csv_file = 'fit_results_plots.csv'
       df = pd.read_csv(csv_file)
 
       means, sigmas = find_peak_info(df, int(run), run_type, sipm_type, int(tile), int(channel), int(ov), 'sigQ' )
