@@ -137,6 +137,6 @@ fi\n"""
       file_tmp.write(script_tmp)
 
 os.system(f"chmod +x {output_dir}/jobs/*.sh")
-os.system(f"cp submit_jobs.sh {output_dir}")
-os.system(f"chmod +x {output_dir}/submit_jobs.sh ")
+os.system(f"cp submit_fit_jobs.sh {output_dir}")
+os.system(f"chmod +x {output_dir}/submit_fit_jobs.sh ")
 os.system(f"cp combine_csv.py {output_dir}")
