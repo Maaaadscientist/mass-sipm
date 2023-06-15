@@ -155,7 +155,7 @@ def fit_single_gaussian_peak(hist, variable_name, peak_mean, peak_sigma, peak_ra
     param_box.Draw("same")
     # Only save the fit figure of the 1 p.e. peak
     #if int(peak_seq) == 0:
-    #    canvas.SaveAs(f'{variable_name_short}_timecut{cut}_{run_type}_run{run}_ov{ov}_{sipm_type}_ch{channel}_po{tile}_peak{peak_seq}.pdf')
+    #    canvas.SaveAs(f'{variable_name_short}_{run_type}_run{run}_ov{ov}_{sipm_type}_ch{channel}_po{tile}_peak{peak_seq}.pdf')
 
     print("Results:")
     print(f"  Peak: Mean = {mean_value}, Sigma = {sigma_value},  Events = {total_entries}")
@@ -267,44 +267,42 @@ if __name__ == "__main__":
     if not os.path.isdir(output_path):
         os.makedirs(output_path)
     # Time window threshold
-    #time_cut =6
-    for time_cut in range(1,6):
-      # Create a histogram and fill it with the values from the TTree
-      hist = ROOT.TH1F("hist", "Histogram of {}".format(variable_name), num_bins, minRange, maxRange)
-      tree.Draw("{}>>hist".format(variable_name), f"dcrTime_ch{tile} >= {time_cut}")
-      n_entry = tree.GetEntries()
-      if variable_name_short == "dcrQ":
-          n_entry_dcr = hist.Integral()
-      else:
-          n_entry_dcr = 0
-      combined_dict = defaultdict(list)
+    time_cut =2
+    # Create a histogram and fill it with the values from the TTree
+    hist = ROOT.TH1F("hist", "Histogram of {}".format(variable_name), num_bins, minRange, maxRange)
+    tree.Draw("{}>>hist".format(variable_name), f"dcrTime_ch{tile} >= {time_cut}")
+    n_entry = tree.GetEntries()
+    if variable_name_short == "dcrQ":
+        n_entry_dcr = hist.Integral()
+    else:
+        n_entry_dcr = 0
+    combined_dict = defaultdict(list)
 
-      # Read the CSV file into a pandas DataFrame
-      
-      csv_file = 'fit_results_plots.csv'
-      df = pd.read_csv(csv_file)
+    # Read the CSV file into a pandas DataFrame
+    
+    csv_file = 'fit_results_plots.csv'
+    df = pd.read_csv(csv_file)
 
-      means, sigmas = find_peak_info(df, int(run), run_type, sipm_type, int(tile), int(channel), int(ov), 'sigQ' )
-      fit_range = means[0] - 0.
-      for i, mean in enumerate(means):
-          fit_info = fit_single_gaussian_peak(hist, variable_name, mean ,sigmas[i], fit_range , i, time_cut)
-          print(fit_info)
-          fit_info['peak'] = i
-          fit_info['events'] = n_entry
-          fit_info['dcr_events'] = n_entry_dcr
-          fit_info['run_number'] = run
-          fit_info['voltage'] = ov
-          fit_info['channel'] = channel
-          fit_info['type'] = sipm_type
-          fit_info['position'] = tile
-          fit_info['run_type'] = run_type
-          fit_info['var'] = variable_name_short
-          fit_info['timecut'] = time_cut
-          mean_tmp = mean
-          for key, value in fit_info.items():
-              combined_dict[key].append(value)
-      df = pd.DataFrame(combined_dict)
-      # Save the DataFrame to a CSV file
-      df.to_csv(f'{variable_name_short}_timecut{time_cut}_{run_type}_run{run}_ov{ov}_{sipm_type}_ch{channel}_po{tile}.csv', index=False)
-      os.system(f"mv {variable_name_short}_timecut{time_cut}_{run_type}_run{run}_ov{ov}*.csv {output_path}")
-      os.system(f"mv {variable_name_short}_timecut{time_cut}_{run_type}_run{run}_ov{ov}*.pdf {output_path}")
+    means, sigmas = find_peak_info(df, int(run), run_type, sipm_type, int(tile), int(channel), int(ov), 'sigQ' )
+    fit_range = means[0] - 0.
+    for i, mean in enumerate(means):
+        fit_info = fit_single_gaussian_peak(hist, variable_name, mean ,sigmas[i], fit_range , i, time_cut)
+        print(fit_info)
+        fit_info['peak'] = i
+        fit_info['events'] = n_entry
+        #fit_info['dcr_events'] = n_entry_dcr
+        fit_info['run_number'] = run
+        fit_info['voltage'] = ov
+        fit_info['channel'] = channel
+        fit_info['type'] = sipm_type
+        fit_info['position'] = tile
+        fit_info['run_type'] = run_type
+        fit_info['var'] = variable_name_short
+        mean_tmp = mean
+        for key, value in fit_info.items():
+            combined_dict[key].append(value)
+    df = pd.DataFrame(combined_dict)
+    # Save the DataFrame to a CSV file
+    df.to_csv(f'{variable_name_short}_{run_type}_run{run}_ov{ov}_{sipm_type}_ch{channel}_po{tile}.csv', index=False)
+    os.system(f"mv {variable_name_short}_{run_type}_run{run}_ov{ov}*.csv {output_path}")
+    os.system(f"mv {variable_name_short}_{run_type}_run{run}_ov{ov}*.pdf {output_path}")
