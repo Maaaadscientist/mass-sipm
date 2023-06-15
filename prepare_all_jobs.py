@@ -21,7 +21,7 @@ if not os.path.isdir(output_dir + "/hists"):
 if not os.path.isdir(output_dir + "/dcr"):
     os.makedirs(output_dir + "/dcr")
 template_hist = """for ov in {1..6}; do
-  for ch in {0..16}; do
+  for ch in {0..15}; do
     # Construct the input filename
     input_file="${file_path}/${run_info}_ov_${ov}.00_sipmgr_$(printf "%02d" $sipmgr)_${root_type}.root"
 
@@ -46,7 +46,7 @@ template_hist = """for ov in {1..6}; do
 done"""
 
 template_fit = """for ov in {1..6}; do
-  for ch in {0..16}; do
+  for ch in {0..15}; do
     # Construct the input filename
     input_file="${file_path}/${run_info}_ov_${ov}.00_sipmgr_$(printf "%02d" $sipmgr)_${root_type}.root"
 
@@ -70,7 +70,7 @@ template_fit = """for ov in {1..6}; do
   done
 done"""
 template_dcr = """for ov in {1..6}; do
-  for ch in {0..16}; do
+  for ch in {0..15}; do
     # Construct the input filename
     input_file="${file_path}/${run_info}_ov_${ov}.00_sipmgr_$(printf "%02d" $sipmgr)_${root_type}.root"
 

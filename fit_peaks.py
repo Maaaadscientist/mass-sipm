@@ -132,8 +132,8 @@ def fit_single_gaussian_peak(hist, variable_name, peak_mean, peak_sigma, peak_se
     param_box.AddText(f"Mean = {mean_value:.3f} #pm {mean_error:.3f}")
     param_box.AddText(f"Sigma = {sigma_value:.3f} #pm {sigma_error:.3f}")
     param_box.Draw("same")
-    if int(peak_seq) < 2:
-      canvas.SaveAs(f'{variable_name_short}_{run_type}_run{run}_ov{ov}_{sipm_type}_ch{channel}_po{tile}_peak{peak_seq}.pdf')
+    #if int(peak_seq) < 2:
+    #  canvas.SaveAs(f'{variable_name_short}_{run_type}_run{run}_ov{ov}_{sipm_type}_ch{channel}_po{tile}_peak{peak_seq}.pdf')
 
     print("Results:")
     print(f"  Peak: Mean = {mean_value}, Sigma = {sigma_value},  Events = {total_entries}")
@@ -295,4 +295,4 @@ if __name__ == "__main__":
     # Save the DataFrame to a CSV file
     df.to_csv(f'{variable_name_short}_{run_type}_run{run}_ov{ov}_{sipm_type}_ch{channel}_po{tile}.csv', index=False)
     os.system(f"mv {variable_name_short}_{run_type}_run{run}_ov{ov}*.csv {output_path}")
-    os.system(f"mv {variable_name_short}_{run_type}_run{run}_ov{ov}*.pdf {output_path}")
+    #os.system(f"mv {variable_name_short}_{run_type}_run{run}_ov{ov}*.pdf {output_path}")
