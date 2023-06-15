@@ -170,7 +170,7 @@ def fit_single_gaussian_peak(hist, variable_name, peak_mean, peak_sigma, peak_ra
     #fit_info['mean'] = mean_value,
     #fit_info['mean_error'] = mean_error,
     #fit_info = []
-    scale = get_gaussian_scale (mean_value, sigma_value, peak_mean -  0.5 *peak_sigma, peak_mean + 0.5 * peak_sigma)
+    scale = get_gaussian_scale (mean_value, sigma_value, peak_mean -  0.5 *peak_range, peak_mean + 0.5 * peak_range)
     fit_info = {
                     'mean' : float(mean_value),
                     'mean_error' : float(mean_error),
