@@ -1,5 +1,6 @@
 import pandas as pd
 import math
+import re
 import os, sys
 import statistics
 import matplotlib.pyplot as plt
@@ -70,8 +71,8 @@ def draw_linear_fit(fig, ax,ax2, x, x_with_bkv, y, y_err, intercept, slope, unit
     # Define the fitted line
     fit = slope * xplus + intercept
     # Plot the data points with error bars
-    if unit == "Q":
-      ax.errorbar(x, y, yerr=y_err, fmt='o',markersize=2, color='black', label='Data')
+    if unit == "Q (pC)":
+      ax.errorbar(x, y, yerr=y_err, fmt='o',markersize=2, color='black', label='Charge Data')
 
       # Plot the fitted line
       ax.plot(xplus, fit, color='red', label='Charge fit')
@@ -82,8 +83,8 @@ def draw_linear_fit(fig, ax,ax2, x, x_with_bkv, y, y_err, intercept, slope, unit
       ax.set_xlabel('Voltage(V)')
       ax.set_ylabel(f'{unit}')
       ax.legend()
-    if unit == "mV":
-      ax2.errorbar(x, y, yerr=y_err, fmt='s', markersize=2,color='black', label='Data')
+    if unit == "Amp (mV)":
+      ax2.errorbar(x, y, yerr=y_err, fmt='s', markersize=2,color='goldenrod', label='Amp Data')
 
       # Plot the fitted line
       ax2.plot(xplus, fit, color='blue', label='Amplitude fit')
@@ -169,6 +170,13 @@ eos_mgm_url = "root://junoeos01.ihep.ac.cn"
 directory = "/tmp/tao-sipmtest"
 output_dir = os.path.abspath(output_tmp)
 #output_dir = "/junofs/users/wanghanwen/main_run_0075"
+# Find a certain element based on other column values
+pattern = r"(\w+)_(\w+)_fit_(\d+)"
+name_match = re.match(pattern, input_tmp)
+if name_match:
+    print("match!!!!")
+    run_number = int(name_match.group(3))    # "64"
+#channel = 4
 
 if not os.path.isdir(output_dir):
     os.makedirs(output_dir)
@@ -177,7 +185,7 @@ if not os.path.isdir(output_dir):
 df = pd.read_csv(input_file)
 
 # Find a certain element based on other column values
-run_number = 110
+#run_number = 110
 #channel = 1
 type_ = 'tile'
 #position = 0
@@ -185,7 +193,7 @@ run_type = 'main'
 #voltage = 1
 #peak = 0
 var_dict = {"sigAmp":"Amplitude", "sigQ":"Charge"}
-unit_dict = {"sigAmp":"mV", "sigQ":"Q"}
+unit_dict = {"sigAmp":"Amp (mV)", "sigQ":"Q (pC)"}
 
 # Filter the DataFrame based on the conditions
 #filtered_df = df.loc[(df['run_number'] == run_number) & (df['channel'] == channel) &
@@ -241,8 +249,8 @@ for position in range(16):
         if var == "sigQ":
           if len(mean_list) < 2:
             continue
-          diff_list = get_diff_list(mean_list)
-          diff_error_list = get_diff_error_list(mean_error_list)
+          diff_list = get_diff_list(mean_list)[0:-1]
+          diff_error_list = get_diff_error_list(mean_error_list)[0:-1]
           diff_value = calculate_weighted_mean(diff_list, diff_error_list) 
           diff_error = math.sqrt(calculate_mean_error_square(diff_error_list) + calculate_standard_deviation_square(diff_list))
           #diff_error = math.sqrt(calculate_standard_deviation_square(mean_list))
@@ -282,12 +290,12 @@ for position in range(16):
   plt.errorbar(channels, breakdown_voltage_2, yerr=breakdown_voltage_err_2, marker='o', label='Vbd (Q)',capsize=5,color ='maroon')
 
   # Set y-axis range
-  plt.ylim(-2, 0)
+  plt.ylim(-3, 0)
    
   # Adding labels and title 
   plt.xlabel('Channel') 
   plt.ylabel('Breakdown Voltage') 
-  plt.title(f'Breakdown Voltage Comparison (SiPM{position})') 
+  plt.title(f'Breakdown Voltage Comparison (Run{run_number} SiPM{position})') 
    
   # Adding legend 
   plt.legend() 
