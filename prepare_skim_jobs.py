@@ -34,6 +34,7 @@ if not os.path.isdir(output_dir):
 if not os.path.isdir(output_dir + "/jobs"):
     os.mkdir(output_dir + "/jobs")
 
+count = 0
 for file_path in files:
     if "path=" in file_path:
         continue 
@@ -41,6 +42,7 @@ for file_path in files:
         continue
     file_name = file_path.split("/")[-1]
     print(file_name)
+    count += 1
     components = file_name.split("_")
     run_type = components[0]
     if run_type == "main":
@@ -83,6 +85,8 @@ for file_path in files:
         with open(f'{output_dir}/jobs/{output_name}.sh','w') as file_tmp:
             file_tmp.write(script_tmp)
        
+if count != 192:
+    print(f"WARNING, there are only {count} lines and it's less than 192")
 
 os.system(f"chmod +x {output_dir}/jobs/*.sh")
 os.system(f"cp submit_jobs.sh {output_dir}")
