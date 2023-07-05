@@ -19,7 +19,7 @@ template = """for ov in {1..6}; do
     input_file="${file_path}/${run_info}_ov_${ov}.00_sipmgr_$(printf "%02d" $sipmgr)_${root_type}.root"
 
     # Construct and execute the command
-    charge_fit_command="$python fit.py ${input_file} run${run_number}_ov${ov}_main_${root_type}_ch${sipmgr} sigQ_ch${ch} ${output_file}"
+    charge_fit_command="$python fit.py ${input_file} signal sigQ_ch${ch} ${output_file}"
     echo "Executing command: ${charge_fit_command}"
     $charge_fit_command
   done

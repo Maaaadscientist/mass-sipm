@@ -190,7 +190,7 @@ param_box.AddText(f"#sigma5 = {sigma5.getVal():.3f} #pm {sigma5.getError():.3f}"
 param_box.AddText(f"#chi2/NDF = {chi2_ndf:.3f}")
 param_box.Draw("same")
 
-canvas.SaveAs(f"{output_path}/plots/{filename.replace('.root', '')}.pdf")
+canvas.SaveAs(f"{output_path}/plots/{filename.replace('.root', '')}_po{tile}.pdf")
 fit_info = {
                 'mu' : float(mu.getVal()),
                 'mu_err' : float(mu.getError()),
@@ -214,4 +214,4 @@ for key, value in fit_info.items():
     combined_dict[key].append(value)
 df = pd.DataFrame(combined_dict)
 # Save the DataFrame to a CSV file
-df.to_csv(f"{output_path}/csv/{filename.replace('.root', '')}.csv", index=False)
+df.to_csv(f"{output_path}/csv/{filename.replace('.root', '')}_po{tile}.csv", index=False)
