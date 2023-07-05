@@ -11,6 +11,7 @@ import math
 from ROOT import RooRealVar, RooGenericPdf, RooArgSet, RooArgList, RooDataHist, RooFit, TCanvas, TH1F, TRandom3, RooFormulaVar, RooGaussian
 
 ov_peaks = {1:5, 2:7, 3:8, 4:9, 5:10, 6: 12}
+ov_ranges = {1:100, 2:200, 3:250, 4:320, 5:420, 6: 600}
 def GPfunction(i):
     return f"mu * pow(mu + {i} * lambda, {i}-1) / TMath::Factorial({i}) * exp(-mu - {i} * lambda) * exp(-pow(sigQ - (ped + {i} * gain), 2)/(2 * pow(sigma{i}, 2))) /  sigma{i}"
 if len(sys.argv) < 4:
@@ -40,11 +41,13 @@ if len(sys.argv) == 5:
     output_path = sys.argv[4]
 else:
     output_path = f"results/main_run_{run}"
+
 if not os.path.isdir(output_path + "/plots"):
     os.makedirs(output_path + "/plots")
 if not os.path.isdir(output_path + "/csv"):
     os.makedirs(output_path + "/csv")
-num_bins = 100 + 80 * ov
+#num_bins = 40 + 80 * ov
+num_bins = ov_ranges[ov]
 x_max = num_bins
 file1 = ROOT.TFile(input_file)
 tree = file1.Get(tree_name)
@@ -200,6 +203,7 @@ fit_info = {
                 'ped_err' : float(ped.getError()),
                 'gain' : float(gain.getVal()),
                 'gain_err' : float(gain.getError()),
+                'chi2' : chi2_ndf,
                 }
 fit_info['events'] = n_entry
 fit_info['run_number'] = run
