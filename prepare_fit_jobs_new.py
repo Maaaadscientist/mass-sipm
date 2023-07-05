@@ -2,7 +2,7 @@
 import os, sys
 
 if len(sys.argv) < 3:
-    print("Usage: python prepare_jobs <input_dir> <output_dir>")
+    print("Usage: python prepare_fit_jobs_new.py <input_dir> <output_dir>")
 else:
    input_tmp = sys.argv[1]
    output_tmp = sys.argv[2]
@@ -11,10 +11,10 @@ output_dir = os.path.abspath(output_tmp)
 run_info = input_dir.split("/")[-1]
 run_number = int(run_info.split("_")[-1])
 
-if not os.path.isdir(output_dir + "/jobs"):
-    os.makedirs(output_dir + "/jobs")
+if not os.path.isdir(output_dir + "/signal-jobs"):
+    os.makedirs(output_dir + "/signal-jobs")
 template = """for ov in {1..6}; do
-  for ch in {0..16}; do
+  for ch in {0..15}; do
     # Construct the input filename
     input_file="${file_path}/${run_info}_ov_${ov}.00_sipmgr_$(printf "%02d" $sipmgr)_${root_type}.root"
 
@@ -50,10 +50,10 @@ for ch in range(1,17):
     script += template
     script += '\n'
     script += 'cd -\n'
-    with open(f'{output_dir}/jobs/fit_tile{ch}.sh','w') as file_tmp:
+    with open(f'{output_dir}/signal-jobs/fit_tile{ch}.sh','w') as file_tmp:
             file_tmp.write(script)
 
-os.system(f"chmod +x {output_dir}/jobs/*.sh")
+os.system(f"chmod +x {output_dir}/signal-jobs/*.sh")
 os.system(f"cp submit_jobs.sh {output_dir}")
 os.system(f"chmod +x {output_dir}/submit_jobs.sh ")
 os.system(f"cp combine_csv.py {output_dir}")
