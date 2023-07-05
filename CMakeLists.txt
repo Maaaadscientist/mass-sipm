@@ -33,3 +33,10 @@ add_executable(scan src/scan.cc)
 target_include_directories(scan PRIVATE include)
 target_link_libraries(scan  PRIVATE sipm-massive)
 
+add_executable(print src/print.cc)
+target_include_directories(print PRIVATE include)
+target_link_libraries(print  PRIVATE sipm-massive)
+
+add_executable(skim-signal src/skim-signal.cc)
+target_include_directories(skim-signal PRIVATE include)
+target_link_libraries(skim-signal  PRIVATE sipm-massive)
