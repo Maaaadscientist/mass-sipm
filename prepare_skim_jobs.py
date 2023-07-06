@@ -41,7 +41,6 @@ for file_path in files:
     if not ".data" in file_path:
         continue
     file_name = file_path.split("/")[-1]
-    print(file_name)
     count += 1
     components = file_name.split("_")
     run_type = components[0]
@@ -50,7 +49,6 @@ for file_path in files:
         ov = int(float(components[4]))
         channel = int(components[6])
         sipm_type = components[7]
-        print(run_type, run_number, ov, channel, sipm_type)
         script_tmp = deepcopy(script)
         script_tmp += f'/usr/bin/eos cp {file_path} $directory\n'
         script_tmp += 'cd $directory\n'
@@ -69,7 +67,6 @@ for file_path in files:
         run_number = components[2]
         channel = int(components[4])
         sipm_type = components[5]
-        print(run_type, run_number, channel, sipm_type)
         script_tmp = deepcopy(script)
         script_tmp += f'/usr/bin/eos cp {file_path} $directory\n'
         script_tmp += 'cd $directory\n'
@@ -87,6 +84,9 @@ for file_path in files:
        
 if count != 192:
     print(f"WARNING, there are only {count} lines and it's less than 192")
+else:
+    print(f"Success, there are {count} lines in the datasets (should be 192)")
+
 
 os.system(f"chmod +x {output_dir}/jobs/*.sh")
 os.system(f"cp submit_jobs.sh {output_dir}")
