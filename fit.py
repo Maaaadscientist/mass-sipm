@@ -204,12 +204,33 @@ fit_info = {
                 'gain' : float(gain.getVal()),
                 'gain_err' : float(gain.getError()),
                 'chi2' : chi2_ndf,
+                'sigma0' : float(sigma0.getVal()),
+                'sigma1' : float(sigma1.getVal()),
+                'sigma2' : float(sigma2.getVal()),
+                'sigma3' : float(sigma3.getVal()),
+                'sigma4' : float(sigma4.getVal()),
+                'sigma5' : float(sigma5.getVal()),
+                'sigma6' : float(sigma6.getVal()),
+                'sigma7' : float(sigma7.getVal()),
+                'sigma8' : float(sigma8.getVal()),
+                'sigma9' : float(sigma9.getVal()),
+                'sigma0_err' : float(sigma0.getError()),
+                'sigma1_err' : float(sigma1.getError()),
+                'sigma2_err' : float(sigma2.getError()),
+                'sigma3_err' : float(sigma3.getError()),
+                'sigma4_err' : float(sigma4.getError()),
+                'sigma5_err' : float(sigma5.getError()),
+                'sigma6_err' : float(sigma6.getError()),
+                'sigma7_err' : float(sigma7.getError()),
+                'sigma8_err' : float(sigma8.getError()),
+                'sigma9_err' : float(sigma9.getError()),
                 }
 fit_info['events'] = n_entry
 fit_info['run_number'] = run
 fit_info['voltage'] = ov
 fit_info['channel'] = channel
 fit_info['position'] = tile
+fit_info['baseline_res'] = baseline_res
 print(distance, gain.getVal())
 print(mu.getVal(), lambda_.getVal())
 print(len(peaks_tspectrum))
