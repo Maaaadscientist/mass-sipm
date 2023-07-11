@@ -2,17 +2,19 @@
 import os, sys
 from copy import deepcopy
 import yaml
-if len(sys.argv) < 3:
-    print("Usage: python prepare_jobs <input_file> <output_dir> <intput_table>")
+if len(sys.argv) < 4:
+    print("Usage: python prepare_jobs <input_file> <output_dir> <executable_path>")
 else:
    input_tmp = sys.argv[1]
    output_tmp = sys.argv[2]
+   binary_tmp = sys.argv[3]
 #file_list = "main_run_0075.txt"  # Path to the file containing the list of files
 file_list =  os.path.abspath(input_tmp)  # Path to the file containing the list of files
 eos_mgm_url = "root://junoeos01.ihep.ac.cn"
 directory = "/tmp/tao-sipmtest"
 input_file = os.path.abspath(input_tmp)
 output_dir = os.path.abspath(output_tmp)
+binary_path = os.path.abspath(binary_tmp)
 name_short = input_file.split("/")[-1].replace(".txt", "")
 output_dir += "/" + name_short
 #output_dir = "/junofs/users/wanghanwen/main_run_0075"
@@ -61,7 +63,7 @@ for file_path in files:
         script_tmp += 'cp /junofs/users/wanghanwen/sipm-massive/env_lcg.sh .\n'
         script_tmp += '. ./env_lcg.sh\n'
         output_name = "_".join(components[0:-3])
-        script_tmp += f'/junofs/users/wanghanwen/sipm-massive/bin/skim-signal -i {file_name} -c new.yaml -r {run_number} -v {ov} -t {run_type}_{sipm_type}_ch{channel} -o {output_dir}/{output_name}.root\n'
+        script_tmp += f'{binary_path} -i {file_name} -c new.yaml -r {run_number} -v {ov} -t {run_type}_{sipm_type}_ch{channel} -o {output_dir}/{output_name}.root\n'
         script_tmp += 'sleep 5\n'
         script_tmp += f'rm -f {file_name}\n'
         script_tmp += 'cd -\n'
@@ -79,7 +81,7 @@ for file_path in files:
         script_tmp += 'cp /junofs/users/wanghanwen/sipm-massive/env_lcg.sh .\n'
         script_tmp += '. ./env_lcg.sh\n'
         output_name = "_".join(components[0:-3])
-        script_tmp += f'/junofs/users/wanghanwen/sipm-massive/bin/skim-signal -i {file_name} -c new.yaml -r {run_number} -v 0 -t {run_type}_{sipm_type}_ch{channel} -o {output_dir}/{output_name}.root\n'
+        script_tmp += f'{binary_path} -i {file_name} -c new.yaml -r {run_number} -v 0 -t {run_type}_{sipm_type}_ch{channel} -o {output_dir}/{output_name}.root\n'
         script_tmp += 'sleep 5\n'
         script_tmp += f'rm -f {file_name}\n'
         script_tmp += 'cd -\n'

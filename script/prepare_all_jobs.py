@@ -11,16 +11,18 @@ def list_txt_files(directory):
             txt_files.append(filename)
     return txt_files
 
-if len(sys.argv) < 3:
-    raise OSError("Usage: python script/prepare_all_jobs.py <input_table> <output_dir> <run_type>")
+if len(sys.argv) < 4:
+    raise OSError("Usage: python script/prepare_all_jobs.py <input_table> <output_dir> <binary_path> <run_type>")
 else:
     input_tmp = sys.argv[1]
     output_tmp = sys.argv[2]    
-if len(sys.argv) == 4:
-    runType = sys.argv[3]
+    binary_tmp = sys.argv[3]
+if len(sys.argv) == 5:
+    runType = sys.argv[4]
 else:
     runType = "main"
 table_path = os.path.abspath(input_tmp)
+binary_path = os.path.abspath(binary_tmp)
 output_dir = os.path.abspath(output_tmp)
 main_runs = []
 light_runs = []
@@ -67,5 +69,5 @@ for aFile in grouped_list:
     if run_type != "main" and run_type != "light":
         continue
     #os.system(f"python3 script/prepare_skim_jobs.py datasets/{aFile} {output_dir} {input_table}")
-    subprocess.run(['python', 'script/prepare_skim_jobs.py',f'datasets/{aFile}', f'{output_dir}', f'{table_path}'])
+    subprocess.run(['python', 'script/prepare_skim_jobs.py',f'datasets/{aFile}', f'{output_dir}', f'{table_path}', f'{binary_path}'])
 
