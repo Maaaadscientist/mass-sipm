@@ -41,8 +41,8 @@ os.system("sh get_datasets.sh")
 # Get the current directory
 current_directory = os.getcwd()
 
-# Find all "*.log" files in the current directory
-log_files = glob.glob(os.path.join(current_directory, '*.log'))
+# Find all "*{runType}.log" files in the current directory
+log_files = glob.glob(os.path.join(current_directory, f'*{runType}.log'))
 
 # Iterate over the found files and remove them
 for file_path in log_files:

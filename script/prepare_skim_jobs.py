@@ -88,17 +88,17 @@ for file_path in files:
        
 if "main" in name_short and count != 192:
     print(f"{name_short} : WARNING, there are only {count} lines and it's less than 192")
-    with open("incompleteDataInfo.log", 'a') as file:
+    with open("incompleteDataInfo-{name_short.split('_')[0]}.log", 'a') as file:
         line_of_text = f"main run {run_number} {count} 192"
         file.write(line_of_text + '\n')
 elif "light" in name_short and count != 64:
     print(f"{name_short} : WARNING, there are only {count} lines and it's less than 64")
-    with open("incompleteDataInfo.log", 'a') as file:
+    with open("incompleteDataInfo-{name_short.split('_')[0]}.log", 'a') as file:
         line_of_text = f"light run {run_number} {count} 64"
         file.write(line_of_text + '\n')
 else:
     print(f"{name_short} : Success, there are {count} lines in the datasets ({'64 for light' if name_short.split('_')[0] == 'light' else '192 for main'})")
-    with open("completeDataInfo.log", 'a') as file:
+    with open("completeDataInfo-{name_short.split('_')[0]}.log", 'a') as file:
         line_of_text = f"{name_short.split('_')[0]} run {run_number} {count} {64 if name_short.split('_')[0] == 'light' else 192}"
         file.write(line_of_text + '\n')
 
