@@ -77,31 +77,8 @@ data = ROOT.RooDataHist("data", "data", ROOT.RooArgSet(sigQ), hist)
 lambda_ = RooRealVar("lambda", "lambda", 0.2, 0.05, 0.8)
 mu = RooRealVar("mu", "mu", 2, 0.1, 5)
 
-# Create RooFit variables for the observables and parameters
-sigma0 = RooRealVar("sigma0", "sigma0", 5,1,10)
-sigmak = RooRealVar("sigmak", "sigmak", 5,1,10)
-#sigma1 = RooFormulaVar("sigma1", "TMath::Sqrt( pow(sigma0, 2) + 1 * pow(sigmak, 2))", RooArgList(sigma0,sigmak))
-#sigma2 = RooFormulaVar("sigma2", "TMath::Sqrt( pow(sigma0, 2) + 2 * pow(sigmak, 2))", RooArgList(sigma0,sigmak))
-#sigma3 = RooFormulaVar("sigma3", "TMath::Sqrt( pow(sigma0, 2) + 3 * pow(sigmak, 2))", RooArgList(sigma0,sigmak))
-#sigma4 = RooFormulaVar("sigma4", "TMath::Sqrt( pow(sigma0, 2) + 4 * pow(sigmak, 2))", RooArgList(sigma0,sigmak))
-#sigma5 = RooFormulaVar("sigma5", "TMath::Sqrt( pow(sigma0, 2) + 5 * pow(sigmak, 2))", RooArgList(sigma0,sigmak))
-#sigma6 = RooFormulaVar("sigma6", "TMath::Sqrt( pow(sigma0, 2) + 6 * pow(sigmak, 2))", RooArgList(sigma0,sigmak))
-#sigma7 = RooFormulaVar("sigma7", "TMath::Sqrt( pow(sigma0, 2) + 7 * pow(sigmak, 2))", RooArgList(sigma0,sigmak))
-sigma1 = RooRealVar("sigma1", "sigma1", 5,1,10)
-sigma2 = RooRealVar("sigma2", "sigma2", 5,1,10)
-sigma3 = RooRealVar("sigma3", "sigma3", 5,1,10)
-sigma4 = RooRealVar("sigma4", "sigma4", 5,1,10)
-sigma5 = RooRealVar("sigma5", "sigma5", 5,1,10)
-sigma6 = RooRealVar("sigma6", "sigma6", 5,1,10)
-sigma7 = RooRealVar("sigma7", "sigma7", 5,1,10)
-sigma8 = RooRealVar("sigma8", "sigma8", 5,1,10)
-sigma9 = RooRealVar("sigma9", "sigma9", 5,1,10)
-sigma10 = RooRealVar("sigma10", "sigma10", 5,1,10)
-sigma11 = RooRealVar("sigma11", "sigma11", 5,1,10)
-sigma12 = RooRealVar("sigma12", "sigma12", 5,1,10)
-sigma13 = RooRealVar("sigma13", "sigma13", 5,1,10)
-sigma14 = RooRealVar("sigma14", "sigma14", 5,1,10)
-sigma15 = RooRealVar("sigma15", "sigma15", 5,1,10)
+for i in range(16):
+    globals()[f'sigma{i}'] = RooRealVar(f"sigma{i}", "sigma{i}", 5,1,10)
 # Define the Gaussian PDF
 ped = RooRealVar("ped", "ped", baseline, baseline - baseline_res *2, baseline + baseline_res * 2)
 gain = RooRealVar("gain", "gain", distance, distance *0.8, distance *1.2)
@@ -123,38 +100,14 @@ minimizer.setMinimizerType("Minuit2")  # Choose Minuit2 as the optimizer
 
 # Perform the fit
 result = minimizer.fit("")
-#final_params = result.floatParsFinal()
-## Access the parameter values from the fit result
-#floating_params = result.floatParsFinal()
-# For a given pdf and variable x
-#integral_pdf = poisson_gen.createIntegral(RooArgSet(sigQ))
-#expected_event = poisson_gen.expectedEvents(RooArgSet(sigQ))
-
-#print(integral_pdf.getVal(),data.sumEntries(), expected_event)
-## Covariance matrix
-#cov_matrix = result.covarianceMatrix()
-#
-## You can print the matrix as follows:
-#cov_matrix.Print()
-## Correlation matrix
-#cor_matrix = result.correlationMatrix()
-#
-## Print the matrix
-#cor_matrix.Print()
-#final_params = result.floatParsFinal()
-#
-#for i in range(final_params.getSize()):
-#    print("Index: ", i, "Parameter: ", final_params[i].GetName())
 ## Create a chi-squared variable from the pdf and the data
 chi2 = ROOT.RooChi2Var("chi2", "chi2", poisson_gen, data)
 # Get the chi-squared value
 chi2_val = chi2.getVal()
-print(chi2_val)
 # Get number of degrees of freedom
 ndf = data.numEntries() - n_param #result.floatParsFinal().getSize()
 # Calculate chi-squared per degree of freedom
 chi2_ndf = chi2_val / ndf
-print(chi2_ndf)
 # Plot the data and the fit
 canvas = ROOT.TCanvas("c1","c1", 1200, 800)
 # Divide the canvas into two asymmetric pads
