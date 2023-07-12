@@ -69,5 +69,5 @@ for aFile in grouped_list:
     if run_type != "main" and run_type != "light":
         continue
     #os.system(f"python3 script/prepare_skim_jobs.py datasets/{aFile} {output_dir} {input_table}")
-    subprocess.run(['python', 'script/prepare_skim_jobs.py',f'datasets/{aFile}', f'{output_dir}', f'{table_path}', f'{binary_path}'])
+    subprocess.run(['python', 'script/prepare_skim_jobs.py',f'datasets/{aFile}', f'{output_dir}', f'{binary_path}'])
 

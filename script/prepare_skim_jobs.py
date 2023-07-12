@@ -9,6 +9,7 @@ else:
    output_tmp = sys.argv[2]
    binary_tmp = sys.argv[3]
 #file_list = "main_run_0075.txt"  # Path to the file containing the list of files
+isDCR = 'dcr' in binary_tmp
 file_list =  os.path.abspath(input_tmp)  # Path to the file containing the list of files
 eos_mgm_url = "root://junoeos01.ihep.ac.cn"
 directory = "/tmp/tao-sipmtest"
@@ -39,6 +40,8 @@ if not os.path.isdir(output_dir):
     os.makedirs(output_dir)
 if not os.path.isdir(output_dir + "/jobs"):
     os.mkdir(output_dir + "/jobs")
+if not os.path.isdir(output_dir + "/root"):
+    os.mkdir(output_dir + "/root")
 
 count = 0
 for file_path in files:
@@ -47,6 +50,8 @@ for file_path in files:
     if not ".data" in file_path:
         continue
     file_name = file_path.split("/")[-1]
+    if isDCR and 'reff' in file_name:
+        continue
     count += 1
     components = file_name.split("_")
     run_type = components[0]
@@ -63,7 +68,7 @@ for file_path in files:
         script_tmp += 'cp /junofs/users/wanghanwen/sipm-massive/env_lcg.sh .\n'
         script_tmp += '. ./env_lcg.sh\n'
         output_name = "_".join(components[0:-3])
-        script_tmp += f'{binary_path} -i {file_name} -c new.yaml -r {run_number} -v {ov} -t {run_type}_{sipm_type}_ch{channel} -o {output_dir}/{output_name}.root\n'
+        script_tmp += f'{binary_path} -i {file_name} -c new.yaml -r {run_number} -v {ov} -t {run_type}_{sipm_type}_ch{channel} -o {output_dir}/root/{output_name}.root\n'
         script_tmp += 'sleep 5\n'
         script_tmp += f'rm -f {file_name}\n'
         script_tmp += 'cd -\n'
@@ -81,28 +86,30 @@ for file_path in files:
         script_tmp += 'cp /junofs/users/wanghanwen/sipm-massive/env_lcg.sh .\n'
         script_tmp += '. ./env_lcg.sh\n'
         output_name = "_".join(components[0:-3])
-        script_tmp += f'{binary_path} -i {file_name} -c new.yaml -r {run_number} -v 0 -t {run_type}_{sipm_type}_ch{channel} -o {output_dir}/{output_name}.root\n'
+        script_tmp += f'{binary_path} -i {file_name} -c new.yaml -r {run_number} -v 0 -t {run_type}_{sipm_type}_ch{channel} -o {output_dir}/root/{output_name}.root\n'
         script_tmp += 'sleep 5\n'
         script_tmp += f'rm -f {file_name}\n'
         script_tmp += 'cd -\n'
         with open(f'{output_dir}/jobs/{output_name}.sh','w') as file_tmp:
             file_tmp.write(script_tmp)
-       
-if "main" in name_short and count != 192:
-    print(f"{name_short} : WARNING, there are only {count} lines and it's less than 192")
-    with open("incompleteDataInfo-{name_short.split('_')[0]}.log", 'a') as file:
-        line_of_text = f"main run {run_number} {count} 192"
-        file.write(line_of_text + '\n')
-elif "light" in name_short and count != 64:
-    print(f"{name_short} : WARNING, there are only {count} lines and it's less than 64")
-    with open("incompleteDataInfo-{name_short.split('_')[0]}.log", 'a') as file:
-        line_of_text = f"light run {run_number} {count} 64"
-        file.write(line_of_text + '\n')
+if not isDCR:
+    if "main" in name_short and count != 192:
+        print(f"{name_short} : WARNING, there are only {count} lines and it's less than 192")
+        with open(f"incompleteDataInfo-{name_short.split('_')[0]}.log", 'a') as file:
+            line_of_text = f"main run {run_number} {count} 192"
+            file.write(line_of_text + '\n')
+    elif "light" in name_short and count != 64:
+        print(f"{name_short} : WARNING, there are only {count} lines and it's less than 64")
+        with open(f"incompleteDataInfo-{name_short.split('_')[0]}.log", 'a') as file:
+            line_of_text = f"light run {run_number} {count} 64"
+            file.write(line_of_text + '\n')
+    else:
+        print(f"{name_short} : Success, there are {count} lines in the datasets ({'64 for light' if name_short.split('_')[0] == 'light' else '192 for main'})")
+        with open("completeDataInfo-{name_short.split('_')[0]}.log", 'a') as file:
+            line_of_text = f"{name_short.split('_')[0]} run {run_number} {count} {64 if name_short.split('_')[0] == 'light' else 192}"
+            file.write(line_of_text + '\n')
 else:
-    print(f"{name_short} : Success, there are {count} lines in the datasets ({'64 for light' if name_short.split('_')[0] == 'light' else '192 for main'})")
-    with open("completeDataInfo-{name_short.split('_')[0]}.log", 'a') as file:
-        line_of_text = f"{name_short.split('_')[0]} run {run_number} {count} {64 if name_short.split('_')[0] == 'light' else 192}"
-        file.write(line_of_text + '\n')
+    print(f"{name_short} DCR jobs are created")
 
 
 os.system(f"chmod +x {output_dir}/jobs/*.sh")
