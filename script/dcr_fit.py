@@ -1,6 +1,7 @@
 import os, sys
 import re
 import pandas as pd
+import math
 import ROOT
 
 def set_bins_above_threshold_to_zero(hist, threshold):
@@ -9,7 +10,12 @@ def set_bins_above_threshold_to_zero(hist, threshold):
         if bin_center > threshold:
             hist.SetBinContent(bin, 0)
 
-ov_ranges = {1:100, 2:150, 3:200, 4:280, 5:360, 6: 420}
+
+def generalized_poisson(k, mu, lambda_):
+    numerator = mu * (mu + k * lambda_) ** (k - 1) * math.exp(- (mu + k * lambda_))
+    denominator =  math.factorial(k)
+    return numerator / denominator
+
 if len(sys.argv) < 6:
    print("Usage: python dcr_fit.py <input_file> <tree_name> <variable_name> <csv_path> <output_path> ")
 else:
@@ -32,27 +38,35 @@ if name_match:
 
 if not os.path.isdir(output_path + "/pdf"):
     os.makedirs(output_path + "/pdf")
+if not os.path.isdir(output_path + "/csv"):
+    os.makedirs(output_path + "/csv")
 ##########################################################
 df = pd.read_csv(f'{csv_path}/charge_fit_tile_ch{channel}_ov{ov}.csv')
 f1 = ROOT.TFile(input_path)
 tree = f1.Get(tree_name)
+dcr_list = []
 for po in range(16):
     gain = df.loc[  (df['channel'] == channel) & (df['position'] == po) & (df['voltage'] == ov)].head(1)["gain"].values[0]
+    lambda_ = df.loc[  (df['channel'] == channel) & (df['position'] == po) & (df['voltage'] == ov)].head(1)["lambda"].values[0]
     events = df.loc[  (df['channel'] == channel) & (df['position'] == po) & (df['voltage'] == ov)].head(1)["events"].values[0]
     sigma1_value = df.loc[  (df['channel'] == channel) & (df['position'] == po) & (df['voltage'] == ov)].head(1)["sigma1"].values[0]
     sigma2_value = df.loc[  (df['channel'] == channel) & (df['position'] == po) & (df['voltage'] == ov)].head(1)["sigma2"].values[0]
-    bkgPDF = ROOT.TH1F("bkgPDF","bkgPDF",ov_ranges[ov], -20, ov_ranges[ov] - 20)#ROOT.gPad.GetPrimitive("bkgPDF") 
+
+    bkgPDF = ROOT.TH1F("bkgPDF","bkgPDF",int(gain * 2 + sigma2_value * 2 + 20), -20, gain * 2 + sigma2_value * 2)#ROOT.gPad.GetPrimitive("bkgPDF") 
     tree.Draw(f"bkgQ_ch{po}>>bkgPDF")
     # Call the function to set bins above the threshold to zero
-    set_bins_above_threshold_to_zero(bkgPDF, gain - sigma1_value)
+    #set_bins_above_threshold_to_zero(bkgPDF, gain - sigma1_value)
     #bkgPDF = ROOT.gPad.GetPrimitive("bkgPDF") 
-    sigQ = ROOT.RooRealVar("sigQ", "sigQ", -20, ov_ranges[ov] - 20)
+    sigQ = ROOT.RooRealVar("sigQ", "sigQ", -20, gain * 2 + sigma2_value * 2)
     bkghist = ROOT.RooDataHist("hist", "Data Histogram", ROOT.RooArgList(sigQ), ROOT.RooFit.Import(bkgPDF))
-    pdf = ROOT.RooHistPdf("pdf", "Histogram PDF", ROOT.RooArgSet(sigQ), bkghist)
-    mean1 = ROOT.RooRealVar("mean1", "mean1", gain)
-    mean2 = ROOT.RooRealVar("mean2", "mean2", gain * 2)
-    sigma1 = ROOT.RooRealVar("sigma1", "sigma1", sigma1_value, sigma1_value * 0.9, sigma1_value * 1.1)
-    sigma2 = ROOT.RooRealVar("sigma2", "sigma2", sigma2_value, sigma2_value * 0.9, sigma2_value * 1.1)
+    mean0 = ROOT.RooRealVar("mean0", "mean0", 5, 0, 10)
+    sigma0 = ROOT.RooRealVar("sigma0", "sigma0", bkgPDF.GetRMS(), 0.1, bkgPDF.GetRMS() * 1.2)
+    #pdf = ROOT.RooHistPdf("pdf", "Histogram PDF", ROOT.RooArgSet(sigQ), bkghist)
+    pdf = ROOT.RooGaussian("pdf", "pdf", sigQ, mean0, sigma0)
+    mean1 = ROOT.RooRealVar("mean1", "mean1", gain, gain - 2, gain)
+    mean2 = ROOT.RooRealVar("mean2", "mean2", gain * 2, gain * 2 -4, gain * 2 )
+    sigma1 = ROOT.RooRealVar("sigma1", "sigma1", sigma1_value, sigma1_value * 0.8, sigma1_value * 1.1)
+    sigma2 = ROOT.RooRealVar("sigma2", "sigma2", sigma2_value, sigma2_value * 0.8, sigma2_value * 1.1)
     gauss1 = ROOT.RooGaussian("gauss1", "gauss1", sigQ, mean1, sigma1)
     gauss2 = ROOT.RooGaussian("gauss2", "gauss2", sigQ, mean2, sigma2)
     
@@ -61,16 +75,20 @@ for po in range(16):
     
     coeff_list = ROOT.RooArgList()  # List of coefficients
     
-    coeff1 = ROOT.RooRealVar("coeff1", "coeff1", 0.5, 0, 1)
-    coeff2 = ROOT.RooRealVar("coeff2", "coeff2", 0.25, 0, 1)
-    coeff3 = ROOT.RooFormulaVar("coeff3", "coeff3", "1-coeff1-coeff2", ROOT.RooArgList(coeff1, coeff2))
+    coeff2 = ROOT.RooRealVar("coeff2", "coeff2", 0.2, 0.001, 0.5)
+    coeff3 = ROOT.RooFormulaVar("coeff3", f"coeff2 * {generalized_poisson(1, 1, lambda_)}", ROOT.RooArgList(coeff2))
+    #coeff3 = ROOT.RooFormulaVar("coeff3", f"coeff2 * 0.5", ROOT.RooArgList(coeff2))
+    coeff1 = ROOT.RooFormulaVar("coeff1", "coeff1", "1-coeff2-coeff3", ROOT.RooArgList(coeff2, coeff3))
     
     for i in range(1,4):
         coeff_list.add(globals()[f'coeff{i}'])
     #add_pdf = ROOT.RooAddPdf("add_pdf", "Combined PDF", pdf_list)
     add_pdf = ROOT.RooAddPdf("add_pdf", "Combined PDF", pdf_list, coeff_list)
-    hist = ROOT.TH1F("chargehist", "charge hist", ov_ranges[ov], -20, ov_ranges[ov] - 20)
+    hist = ROOT.TH1F("chargehist", "charge hist", int(gain * 2 + sigma2_value * 2 + 20), -20, gain * 2 + sigma2_value * 2)
     tree.Draw(f"{variable_name}_ch{po}>>chargehist")
+    tree.Draw(f"{variable_name}_ch{po}>>countHist")
+    countHist = ROOT.gPad.GetPrimitive("countHist") 
+    total_entries = countHist.Integral()
     #hist = ROOT.gPad.GetPrimitive("chargehist")
     data = ROOT.RooDataHist("data","data", ROOT.RooArgSet(sigQ), hist)
     #mean = ROOT.RooRealVar("mean", "mean", bkgPDF.GetMean(), bkgPDF.GetMean() - bkgPDF.GetRMS(),bkgPDF.GetMean() + bkgPDF.GetRMS())
@@ -83,7 +101,7 @@ for po in range(16):
     result = add_pdf.fitTo(data, ROOT.RooFit.Minimizer("Minuit2"), ROOT.RooFit.Save())  # Pass the specified minimizer
     #result2 = gauss.fitTo(data, ROOT.RooFit.Minimizer("Minuit2"), ROOT.RooFit.Save())
     
-    total_entries = data.sumEntries()
+    fit_entries = data.sumEntries()
     
     pdf_norm = pdf.createIntegral(ROOT.RooArgSet(sigQ), ROOT.RooFit.NormSet(sigQ), ROOT.RooFit.Range("sigQ"))
     gauss1_norm = gauss1.createIntegral(ROOT.RooArgSet(sigQ), ROOT.RooFit.NormSet(sigQ), ROOT.RooFit.Range("sigQ"))
@@ -92,7 +110,7 @@ for po in range(16):
     # Calculate the total number of events predicted by the signal PDF
     canvas = ROOT.TCanvas("c1","c1", 1200, 800)
     if po == 0:
-        canvas.Print(f"last.pdf[")
+        canvas.Print(f"{output_path}/pdf/dcr_fit_tile_ch{channel}_ov{ov}.pdf[")
     # Divide the canvas into two asymmetric pads
     pad1 =ROOT.TPad("pad1","This is pad1",0.05,0.05,0.72,0.97);
     pad2 = ROOT.TPad("pad2","This is pad2",0.72,0.05,0.98,0.97);
@@ -133,14 +151,17 @@ for po in range(16):
     param_box.SetTextFont(42)
     param_box.SetTextSize(0.08)
     param_box.AddText(f"total = {total_entries} ")
-    param_box.AddText(f"e noise = {coeff1.getVal():.3f} ")
-    param_box.AddText(f"gauss1 = {coeff2.getVal():.3f} ")
-    param_box.AddText(f"gauss2 = {coeff3.getVal():.3f} ")
-    param_box.AddText(f"DCR = {total_entries * (1 - coeff1.getVal()) / 144. / (1100 * 8e-9 * events)} ")
+    param_box.AddText(f"e noise = {coeff1.getVal() * fit_entries:.3f} ")
+    param_box.AddText(f"dcr events = {total_entries - coeff1.getVal() * fit_entries:.3f} ")
+    param_box.AddText(f"dcr = {(total_entries - fit_entries * coeff1.getVal()) / 144. / (1100 * 8e-9 * events) : .1f} Hz/mm2 ")
 
+    param_box.AddText(f"#sigma0 = {sigma0.getVal():.3f} #pm {sigma0.getError():.3f}")
     param_box.AddText(f"#sigma1 = {sigma1.getVal():.3f} #pm {sigma1.getError():.3f}")
     param_box.AddText(f"#sigma2 = {sigma2.getVal():.3f} #pm {sigma2.getError():.3f}")
     param_box.Draw("same")
-    canvas.Print("last.pdf")
-canvas.Print("last.pdf]")
+    canvas.Print("{output_path}/pdf/dcr_fit_tile_ch{channel}_ov{ov}.pdf")
+    dcr_list.append((total_entries - fit_entries * coeff1.getVal()) / 144. / (1100 * 8e-9 * events))
+df['dcr'] = dcr_list
+df.to_csv(f"{output_path}/csv/dcr_fit_tile_ch{channel}_ov{ov}.csv", index=False)
+canvas.Print(f"{output_path}/pdf/dcr_fit_tile_ch{channel}_ov{ov}.pdf]")
     

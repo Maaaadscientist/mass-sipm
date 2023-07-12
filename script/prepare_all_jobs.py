@@ -85,6 +85,8 @@ for aFile in grouped_list:
     #os.system(f"python3 script/prepare_skim_jobs.py datasets/{aFile} {output_dir} {input_table}")
     if analysis_type == "signal-fit":
         subprocess.run(['python', 'script/prepare_signal_jobs.py', f'{output_dir}/main/{name_short}', f'{output_dir}/{analysis_type}/{name_short}'])
+    elif analysis_type == "dcr-fit":
+        subprocess.run(['python', 'script/prepare_dcr_jobs.py', f'{output_dir}/dcr/{name_short}',f'{output_dir}/signal-fit/{name_short}', f'{output_dir}/{analysis_type}/{name_short}'])
     elif analysis_type == "main" or "light" or "dcr":
         subprocess.run(['python', 'script/prepare_skim_jobs.py',f'datasets/{aFile}', f'{output_dir}/{analysis_type}', f'{binary_path}'])
 

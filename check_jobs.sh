@@ -85,27 +85,53 @@ if [[ $interactive_mode == true ]]; then
     echo "Jobs not resubmitted."
   fi
 else
-  # Prompt the user to resubmit jobs
-  for a_script_file in "${scripts_to_resubmit[@]}"; do
-    echo "$a_script_file"
-  done
-  length=${#scripts_to_resubmit[@]}
-  echo -e "${GREEN}Number of jobs to be submitted (resubmitted): $length ${NC}"
-  # Interactive mode is disabled, skip printing information and resubmitting jobs
-  echo "Interactive mode disabled. Skipping printing information and asking confirmation."
-  # Directory to be added to PATH
-  htcondor_dir="/afs/ihep.ac.cn/soft/common/sysgroup/hep_job/bin"
   
-  length=${#scripts_to_resubmit[@]}
-  # Check if the directory is already in the PATH
-  if ! echo "$PATH" | grep -q "$htcondor_dir"; then
-    # Add the directory to the PATH variable
-    export PATH="$htcondor_dir:$PATH"
-    echo "Directory added to PATH."
+  echo "resubmit all jobs? (Y: resubmit all, N: resubmit failed ones, other: do nothing)"
+  read choice
+  if [[ $choice == "y" ]]; then
+    length=${#script_files[@]}
+    echo -e "${GREEN}Number of jobs to be submitted (resubmitted): $length ${NC}"
+    # Interactive mode is disabled, skip printing information and resubmitting jobs
+    echo "Interactive mode disabled. Skipping printing information and asking confirmation."
+    # Directory to be added to PATH
+    htcondor_dir="/afs/ihep.ac.cn/soft/common/sysgroup/hep_job/bin"
+    
+    # Check if the directory is already in the PATH
+    if ! echo "$PATH" | grep -q "$htcondor_dir"; then
+      # Add the directory to the PATH variable
+      export PATH="$htcondor_dir:$PATH"
+      echo "Directory added to PATH."
+    fi
+    # Loop through the array and resubmit jobs
+    for one_script_file in $script_files; do
+      echo "Resubmitting job: $one_script_file"
+      hep_sub "$directory/jobs/$one_script_file"
+    done
   fi
-  # Loop through the array and resubmit jobs
-  for script_file in "${scripts_to_resubmit[@]}"; do
-    #echo "Resubmitting job: $script_file"
-    hep_sub "$directory/jobs/$script_file"
-  done
+
+  if [[ $choice == "n" ]]; then
+    # Prompt the user to resubmit jobs
+    for a_script_file in "${scripts_to_resubmit[@]}"; do
+      echo "$a_script_file"
+    done
+    length=${#scripts_to_resubmit[@]}
+    echo -e "${GREEN}Number of jobs to be submitted (resubmitted): $length ${NC}"
+    # Interactive mode is disabled, skip printing information and resubmitting jobs
+    echo "Interactive mode disabled. Skipping printing information and asking confirmation."
+    # Directory to be added to PATH
+    htcondor_dir="/afs/ihep.ac.cn/soft/common/sysgroup/hep_job/bin"
+    
+    length=${#scripts_to_resubmit[@]}
+    # Check if the directory is already in the PATH
+    if ! echo "$PATH" | grep -q "$htcondor_dir"; then
+      # Add the directory to the PATH variable
+      export PATH="$htcondor_dir:$PATH"
+      echo "Directory added to PATH."
+    fi
+    # Loop through the array and resubmit jobs
+    for script_file in "${scripts_to_resubmit[@]}"; do
+      #echo "Resubmitting job: $script_file"
+      hep_sub "$directory/jobs/$script_file"
+    done
+  fi
 fi
