@@ -1,3 +1,4 @@
+/eos/juno/groups/TAO/taoprod/mass_test/run_data/main_run_0075/main_run_0075.log
 /eos/juno/groups/TAO/taoprod/mass_test/run_data/main_run_0075/main_run_0075_ov_1.00_sipmgr_01_reff_080c635b_20230516_111957.data
 /eos/juno/groups/TAO/taoprod/mass_test/run_data/main_run_0075/main_run_0075_ov_1.00_sipmgr_01_tile_0cd96b60_20230516_111957.data
 /eos/juno/groups/TAO/taoprod/mass_test/run_data/main_run_0075/main_run_0075_ov_1.00_sipmgr_02_reff_080c635b_20230516_112225.data
@@ -190,4 +191,4 @@
 /eos/juno/groups/TAO/taoprod/mass_test/run_data/main_run_0075/main_run_0075_ov_6.00_sipmgr_15_tile_0cd96b60_20230516_151948.data
 /eos/juno/groups/TAO/taoprod/mass_test/run_data/main_run_0075/main_run_0075_ov_6.00_sipmgr_16_reff_080c635b_20230516_152222.data
 /eos/juno/groups/TAO/taoprod/mass_test/run_data/main_run_0075/main_run_0075_ov_6.00_sipmgr_16_tile_0cd96b60_20230516_152222.data
-path=/eos/juno/groups/TAO/taoprod/mass_test/run_data/main_run_0075
+path=/eos/juno/groups/TAO/taoprod/mass_test/run_data/main_run_0075/
