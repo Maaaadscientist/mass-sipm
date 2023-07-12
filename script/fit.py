@@ -42,8 +42,8 @@ if len(sys.argv) == 5:
 else:
     output_path = f"results/main_run_{run}"
 
-if not os.path.isdir(output_path + "/plots"):
-    os.makedirs(output_path + "/plots")
+if not os.path.isdir(output_path + "/pdf"):
+    os.makedirs(output_path + "/pdf")
 if not os.path.isdir(output_path + "/csv"):
     os.makedirs(output_path + "/csv")
 #num_bins = 40 + 80 * ov
@@ -146,7 +146,7 @@ param_box.AddText(f"#sigma5 = {sigma5.getVal():.3f} #pm {sigma5.getError():.3f}"
 param_box.AddText(f"#chi2/NDF = {chi2_ndf:.3f}")
 param_box.Draw("same")
 
-canvas.SaveAs(f"{output_path}/plots/{filename.replace('.root', '')}_po{tile}.pdf")
+canvas.SaveAs(f"{output_path}/pdf/charge_fit_tile_ch{channel}_po{tile}_ov{ov}.pdf")
 fit_info = {
                 'mu' : float(mu.getVal()),
                 'mu_err' : float(mu.getError()),
@@ -183,7 +183,8 @@ fit_info['run_number'] = run
 fit_info['voltage'] = ov
 fit_info['channel'] = channel
 fit_info['position'] = tile
-fit_info['baseline_res'] = baseline_res
+fit_info['baseline_res'] = float(baseline_res / 45)
+fit_info['baseline'] = float(baseline / 45)
 print(distance, gain.getVal())
 print(mu.getVal(), lambda_.getVal())
 print(len(peaks_tspectrum))
@@ -192,4 +193,4 @@ for key, value in fit_info.items():
     combined_dict[key].append(value)
 df = pd.DataFrame(combined_dict)
 # Save the DataFrame to a CSV file
-df.to_csv(f"{output_path}/csv/{filename.replace('.root', '')}_po{tile}.csv", index=False)
+df.to_csv(f"{output_path}/csv/charge_fit_tile_ch{channel}_po{tile}_ov{ov}.csv", index=False)
