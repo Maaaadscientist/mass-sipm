@@ -42,14 +42,22 @@ double butterworthLowpassFilter(double input, double cutoffFreq, int order) {
     return output;
 }
 
-std::tuple<std::vector<double>, std::vector<double>, std::vector<double>> getDCR( const std::vector<float> &SiPMWave, float baseline, int dcrStart, int dcrEnd, float thres) {
+std::tuple<std::vector<int>, std::vector<double>, std::vector<double>, std::vector<double>> getDCR( const std::vector<float> &SiPMWave, float baseline, int dcrStart, int dcrEnd, float thres) {
     std::vector<double> amp;
     std::vector<double> charge;
     std::vector<double> chargeBkg;
+    std::vector<int> po;
 
-    auto averageFromWaveform = [&](int k) {
+    auto averageFromWaveformLeft = [&](int k) {
         float sum = 0.0;
         for (int index = k; index < k - 10 && index >= 0; --index)
+            sum += SiPMWave[index];
+        return sum / 10.0;
+    };
+
+    auto averageFromWaveformRight = [&](int k) {
+        float sum = 0.0;
+        for (int index = k; index < k + 10 && index <= dcrEnd; ++index)
             sum += SiPMWave[index];
         return sum / 10.0;
     };
@@ -60,14 +68,26 @@ std::tuple<std::vector<double>, std::vector<double>, std::vector<double>> getDCR
             int start = i - 10;
             for (int k = i + 10; k >= 10; --k) {
                 //std::cout<< "tracing before:" <<k << std::endl;
-                if (abs(averageFromWaveform(k) -  baseline) <= MINIMUM_DIFF) {
+                if (abs(averageFromWaveformLeft(k) -  baseline) <= MINIMUM_DIFF) {
                     start = k - 5;
                     break;
                 }
             }
             double amp_tmp = 0.;
             double dcrQ_tmp = 0.;
+            i += 45;
+            //for (int j = i + 1; j < dcrEnd + 50; j++) {
+            //    //std::cout<< "tracing after:" <<j << std::endl;
+            //    if ( abs(averageFromWaveformRight(j) -  baseline) <= MINIMUM_DIFF) {
+            //        i = j;
+            //        break;
+            //    }
+            //    else {
+            //        continue;
+            //    }
+            //}
             //dcrQ_tmp = std::accumulate(tmp.begin(), tmp.end(), 0.0) - baseline * tmp.size();
+            po.push_back(start);
             for (int index = start; index < start + 45 ; ++index) {
                 dcrQ_tmp += SiPMWave[index] - baseline;
                 if ( SiPMWave[index] > amp_tmp) amp_tmp = SiPMWave[index];
@@ -82,11 +102,22 @@ std::tuple<std::vector<double>, std::vector<double>, std::vector<double>> getDCR
             int start = i - 10;
             for (int k = i + 10; k >= 10; --k) {
                 //std::cout<< "tracing before:" <<k << std::endl;
-                if (abs(averageFromWaveform(k) -  baseline) <= MINIMUM_DIFF) {
+                if (abs(averageFromWaveformLeft(k) -  baseline) <= MINIMUM_DIFF) {
                     start = k - 5;
                     break;
                 }
             }
+            i += 45;
+            //for (int j = i + 1; j < dcrEnd; j++) {
+            //    //std::cout<< "tracing after:" <<j << std::endl;
+            //    if ( abs(averageFromWaveformRight(j) -  baseline) <= MINIMUM_DIFF) {
+            //        i = j;
+            //        break;
+            //    }
+            //    else {
+            //        continue;
+            //    }
+            //}
             double dcrQ_tmp = 0.;
             //dcrQ_tmp = std::accumulate(tmp.begin(), tmp.end(), 0.0) - baseline * tmp.size();
             for (int index = start; index < start + 45 ; ++index) {
@@ -95,7 +126,7 @@ std::tuple<std::vector<double>, std::vector<double>, std::vector<double>> getDCR
             chargeBkg.push_back(dcrQ_tmp);
         }
     }
-    return {amp, charge, chargeBkg};
+    return {po, amp, charge, chargeBkg};
 }
 
 std::pair<float, float> calculateBaselineAndSigQ(const std::vector<float> &SiPMWave, int baselineStart, int baselineEnd) {
@@ -281,7 +312,14 @@ int main(int argc, char **argv) {
             //std::cout << amp_backward << std::endl;
          }
          auto [baseline2, sigQ_filter] = calculateBaselineAndSigQ(waveforms_filtered, baselineStart,baselineEnd); 
-         auto [dcr_amps, dcr_charges, bkg_charges] = getDCR(waveforms_filtered, baseline2, dcrStart, dcrEnd, dcrThreshold);
+         auto [pos, dcr_amps, dcr_charges, bkg_charges] = getDCR(waveforms_filtered, baseline2, dcrStart, dcrEnd, dcrThreshold);
+         //std::cout << dcr_charges.size() << std::endl;
+         //if ( dcr_charges.size() >=  5) {
+         //   for (const auto& element : pos) {
+         //      std::cout << element << " ";
+         //   }
+         //   std::cout << std::endl;
+         //}
          for (size_t i = 0; i < dcr_amps.size(); ++i) {
              dcrAmplitude[ch].push_back(dcr_amps[i]);
              dcrCharge[ch].push_back(dcr_charges[i]);
