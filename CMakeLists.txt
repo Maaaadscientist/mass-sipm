@@ -44,7 +44,3 @@ target_link_libraries(skim-signal  PRIVATE sipm-massive)
 add_executable(store-waveform src/store-waveform.cc)
 target_include_directories(store-waveform PRIVATE include)
 target_link_libraries(store-waveform  PRIVATE sipm-massive)
-
-add_executable(skim-dcr src/dcr.cc)
-target_include_directories(skim-dcr PRIVATE include)
-target_link_libraries(skim-dcr  PRIVATE sipm-massive)
