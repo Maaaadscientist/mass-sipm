@@ -78,7 +78,7 @@ std::tuple<std::vector<double>, std::vector<double>, std::vector<double>> getDCR
     }
     for (int i = dcrStart; i < dcrEnd; i++) {
         //std::cout<< SiPMWave[i] << "," << baseline <<"," << thres <<std::endl;
-        if (SiPMWave[i] - thres >= baseline and SiPMWave[i+1] - thres < baseline) {
+        if (SiPMWave[i] + thres <= baseline ) {
             int start = i - 10;
             for (int k = i + 10; k >= 10; --k) {
                 //std::cout<< "tracing before:" <<k << std::endl;
@@ -90,7 +90,7 @@ std::tuple<std::vector<double>, std::vector<double>, std::vector<double>> getDCR
             double dcrQ_tmp = 0.;
             //dcrQ_tmp = std::accumulate(tmp.begin(), tmp.end(), 0.0) - baseline * tmp.size();
             for (int index = start; index < start + 45 ; ++index) {
-                dcrQ_tmp += SiPMWave[index] - baseline;
+                dcrQ_tmp += baseline - SiPMWave[index];
             }
             chargeBkg.push_back(dcrQ_tmp);
         }
