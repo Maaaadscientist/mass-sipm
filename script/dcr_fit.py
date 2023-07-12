@@ -3,6 +3,12 @@ import re
 import pandas as pd
 import ROOT
 
+def set_bins_above_threshold_to_zero(hist, threshold):
+    for bin in range(1, hist.GetNbinsX() + 1):
+        bin_center = hist.GetBinCenter(bin)
+        if bin_center > threshold:
+            hist.SetBinContent(bin, 0)
+
 ov_ranges = {1:100, 2:150, 3:200, 4:280, 5:360, 6: 420}
 if len(sys.argv) < 6:
    print("Usage: python dcr_fit.py <input_file> <tree_name> <variable_name> <csv_path> <output_path> ")
@@ -37,6 +43,8 @@ for po in range(16):
     sigma2_value = df.loc[  (df['channel'] == channel) & (df['position'] == po) & (df['voltage'] == ov)].head(1)["sigma2"].values[0]
     bkgPDF = ROOT.TH1F("bkgPDF","bkgPDF",ov_ranges[ov], -20, ov_ranges[ov] - 20)#ROOT.gPad.GetPrimitive("bkgPDF") 
     tree.Draw(f"bkgQ_ch{po}>>bkgPDF")
+    # Call the function to set bins above the threshold to zero
+    set_bins_above_threshold_to_zero(bkgPDF, gain - sigma1_value)
     #bkgPDF = ROOT.gPad.GetPrimitive("bkgPDF") 
     sigQ = ROOT.RooRealVar("sigQ", "sigQ", -20, ov_ranges[ov] - 20)
     bkghist = ROOT.RooDataHist("hist", "Data Histogram", ROOT.RooArgList(sigQ), ROOT.RooFit.Import(bkgPDF))
