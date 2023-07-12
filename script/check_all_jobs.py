@@ -36,7 +36,7 @@ elif analysis_type =="signal-fit":
     file_type = "pdf"
 elif analysis_type == "dcr-fit":
     runType = "main"
-    file_type = "csv"
+    file_type = "pdf"
 main_runs = []
 light_runs = []
 
