@@ -40,7 +40,7 @@ for ch in range(1, 17):
         script += f'output_file="{output_dir}"\n'
         script += '# Construct the input filename\n'
         script += f'ov={ov}\n'
-        script += 'input_file="${file_path}/${run_info}_ov_${ov}.00_sipmgr_$(printf "%02d" $sipmgr)_${root_type}.root"\n'
+        script += 'input_file="${file_path}/root/${run_info}_ov_${ov}.00_sipmgr_$(printf "%02d" $sipmgr)_${root_type}.root"\n'
         script += '# Construct and execute the command\n'
         script += 'charge_fit_command="$python fit.py ${input_file} signal sigQ ${output_file}"\n'
         script += 'echo "Executing command: ${charge_fit_command}"\n'

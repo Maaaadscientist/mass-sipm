@@ -11,20 +11,39 @@ def list_txt_files(directory):
             txt_files.append(filename)
     return txt_files
 
-if len(sys.argv) < 3:
-    raise OSError("Usage: python script/prepare_all_jobs.py <input_table_yaml> <output_dir> <run_type>")
+if len(sys.argv) < 4:
+    raise OSError("Usage: python script/prepare_all_jobs.py <input_table_yaml> <output_dir> <analysis_type>")
 else:
     input_tmp = sys.argv[1]
     output_tmp = sys.argv[2]    
-if len(sys.argv) == 4:
-    runType = sys.argv[3]
-else:
-    runType = "main"
+    analysis_type = sys.argv[3]
 table_path = os.path.abspath(input_tmp)
 output_dir = os.path.abspath(output_tmp)
+if analysis_type == "main": 
+    runType = "main"
+    binary_path = os.path.abspath("bin/skim-signal")
+    file_type = "root"
+elif analysis_type == "light":
+    runType = "light"
+    file_type = "root"
+    binary_path = os.path.abspath("bin/skim-signal")
+elif analysis_type == "dcr":
+    runType = "main"
+    file_type = "root"
+    binary_path = os.path.abspath("bin/skim-dcr")
+elif analysis_type =="signal-fit":
+    runType = "main"
+    file_type = "pdf"
+elif analysis_type == "dcr-fit":
+    runType = "main"
+    file_type = "csv"
 main_runs = []
 light_runs = []
 
+if file_type == "root":
+    threshold = 70
+elif file_type == "pdf":
+    threshold = 10
 with open(table_path, 'r') as file:
     for line in file:
         line = line.strip()
@@ -49,6 +68,14 @@ choice = input("Ready to resubmit jobs? (Y/N): ").upper()
 
 # Check if the user wants to resubmit jobs
 if choice == "Y":
+    # Prompt the user for input
+    choice2 = input("Interactive mode? (Y/N): ").upper()
+    
+    # Check if the user wants to resubmit jobs
+    if choice2 == "Y":
+        interactive = "true"
+    else:
+        interactive = "false"
     for aFile in grouped_list:
         name_short = aFile.split("/")[-1].replace(".txt", "")
         run = int(name_short.split("_")[-1])
@@ -63,7 +90,7 @@ if choice == "Y":
             continue
        
         # Define the command to execute the shell script
-        command = f'./check_jobs.sh 1024 {output_dir}/{name_short} 1'
+        command = f'./check_jobs.sh {threshold} {output_dir}/{analysis_type}/{name_short} {interactive} {file_type}'
         #print(command)
 
         # Execute the shell script
@@ -79,9 +106,7 @@ if choice == "Y":
         # Check the return code of the process
         return_code = process.wait()
 
-        if return_code == 0:
-            print(f"Script executed successfully for {run_type} run {run}")
-        else:
+        if not return_code == 0:
             print(f"Error executing script. Return code: {return_code}")
             print("Error output:")
             print(error.decode('utf-8'))

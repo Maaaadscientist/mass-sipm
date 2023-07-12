@@ -12,18 +12,31 @@ def list_txt_files(directory):
     return txt_files
 
 if len(sys.argv) < 4:
-    raise OSError("Usage: python script/prepare_all_jobs.py <input_table> <output_dir> <binary_path> <run_type>")
+    raise OSError("Usage: python script/prepare_all_jobs.py <input_table> <output_path> <analysis_type>")
 else:
     input_tmp = sys.argv[1]
+    analysis_type = sys.argv[3]
     output_tmp = sys.argv[2]    
-    binary_tmp = sys.argv[3]
-if len(sys.argv) == 5:
-    runType = sys.argv[4]
-else:
-    runType = "main"
+
 table_path = os.path.abspath(input_tmp)
-binary_path = os.path.abspath(binary_tmp)
 output_dir = os.path.abspath(output_tmp)
+
+if analysis_type == "main": 
+    runType = "main"
+    binary_path = os.path.abspath("bin/skim-signal")
+elif analysis_type == "light":
+    runType = "light"
+    binary_path = os.path.abspath("bin/skim-signal")
+elif analysis_type == "dcr":
+    runType = "main"
+    binary_path = os.path.abspath("bin/skim-dcr")
+elif analysis_type =="signal-fit":
+    runType = "main"
+elif analysis_type == "dcr-fit":
+    runType = "main"
+    
+if not os.path.isdir(f'{output_dir}/{analysis_type}'):
+    os.makedirs(f'{output_dir}/{analysis_type}')
 main_runs = []
 light_runs = []
 
@@ -39,7 +52,8 @@ if not os.path.isdir(output_dir):
     os.makedirs(output_dir)
 output_dir = os.path.abspath(output_tmp)
 
-os.system("sh get_datasets.sh")
+if analysis_type == "main" or "light":
+    os.system("sh get_datasets.sh")
 # Get the current directory
 current_directory = os.getcwd()
 
@@ -69,5 +83,8 @@ for aFile in grouped_list:
     if run_type != "main" and run_type != "light":
         continue
     #os.system(f"python3 script/prepare_skim_jobs.py datasets/{aFile} {output_dir} {input_table}")
-    subprocess.run(['python', 'script/prepare_skim_jobs.py',f'datasets/{aFile}', f'{output_dir}', f'{binary_path}'])
+    if analysis_type == "signal-fit":
+        subprocess.run(['python', 'script/prepare_signal_jobs.py', f'{output_dir}/main/{name_short}', f'{output_dir}/{analysis_type}/{name_short}'])
+    elif analysis_type == "main" or "light" or "dcr":
+        subprocess.run(['python', 'script/prepare_skim_jobs.py',f'datasets/{aFile}', f'{output_dir}/{analysis_type}', f'{binary_path}'])
 

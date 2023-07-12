@@ -15,11 +15,12 @@ directory=$(realpath "$2")
 # Get the interactive mode option (true or false)
 interactive_mode=${3:-true}
 
+file_type=$4
 # Get the list of "*.sh" files in the "jobs" directory
 script_files=$(find $directory/jobs -type f -name "*.sh" -printf "%f\n")
 
 # Get the list of "*.root" files in the specified directory that pass the size threshold
-root_files=$(find $directory -maxdepth 1 -type f -name "*.root"  -printf "%f\n")
+root_files=$(find $directory/$file_type -maxdepth 1 -type f -name "*.$file_type"  -printf "%f\n")
 
 # Array to store script files to be resubmitted
 scripts_to_resubmit=()
@@ -27,13 +28,13 @@ scripts_to_resubmit=()
 # Iterate over the script files
 for script_file in $script_files; do
   # Remove the ".sh" extension to get the corresponding root file name
-  root_file="${script_file%.sh}.root"
+  root_file="${script_file%.sh}.$file_type"
   
   # Check if the corresponding root file exists
-  if [[ -f "$directory/$root_file" ]]; then
+  if [[ -f "$directory/$file_type/$root_file" ]]; then
     # File exists, remove it from the list of root files
     root_files=$(echo "$root_files" | grep -v "$root_file")
-    size_kb=$(du -k "$directory/$root_file" | awk '{print $1}')
+    size_kb=$(du -k "$directory/$file_type/$root_file" | awk '{print $1}')
     #echo $size_kb
     # Compare the file size with the threshold
     if (( size_kb <= threshold_kb ))
@@ -57,22 +58,24 @@ if [[ $interactive_mode == true ]]; then
   length=${#scripts_to_resubmit[@]}
   echo -e "${GREEN}Number of jobs to be submitted (resubmitted): $length ${NC}"
   # Prompt the user to resubmit jobs
-  read -p "Ready to resubmit jobs? (y/n): " choice
+  echo "Ready to submit jobs? (Y/N):"
+  read choice
   
   # Directory to be added to PATH
   htcondor_dir="/afs/ihep.ac.cn/soft/common/sysgroup/hep_job/bin"
   
-  # Check if the directory is already in the PATH
-  if echo "$PATH" | grep -q "$htcondor_dir"; then
-    echo "Directory already exists in PATH. No changes needed."
-  else
-    # Add the directory to the PATH variable
-    export PATH="$htcondor_dir:$PATH"
-    echo "Directory added to PATH."
-  fi
   
   # Check if the user wants to resubmit jobs
   if [[ $choice == "y" ]]; then
+    echo "will submit $length jobs."
+    # Check if the directory is already in the PATH
+    if echo "$PATH" | grep -q "$htcondor_dir"; then
+      echo "Directory already exists in PATH. No changes needed."
+    else
+      # Add the directory to the PATH variable
+      export PATH="$htcondor_dir:$PATH"
+      echo "Directory added to PATH."
+    fi
     # Loop through the array and resubmit jobs
     for script_file in "${scripts_to_resubmit[@]}"; do
       echo "Resubmitting job: $script_file"
@@ -82,13 +85,18 @@ if [[ $interactive_mode == true ]]; then
     echo "Jobs not resubmitted."
   fi
 else
+  # Prompt the user to resubmit jobs
+  for a_script_file in "${scripts_to_resubmit[@]}"; do
+    echo "$a_script_file"
+  done
+  length=${#scripts_to_resubmit[@]}
+  echo -e "${GREEN}Number of jobs to be submitted (resubmitted): $length ${NC}"
   # Interactive mode is disabled, skip printing information and resubmitting jobs
   echo "Interactive mode disabled. Skipping printing information and asking confirmation."
   # Directory to be added to PATH
   htcondor_dir="/afs/ihep.ac.cn/soft/common/sysgroup/hep_job/bin"
   
   length=${#scripts_to_resubmit[@]}
-  echo -e "${GREEN}Number of (failed) jobs to be submitted (resubmitted): $length ${NC}"
   # Check if the directory is already in the PATH
   if ! echo "$PATH" | grep -q "$htcondor_dir"; then
     # Add the directory to the PATH variable
@@ -97,7 +105,7 @@ else
   fi
   # Loop through the array and resubmit jobs
   for script_file in "${scripts_to_resubmit[@]}"; do
-    echo "Resubmitting job: $script_file"
+    #echo "Resubmitting job: $script_file"
     hep_sub "$directory/jobs/$script_file"
   done
 fi
