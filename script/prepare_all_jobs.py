@@ -32,6 +32,8 @@ elif analysis_type == "dcr":
     binary_path = os.path.abspath("bin/skim-dcr")
 elif analysis_type =="signal-fit":
     runType = "main"
+elif analysis_type == "light-fit":
+    runType = "light"
 elif analysis_type == "dcr-fit":
     runType = "main"
     
@@ -87,6 +89,8 @@ for aFile in grouped_list:
         subprocess.run(['python', 'script/prepare_signal_jobs.py', f'{output_dir}/main/{name_short}', f'{output_dir}/{analysis_type}/{name_short}'])
     elif analysis_type == "dcr-fit":
         subprocess.run(['python', 'script/prepare_dcr_jobs.py', f'{output_dir}/dcr/{name_short}',f'{output_dir}/signal-fit/{name_short}', f'{output_dir}/{analysis_type}/{name_short}'])
+    elif analysis_type == "light-fit":
+        subprocess.run(['python', 'script/prepare_light_jobs.py', f'{output_dir}/light/{name_short}', f'{output_dir}/{analysis_type}/{name_short}'])
     elif analysis_type == "main" or "light" or "dcr":
         subprocess.run(['python', 'script/prepare_skim_jobs.py',f'datasets/{aFile}', f'{output_dir}/{analysis_type}', f'{binary_path}'])
 
