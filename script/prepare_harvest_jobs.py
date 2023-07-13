@@ -46,7 +46,7 @@ script += 'echo "Executing command: ${harvest_command}"\n'
 script += '$harvest_command\n'
 script += '\n'
 script += 'cd -\n'
-with open(f'{output_dir}/jobs/harvest.sh','w') as file_tmp:
+with open(f'{output_dir}/jobs/harvest_run{run_number}.sh','w') as file_tmp:
         file_tmp.write(script)
 
 os.system(f"chmod +x {output_dir}/jobs/*.sh")
