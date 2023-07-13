@@ -34,12 +34,14 @@ for script_file in $script_files; do
   if [[ -f "$directory/$file_type/$root_file" ]]; then
     # File exists, remove it from the list of root files
     root_files=$(echo "$root_files" | grep -v "$root_file")
-    size_kb=$(du -k "$directory/$file_type/$root_file" | awk '{print $1}')
-    #echo $size_kb
+    #size_kb=$(du -k "$directory/$file_type/$root_file" | awk '{print $1}')
+    size_bytes=$(du -b "$directory/$file_type/$root_file" | awk '{print $1}')
+
+    #echo $size_bytes
     # Compare the file size with the threshold
-    if (( size_kb <= threshold_kb ))
+    if (( size_bytes <= threshold_kb ))
     then
-        #echo "Failed job: $root_file (Size: ${size_kb}KB)"
+        #echo "Failed job: $root_file (Size: ${size_bytes}KB)"
         # Remove the ".root" suffix and add the file name to the array
         scripts_to_resubmit+=("$script_file")
     fi

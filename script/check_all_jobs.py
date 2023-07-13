@@ -39,7 +39,7 @@ elif analysis_type =="light-fit":
     file_type = "pdf"
 elif analysis_type == "dcr-fit":
     runType = "main"
-    file_type = "pdf"
+    file_type = "csv"
 elif analysis_type == "vbd":
     runType = "main"
     file_type = "pdf"
@@ -47,9 +47,11 @@ main_runs = []
 light_runs = []
 
 if file_type == "root":
-    threshold = 70
+    threshold = 7000
 elif file_type == "pdf":
-    threshold = 10
+    threshold = 1000
+elif file_type == "csv":
+    threshold = 1000
 with open(table_path, 'r') as file:
     for line in file:
         line = line.strip()

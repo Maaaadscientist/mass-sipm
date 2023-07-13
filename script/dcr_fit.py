@@ -161,7 +161,7 @@ for po in range(16):
     param_box.AddText(f"#sigma1 = {sigma1.getVal():.3f} #pm {sigma1.getError():.3f}")
     param_box.AddText(f"#sigma2 = {sigma2.getVal():.3f} #pm {sigma2.getError():.3f}")
     param_box.Draw("same")
-    canvas.Print("{output_path}/pdf/dcr_fit_tile_ch{channel}_ov{ov}.pdf")
+    canvas.Print(f"{output_path}/pdf/dcr_fit_tile_ch{channel}_ov{ov}.pdf")
     dcr_list.append((total_entries - fit_entries * coeff1.getVal()) / 144. / (1100 * 8e-9 * events))
 df['dcr'] = dcr_list
 df.to_csv(f"{output_path}/csv/dcr_fit_tile_ch{channel}_ov{ov}.csv", index=False)
