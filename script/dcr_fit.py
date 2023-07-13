@@ -42,6 +42,8 @@ if not os.path.isdir(output_path + "/csv"):
     os.makedirs(output_path + "/csv")
 ##########################################################
 df = pd.read_csv(f'{csv_path}/charge_fit_tile_ch{channel}_ov{ov}.csv')
+# Sort the DataFrame based on a specific column
+df = df.sort_values(by='position', ascending=True)
 f1 = ROOT.TFile(input_path)
 tree = f1.Get(tree_name)
 dcr_list = []

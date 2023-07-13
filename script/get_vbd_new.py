@@ -8,13 +8,14 @@ import numpy as np
 from scipy import stats
 from scipy.optimize import curve_fit
 from copy import deepcopy
+from PyPDF2 import PdfMerger
 
 import ROOT
 from ROOT import RooRealVar, RooArgList, RooArgSet, RooDataSet, RooFit, RooPlot, RooPolynomial
 
 import statsmodels.api as sm
 
-def remove_outliers(x_list, y_list, y_err_list, threshold=1.5):
+def remove_outliers(x_list, y_list, y_err_list, threshold=2):
     # Add a constant (intercept term) to predictors
     X = sm.add_constant(np.array(x_list))
     y = np.array(y_list)
@@ -42,7 +43,7 @@ def remove_outliers(x_list, y_list, y_err_list, threshold=1.5):
     return x_list_new, y_list_new, y_err_list_new
 
 
-def draw_linear_fit(fig, ax,ax2, x, x_with_bkv, y, y_err, intercept, slope, chi2):
+def draw_linear_fit(fig, ax, x, x_with_bkv, y, y_err, intercept, slope, x_intercept_err, chi2):
     # convert input lists to numpy arrays
     x = np.array(x)
     xplus = np.array(x_with_bkv)
@@ -64,7 +65,8 @@ def draw_linear_fit(fig, ax,ax2, x, x_with_bkv, y, y_err, intercept, slope, chi2
     ax.set_ylabel(f'Charge')
     ax.legend()
     # Add chi-square value
-    ax.text(0.05, 0.75, f'$\chi^2$/ndf: {chi2:.2f}', transform=ax.transAxes, verticalalignment='top')
+    ax.text(0.05, 0.75, f'$\chi^2$/ndf: {chi2:.5f}', transform=ax.transAxes, verticalalignment='top')
+    ax.text(0.05, 0.65, f'Breakdown Voltage: {x_with_bkv[0]:.3f} $\pm$ {x_intercept_err:.3f}', transform=ax.transAxes, verticalalignment='top')
 
 
 #def linear_fit(x_list, y_list, y_err_list):
@@ -127,6 +129,7 @@ def linear_fit(x_list, y_list, y_err_list):
     
     # Calculate the residual sum of squares (RSS)
     rss = np.sum(residuals**2)
+    x_intercept_err = np.sqrt(x_intercept_err ** 2 + rss / slope ** 2)
     
     # Get the degrees of freedom
     degrees_of_freedom = len(X) - results.df_model - 1
@@ -181,9 +184,12 @@ def linear_fit_bootstrap(x_list, y_list, y_err_list, n_bootstrap=1000):
     # calculate x-intercept
     x_intercept = -intercept / slope
     residuals = y - (slope * x + intercept)
-    chi2 = np.sum(residuals**2 / y_err**2)
+    squared_residuals = residuals ** 2
+    # Calculate the sum of squared residuals (SSR)
+    SSR = np.sum(squared_residuals)
+    print(SSR)
     degrees_of_freedom = len(x) - 2  # Number of data points minus number of fitted parameters
-    reduced_chi2 = chi2 / degrees_of_freedom
+    reduced_chi2 = SSR / degrees_of_freedom
 
     # bootstrap resampling
     bootstrap_slopes = []
@@ -209,6 +215,7 @@ def linear_fit_bootstrap(x_list, y_list, y_err_list, n_bootstrap=1000):
     slope_std_err = np.std(bootstrap_slopes)
     intercept_std_err = np.std(bootstrap_intercepts)
     x_intercept_std_err = np.std(bootstrap_x_intercepts)
+    x_intercept_err = np.sqrt(x_intercept_std_err ** 2 + SSR / slope ** 2)
 
     return (
         slope,
@@ -216,7 +223,7 @@ def linear_fit_bootstrap(x_list, y_list, y_err_list, n_bootstrap=1000):
         x_intercept,
         slope_std_err,
         intercept_std_err,
-        x_intercept_std_err,
+        x_intercept_err,
         reduced_chi2
     )
 
@@ -231,23 +238,27 @@ input_file =  os.path.abspath(input_tmp)  # Path to the file containing the list
 eos_mgm_url = "root://junoeos01.ihep.ac.cn"
 directory = "/tmp/tao-sipmtest"
 output_dir = os.path.abspath(output_tmp)
-#output_dir = "/junofs/users/wanghanwen/main_run_0075"
 # Find a certain element based on other column values
-pattern = r"(\w+)_(\d+)"
-name_match = re.match(pattern, input_tmp)
-if name_match:
-    print("match!!!!")
-    run_number = int(name_match.group(2))    # "64"
-#channel = 4
 
-if not os.path.isdir(output_dir):
-    os.makedirs(output_dir)
+if not os.path.isdir(output_dir + "/csv"):
+    os.makedirs(output_dir + "/csv")
+if not os.path.isdir(output_dir + "/plot"):
+    os.makedirs(output_dir + "/plot")
 
 # Read the CSV file into a pandas DataFrame
-df = pd.read_csv(input_file)
+if not os.path.isdir(input_file):
+    df = pd.read_csv(input_file)
+else:
+    all_data = []
+    for filename in os.listdir(input_file):
+        if filename.endswith(".csv"):
+            file_path = os.path.join(input_file, filename)
+            data = pd.read_csv(file_path)
+            all_data.append(data)
+    df = pd.concat(all_data, ignore_index=True)
+    
 
 # Find a certain element based on other column values
-#run_number = 110
 #channel = 1
 type_ = 'tile'
 #position = 0
@@ -256,11 +267,6 @@ run_type = 'main'
 #peak = 0
 var_dict = {"sigAmp":"Amplitude", "sigQ":"Charge"}
 unit_dict = {"sigAmp":"Amp (mV)", "sigQ":"Q (pC)"}
-
-# Filter the DataFrame based on the conditions
-#filtered_df = df.loc[(df['run_number'] == run_number) & (df['channel'] == channel) &
-#                     (df['type'] == type_) & (df['position'] == position) & (df['run_type'] == run_type) & 
-#                     (df['voltage'] == voltage) & (df['peak'] == peak)]
 
 
 # Get the dictionary of column names and their indexes
@@ -271,43 +277,62 @@ column_dict = {column: index for index, column in enumerate(df.columns)}
 
 #vols = [i for i in range(2,7)]
 for position in range(16):
+  df_tmp = pd.DataFrame()
+ 
   vbd_dict = []
   vbd_err_dict = []
+  # Create a PDF merger object
+  pdf_merger = PdfMerger()
   for channel in range(1,17):
     
     # Set up the plot
     fig, ax = plt.subplots()
     # Create a twin y-axis on the right side
-    ax2 = ax.twinx()
 
     mean_diff_list = []
     mean_unc_list = []
     vols = []
     for voltage in range(1,7):
-      filtered_df = df.loc[(df['run_number'] == run_number) & (df['channel'] == channel) &
+      filtered_df = df.loc[ (df['channel'] == channel) &
                       (df['position'] == position) &(df['voltage'] == voltage)]
-      if filtered_df.head(1)['chi2'].values[0] < 5:
-        mean_diff_list.append(filtered_df.head(1)['gain'].values[0])
-        mean_unc_list.append(filtered_df.head(1)['gain_err'].values[0])
+      chi2 = filtered_df.head(1)['chi2'].values[0]
+      gain = filtered_df.head(1)['gain'].values[0]
+      gain_err = filtered_df.head(1)['gain_err'].values[0]
+      if chi2 < 5 and gain_err / gain < 0.02:
+        mean_diff_list.append(gain)
+        mean_unc_list.append(gain_err)
       # Clear the lists before each iteration
       #print("length of data:",len(mean_diff_list), "length of error:", len(mean_error_list))
-        vols.append(voltage)
+        vols.append(voltage + 48)
 
     vols, mean_diff_list, mean_unc_list = remove_outliers(vols, mean_diff_list, mean_unc_list)
     #slope, x_intercept, x_intercept_err, chi2ndf =  linear_fit(vols,mean_diff_list,mean_unc_list)
     slope, intercept, x_intercept , slope_err, intercept_err, x_intercept_err, chi2ndf =  linear_fit_bootstrap(vols,mean_diff_list, mean_unc_list, 2000)
     vols_plus = deepcopy(vols)
     vols_plus.insert(0, x_intercept)
-    draw_linear_fit(fig, ax, ax2, vols,vols_plus ,mean_diff_list, mean_unc_list, - x_intercept* slope, slope, chi2ndf) 
-    vbd_dict.append(x_intercept + 48)
+    # Set the title of the plot
+    ax.set_title(f"Linear regression (po{position} ch{channel})")
+    draw_linear_fit(fig, ax, vols,vols_plus ,mean_diff_list, mean_unc_list, - x_intercept* slope, slope, x_intercept_err, chi2ndf) 
+    vbd_dict.append(x_intercept)
     vbd_err_dict.append(x_intercept_err)
     # Set the y-axis limits
 
     # Save the plot as a PDF file
-    filename = f'run{run_number}_ch{channel}_sipm{position}.pdf'
-    plt.savefig(output_dir + "/" +filename)
+    filename = f'linear-regression_ch{channel}_sipm{position}.pdf'
+    
+    plt.savefig(output_dir + "/plot/" +filename)
+    # Add the generated PDF file to the merger object
+    pdf_merger.append(output_dir + "/plot/" +filename)
     plt.clf()
   
+  # Merge all the PDF files into a single file
+  pdf_merger.write(output_dir + f'/plot/linear-regression_tile{position}.pdf')
+  pdf_merger.close()
+  # Remove the individual PDF files
+  for channel in range(1,17):
+      filename = f'linear-regression_ch{channel}_sipm{position}.pdf'
+      file_path = output_dir + "/plot/" +filename
+      os.remove(file_path)
   # Generate random values for the two arrays of breakdown voltage 
   size = 16  # Size of each array 
   breakdown_voltage = vbd_dict
@@ -357,7 +382,7 @@ for position in range(16):
   # Adding labels and title 
   plt.xlabel('Channel') 
   plt.ylabel('Breakdown Voltage') 
-  plt.title(f'Breakdown Voltage Comparison (Run{run_number} SiPM{position})') 
+  plt.title(f'Breakdown Voltage Comparison (tile{position})') 
    
   # Adding legend 
   plt.legend() 
@@ -366,9 +391,14 @@ for position in range(16):
   plt.xticks(channels) 
    
   # Display the plot 
-  plt.savefig(f'{output_dir}/breakdownVoltage_run{run_number}_sipm{position}.pdf') 
+  plt.savefig(f'{output_dir}/plot/vbd_allchannels_tile{position}.pdf') 
   plt.clf()
     
+  df_tmp['vbd'] = vbd_dict
+  df_tmp['vbd_err'] = vbd_err_dict
+  df_tmp['position'] = [position for i in range(16)]
+  df_tmp['channel'] = [ch for ch in range(1,17)]
+  df_tmp.to_csv(f"{output_dir}/csv/vbd_tile{position}.csv", index=False)
 # Close the figure to save memory
 plt.close()
       
