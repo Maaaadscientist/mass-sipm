@@ -77,13 +77,20 @@ choice = input("Ready to resubmit jobs? (Y/N): ").upper()
 # Check if the user wants to resubmit jobs
 if choice == "Y":
     # Prompt the user for input
-    choice2 = input("Interactive mode? (Y/N): ").upper()
+    choice2 = input("Interactive mode? (Y/N/R, Y: interactive mode, N: non-interactive mode and submit all, R: just resubmit failed jobs, others: exit): ").upper()
     
     # Check if the user wants to resubmit jobs
     if choice2 == "Y":
         interactive = "true"
-    else:
+        resubmit = "true"
+    elif choice2 == "N":
         interactive = "false"
+        resubmit = "false"
+    elif choice2 == "R":
+        interactive = "false"
+        resubmit = "true"
+    else:
+        sys.exit("do nothing and exit")
     for aFile in grouped_list:
         name_short = aFile.split("/")[-1].replace(".txt", "")
         run = int(name_short.split("_")[-1])
@@ -98,7 +105,7 @@ if choice == "Y":
             continue
        
         # Define the command to execute the shell script
-        command = f'./check_jobs.sh {threshold} {output_dir}/{analysis_type}/{name_short} {interactive} {file_type}'
+        command = f'./check_jobs.sh {threshold} {output_dir}/{analysis_type}/{name_short} {interactive} {file_type} {resubmit}'
         #print(command)
 
         # Execute the shell script
