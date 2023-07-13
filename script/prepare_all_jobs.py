@@ -38,6 +38,8 @@ elif analysis_type == "dcr-fit":
     runType = "main"
 elif analysis_type == "vbd":
     runType = "main"
+elif analysis_type == "harvest":
+    runType = "main"
     
 if not os.path.isdir(f'{output_dir}/{analysis_type}'):
     os.makedirs(f'{output_dir}/{analysis_type}')
@@ -61,12 +63,13 @@ if analysis_type == "main" or analysis_type == "light":
 # Get the current directory
 current_directory = os.getcwd()
 
-# Find all "*{runType}.log" files in the current directory
-log_files = glob.glob(os.path.join(current_directory, f'*{runType}.log'))
 
 # Iterate over the found files and remove them
-for file_path in log_files:
-    os.remove(file_path)
+if analysis_type == "main" or analysis_type == "light":
+    # Find all "*{runType}.log" files in the current directory
+    log_files = glob.glob(os.path.join(current_directory, f'*{runType}.log'))
+    for file_path in log_files:
+        os.remove(file_path)
 # Remove elements that don't contain "main" or "light"
 filtered_list = [item for item in list_txt_files("datasets") if "main" in item or "light" in item]
 # Sort the list in ascending order
@@ -95,6 +98,8 @@ for aFile in grouped_list:
         subprocess.run(['python', 'script/prepare_light_jobs.py', f'{output_dir}/light/{name_short}', f'{output_dir}/{analysis_type}/{name_short}'])
     elif analysis_type == "vbd":
         subprocess.run(['python', 'script/prepare_vbd_jobs.py', f'{output_dir}/signal-fit/{name_short}', f'{output_dir}/{analysis_type}/{name_short}'])
+    elif analysis_type == "harvest":
+        subprocess.run(['python', 'script/prepare_harvest_jobs.py', f'{output_dir}', f'{name_short}', f'{output_dir}/{analysis_type}/{name_short}'])
     elif analysis_type == "main" or "light" or "dcr":
         subprocess.run(['python', 'script/prepare_skim_jobs.py',f'datasets/{aFile}', f'{output_dir}/{analysis_type}', f'{binary_path}'])
 
