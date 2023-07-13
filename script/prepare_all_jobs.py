@@ -56,7 +56,7 @@ if not os.path.isdir(output_dir):
     os.makedirs(output_dir)
 output_dir = os.path.abspath(output_tmp)
 
-if analysis_type == "main" or "light":
+if analysis_type == "main" or analysis_type == "light":
     os.system("sh get_datasets.sh")
 # Get the current directory
 current_directory = os.getcwd()
@@ -94,7 +94,7 @@ for aFile in grouped_list:
     elif analysis_type == "light-fit":
         subprocess.run(['python', 'script/prepare_light_jobs.py', f'{output_dir}/light/{name_short}', f'{output_dir}/{analysis_type}/{name_short}'])
     elif analysis_type == "vbd":
-        subprocess.run(['python', 'script/get_vbd_new.py', f'{output_dir}/signal-fit/{name_short}/csv', f'{output_dir}/{analysis_type}/{name_short}'])
+        subprocess.run(['python', 'script/prepare_vbd_jobs.py', f'{output_dir}/signal-fit/{name_short}', f'{output_dir}/{analysis_type}/{name_short}'])
     elif analysis_type == "main" or "light" or "dcr":
         subprocess.run(['python', 'script/prepare_skim_jobs.py',f'datasets/{aFile}', f'{output_dir}/{analysis_type}', f'{binary_path}'])
 

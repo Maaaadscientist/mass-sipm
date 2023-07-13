@@ -8,7 +8,7 @@ import numpy as np
 from scipy import stats
 from scipy.optimize import curve_fit
 from copy import deepcopy
-from PyPDF2 import PdfMerger
+#from PyPDF2 import PdfMerger
 
 import ROOT
 from ROOT import RooRealVar, RooArgList, RooArgSet, RooDataSet, RooFit, RooPlot, RooPolynomial
@@ -242,8 +242,8 @@ output_dir = os.path.abspath(output_tmp)
 
 if not os.path.isdir(output_dir + "/csv"):
     os.makedirs(output_dir + "/csv")
-if not os.path.isdir(output_dir + "/plot"):
-    os.makedirs(output_dir + "/plot")
+if not os.path.isdir(output_dir + "/pdf"):
+    os.makedirs(output_dir + "/pdf")
 
 # Read the CSV file into a pandas DataFrame
 if not os.path.isdir(input_file):
@@ -282,7 +282,7 @@ for position in range(16):
   vbd_dict = []
   vbd_err_dict = []
   # Create a PDF merger object
-  pdf_merger = PdfMerger()
+  #pdf_merger = PdfMerger()
   for channel in range(1,17):
     
     # Set up the plot
@@ -320,19 +320,23 @@ for position in range(16):
     # Save the plot as a PDF file
     filename = f'linear-regression_ch{channel}_sipm{position}.pdf'
     
-    plt.savefig(output_dir + "/plot/" +filename)
+    plt.savefig(output_dir + "/pdf/" +filename)
     # Add the generated PDF file to the merger object
-    pdf_merger.append(output_dir + "/plot/" +filename)
+    #pdf_merger.append(output_dir + "/pdf/" +filename)
+    # Clear the axes
+    ax.cla()
+    # Clear the figure
+    fig.clf()
     plt.clf()
   
   # Merge all the PDF files into a single file
-  pdf_merger.write(output_dir + f'/plot/linear-regression_tile{position}.pdf')
-  pdf_merger.close()
+  #pdf_merger.write(output_dir + f'/pdf/linear-regression_tile{position}.pdf')
+  #pdf_merger.close()
   # Remove the individual PDF files
-  for channel in range(1,17):
-      filename = f'linear-regression_ch{channel}_sipm{position}.pdf'
-      file_path = output_dir + "/plot/" +filename
-      os.remove(file_path)
+  #for channel in range(1,17):
+  #    filename = f'linear-regression_ch{channel}_sipm{position}.pdf'
+  #    file_path = output_dir + "/pdf/" +filename
+  #    os.remove(file_path)
   # Generate random values for the two arrays of breakdown voltage 
   size = 16  # Size of each array 
   breakdown_voltage = vbd_dict
@@ -391,7 +395,7 @@ for position in range(16):
   plt.xticks(channels) 
    
   # Display the plot 
-  plt.savefig(f'{output_dir}/plot/vbd_allchannels_tile{position}.pdf') 
+  plt.savefig(f'{output_dir}/pdf/vbd_allchannels_tile{position}.pdf') 
   plt.clf()
     
   df_tmp['vbd'] = vbd_dict

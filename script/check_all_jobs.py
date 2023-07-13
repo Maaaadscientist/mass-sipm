@@ -40,6 +40,9 @@ elif analysis_type =="light-fit":
 elif analysis_type == "dcr-fit":
     runType = "main"
     file_type = "pdf"
+elif analysis_type == "vbd":
+    runType = "main"
+    file_type = "pdf"
 main_runs = []
 light_runs = []
 
