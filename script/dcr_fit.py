@@ -47,6 +47,7 @@ df = df.sort_values(by='position', ascending=True)
 f1 = ROOT.TFile(input_path)
 tree = f1.Get(tree_name)
 dcr_list = []
+dcr_err_list = []
 for po in range(16):
     gain = df.loc[  (df['channel'] == channel) & (df['position'] == po) & (df['voltage'] == ov)].head(1)["gain"].values[0]
     lambda_ = df.loc[  (df['channel'] == channel) & (df['position'] == po) & (df['voltage'] == ov)].head(1)["lambda"].values[0]
@@ -163,7 +164,10 @@ for po in range(16):
     param_box.Draw("same")
     canvas.Print(f"{output_path}/pdf/dcr_fit_tile_ch{channel}_ov{ov}.pdf")
     dcr_list.append((total_entries - fit_entries * coeff1.getVal()) / 144. / (1100 * 8e-9 * events))
+    coeff_err = coeff2.getError() * (1 + generalized_poisson(1, 1, lambda_))
+    dcr_err_list.append(fit_entries * coeff_err / 144. / (1100 * 8e-9 * events))
 df['dcr'] = dcr_list
+df['dcr_err'] = dcr_err_list
 df.to_csv(f"{output_path}/csv/dcr_fit_tile_ch{channel}_ov{ov}.csv", index=False)
 canvas.Print(f"{output_path}/pdf/dcr_fit_tile_ch{channel}_ov{ov}.pdf]")
     
