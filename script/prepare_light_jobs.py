@@ -2,13 +2,11 @@
 import os, sys
 
 if len(sys.argv) < 3:
-    print("Usage: python prepare_dcr_jobs.py <input_dir> <csv_dir> <output_dir>")
+    print("Usage: python prepare_light_jobs.py <input_dir> <output_dir>")
 else:
    input_tmp = sys.argv[1]
-   csv_tmp = sys.argv[2]
-   output_tmp = sys.argv[3]
+   output_tmp = sys.argv[2]
 input_dir = os.path.abspath(input_tmp)
-csv_dir = os.path.abspath(csv_tmp)
 output_dir = os.path.abspath(output_tmp)
 run_info = input_dir.split("/")[-1]
 run_number = int(run_info.split("_")[-1])
