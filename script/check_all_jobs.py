@@ -80,13 +80,13 @@ choice = input("Ready to resubmit jobs? (Y/N): ").upper()
 # Check if the user wants to resubmit jobs
 if choice == "Y":
     # Prompt the user for input
-    choice2 = input("Interactive mode? (Y/N/R, Y: interactive mode, N: non-interactive mode and submit all, R: just resubmit failed jobs, others: exit): ").upper()
+    choice2 = input("Interactive mode? (Y/A/R/N), Y: interactive mode, N: non-interactive mode and submit all, R: just resubmit failed jobs, N or others: exit): ").upper()
     
     # Check if the user wants to resubmit jobs
     if choice2 == "Y":
         interactive = "true"
         resubmit = "true"
-    elif choice2 == "N":
+    elif choice2 == "A":
         interactive = "false"
         resubmit = "false"
     elif choice2 == "R":
