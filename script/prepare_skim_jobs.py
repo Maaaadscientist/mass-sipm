@@ -105,7 +105,7 @@ if not isDCR:
             file.write(line_of_text + '\n')
     else:
         print(f"{name_short} : Success, there are {count} lines in the datasets ({'64 for light' if name_short.split('_')[0] == 'light' else '192 for main'})")
-        with open("completeDataInfo-{name_short.split('_')[0]}.log", 'a') as file:
+        with open(f"completeDataInfo-{name_short.split('_')[0]}.log", 'a') as file:
             line_of_text = f"{name_short.split('_')[0]} run {run_number} {count} {64 if name_short.split('_')[0] == 'light' else 192}"
             file.write(line_of_text + '\n')
 else:
