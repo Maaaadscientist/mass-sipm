@@ -9,6 +9,7 @@ from scipy import stats
 from scipy.optimize import curve_fit
 from scipy.interpolate import UnivariateSpline
 from copy import deepcopy
+from collections import defaultdict 
 #from PyPDF2 import PdfMerger
 
 import yaml
@@ -89,6 +90,7 @@ if not os.path.isdir(output_dir + "/pdf"):
     os.makedirs(output_dir + "/pdf")
 
 pdf_dir = output_dir + "/pdf/"
+csv_dir = output_dir + "/csv/"
 # Specify the path to your YAML file
 yaml_path = os.path.abspath("valid-run.yaml")
 with open(yaml_path, "r") as afile:
@@ -116,6 +118,7 @@ df_signal = get_data_frame(signal_dir)
 best_dict = {}
 ov_dict = {}
 ov_err_dict = {}
+combined_dict = defaultdict(list)
 for key in ['dcr', 'pde','pct','vop','vbd', 'vbd_err']:
     best_dict[key] = np.zeros((16, 16))
 
@@ -236,6 +239,25 @@ for ch in range(1, 17):
         #plt.title(f'$\Delta\epsilon$ (run{run_number} tile{po} ch{ch})')
         #plt.grid(True)
         #plt.savefig(output_dir + "/pdf/"+ f"delta_eps_run{run_number}_tile{po}_ch{ch}.pdf")
+        for ov in np.arange(3, 7.5, 0.5):
+            fit_info = {
+                            'mu' : mu,
+                            'mu_err' : mu_err,
+                            'mu_reff' : mu_reff,
+                            'mu_reff_err' : mu_reff_err,
+                            'pde_reff' : pde_reff,
+                            'pde_reff_err' : pde_reff_err,
+                            'pde' : spl_pde(ov),
+                            'pde_err' : pde_err_list[2],
+                            'SN_reff' : 11676, #SN_reff,
+                            'over_voltage' : ov,
+                            'over_voltage_err' : vbd_err,
+                            'run': run_number,
+                            'position' : po,
+                            'channel' : ch,
+                            }
+            for key, value in fit_info.items():
+                combined_dict[key].append(value)
     best_dict['dcr'][ch - 1, :] = dcr_tile
     best_dict['pde'][ch - 1, :] = pde_tile
     best_dict['pct'][ch - 1, :] = pct_tile
@@ -354,6 +376,9 @@ ax3.set_title(f'Photon Detection Efficiencies (Run {run_number})')
 # Add a horizontal line at y = 0.5
 #ax2.axhline(y=41.7, color='red', linestyle='--', label = 'Max 41.7')
 #ax2.axhline(y=13.9, color='blue', linestyle='--', label = 'Typical 13.9')
+# Add a horizontal line at y = 0.5
+ax3.axhline(y=0.44, color='red', linestyle='--', label = 'Min 44%')
+ax3.axhline(y=0.47, color='blue', linestyle='--', label = 'Typical 47%')
 # Set x-axis ticks and labels
 ax3.set_xticks(x)
 ax3.set_xticklabels([str(i+1) for i in range(16)])
@@ -488,9 +513,15 @@ ticks = np.arange(0, 10.1, 1)
 plt.xticks(ticks)
 plt.title(f'Photon Detection efficiency (Run {run_number})')
 plt.grid(True)
+# Add a horizontal line at y = 0.5
+plt.axhline(y=0.44, color='red', linestyle='--', label = 'Min 44%')
+plt.axhline(y=0.47, color='blue', linestyle='--', label = 'Typical 47%')
 # Update the legend with combined labels
+
 handles, labels = plt.gca().get_legend_handles_labels()
 combined_labels = [f"tile {po}" for po in range(16)]
+combined_labels.insert(0, 'Typical 47%')
+combined_labels.insert(0, 'Min 44%')
 plt.legend(handles, combined_labels, loc='upper right', bbox_to_anchor=(1.4, 1.0))
 
 # Adjusting the plot to accommodate the legend
@@ -521,11 +552,16 @@ ticks = np.arange(0, 10.1, 1)
 plt.xticks(ticks)
 plt.title(f'Prompt Crosstalk Probability (Run {run_number})')
 plt.grid(True)
+# Add a horizontal line at y = 0.5
+plt.axhline(y=0.15, color='red', linestyle='--', label = 'Max 15%')
+plt.axhline(y=0.12, color='blue', linestyle='--', label = 'Typical 12%')
 # Update the legend with combined labels
+
 handles, labels = plt.gca().get_legend_handles_labels()
 combined_labels = [f"tile {po}" for po in range(16)]
+combined_labels.insert(0, 'Typical 12%')
+combined_labels.insert(0, 'Max 15%')
 plt.legend(handles, combined_labels, loc='upper right', bbox_to_anchor=(1.4, 1.0))
-
 # Adjusting the plot to accommodate the legend
 plt.subplots_adjust(right=0.7)  # Increase the value to move the legend leftwards
 
@@ -561,6 +597,8 @@ plt.axhline(y=13.9, color='blue', linestyle='--', label = 'Typical 13.9')
 # Update the legend with combined labels
 handles, labels = plt.gca().get_legend_handles_labels()
 combined_labels = [f"tile {po}" for po in range(16)]
+combined_labels.insert(0, 'Typical 13.9')
+combined_labels.insert(0, 'Max 41.7')
 plt.legend(handles, combined_labels, loc='upper right', bbox_to_anchor=(1.4, 1.0))
 
 # Adjusting the plot to accommodate the legend
@@ -570,3 +608,6 @@ plt.savefig(pdf_dir + f"dcr_ovs_run{run_number}.pdf")
 plt.clf()
 
 
+df = pd.DataFrame(combined_dict)
+# Save the DataFrame to a CSV file
+df.to_csv(csv_dir + f"run{run_number}_PDEs.csv", index=False)
