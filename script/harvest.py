@@ -281,8 +281,8 @@ ax0.errorbar(x, vbd_diff_list,
                      yerr=vbd_diff_err_list, fmt='o', capsize=3, markersize=2, label="$V_{bd}$ Difference")
 
 # Set labels and title
-ax0.set_xlabel('Tiles')
-ax0.set_ylabel('Vmax - Vmin')
+ax0.set_xlabel('SiPM Tile number')
+ax0.set_ylabel('Vmax - Vmin (V)')
 ax0.set_title(f'Max breakdown voltage difference (Run {run_number})')
 ax0.set_ylim(0, 0.5)
 
@@ -290,7 +290,7 @@ ax0.set_ylim(0, 0.5)
 ax0.axhline(y=0.19, color='red', linestyle='--',linewidth=2, label = 'Max Diff 0.19')
 # Set x-axis ticks and labels
 ax0.set_xticks(x)
-ax0.set_xticklabels([str(i+1) for i in range(16)])
+ax0.set_xticklabels([str(i) for i in range(16)])
 
 # Add a legend
 ax0.legend()
@@ -299,21 +299,22 @@ plt.savefig(pdf_dir + f"vbd_diff_tiles_run{run_number}.pdf")
 plt.clf()
 ################################### DCR / Tiles #####################################
 fig1, ax1 = plt.subplots()
+ax1.axhline(y=41.7, color='red', linestyle='--', label = 'Max 41.7')
+ax1.axhline(y=13.9, color='blue', linestyle='--', label = 'Typical 13.9')
 for ch in range(16):
     ax1.scatter(x, best_dict['dcr'][ch], label=f'Channel {ch+1}', s=5)
 
 # Set labels and title
-ax1.set_xlabel('Tiles')
-ax1.set_ylabel('DCR')
+ax1.set_xlabel('SiPM Tile number')
+ax1.set_ylabel('DCR (Hz/$mm^2$)')
 ax1.set_title(f'Dark Counting Rates (Run {run_number})')
 
 # Add a horizontal line at y = 0.5
-ax1.axhline(y=41.7, color='red', linestyle='--', label = 'Max 41.7')
-ax1.axhline(y=13.9, color='blue', linestyle='--', label = 'Typical 13.9')
 # Set x-axis ticks and labels
 ax1.set_xticks(x)
-ax1.set_xticklabels([str(i+1) for i in range(16)])
+ax1.set_xticklabels([str(i) for i in range(16)])
 
+ax1.set_ylim(0., 160)
 # Add a legend
 #ax.legend()
 legend1 = ax1.legend(loc='upper right', bbox_to_anchor=(1.4, 1.0))
@@ -333,8 +334,8 @@ for ch in range(16):
     
       
 # Set labels and title
-ax2.set_xlabel('Tiles')
-ax2.set_ylabel('Vbd')
+ax2.set_xlabel('SiPM Tile number')
+ax2.set_ylabel('Vbd (V)')
 ax2.set_title(f'Breakdown Voltages (Run {run_number})')
 
 # Add a horizontal line at y = 0.5
@@ -342,7 +343,7 @@ ax2.set_title(f'Breakdown Voltages (Run {run_number})')
 #ax2.axhline(y=13.9, color='blue', linestyle='--', label = 'Typical 13.9')
 # Set x-axis ticks and labels
 ax2.set_xticks(x)
-ax2.set_xticklabels([str(i+1) for i in range(16)])
+ax2.set_xticklabels([str(i) for i in range(16)])
 
 # Set grid lines on the y-axis
 ax2.grid(axis='y')
@@ -364,12 +365,14 @@ plt.clf()
 ################################### PDE / Tiles #####################################
 
 fig3, ax3 = plt.subplots()
+ax3.axhline(y=0.44, color='red', linestyle='--', label = 'Min 44%')
+ax3.axhline(y=0.47, color='blue', linestyle='--', label = 'Typical 47%')
 for ch in range(16):
     ax3.scatter(x, best_dict['pde'][ch], label=f'Channel {ch+1}', s=5)
     
       
 # Set labels and title
-ax3.set_xlabel('Tiles')
+ax3.set_xlabel('SiPM Tile number')
 ax3.set_ylabel('PDE')
 ax3.set_title(f'Photon Detection Efficiencies (Run {run_number})')
 
@@ -377,16 +380,14 @@ ax3.set_title(f'Photon Detection Efficiencies (Run {run_number})')
 #ax2.axhline(y=41.7, color='red', linestyle='--', label = 'Max 41.7')
 #ax2.axhline(y=13.9, color='blue', linestyle='--', label = 'Typical 13.9')
 # Add a horizontal line at y = 0.5
-ax3.axhline(y=0.44, color='red', linestyle='--', label = 'Min 44%')
-ax3.axhline(y=0.47, color='blue', linestyle='--', label = 'Typical 47%')
 # Set x-axis ticks and labels
 ax3.set_xticks(x)
-ax3.set_xticklabels([str(i+1) for i in range(16)])
+ax3.set_xticklabels([str(i) for i in range(16)])
 
 # Set grid lines on the y-axis
 ax3.grid(axis='y')
 # Set the y-axis limits
-ax3.set_ylim(0., 1)
+ax3.set_ylim(0.2, 0.8)
 # Add a legend
 #ax.legend()
 legend3 = ax3.legend(loc='upper right', bbox_to_anchor=(1.4, 1.0))
@@ -398,21 +399,24 @@ plt.clf()
 
 ################################### Pct / Tiles #####################################
 fig4, ax4 = plt.subplots()
+ax4.axhline(y=0.15, color='red', linestyle='--', label = 'Max 15%')
+ax4.axhline(y=0.12, color='blue', linestyle='--', label = 'Typical 12%')
 for ch in range(16):
     ax4.scatter(x, best_dict['pct'][ch], label=f'Channel {ch+1}', s=5)
     
       
 # Set labels and title
-ax4.set_xlabel('Tiles')
+ax4.set_xlabel('SiPM Tile number')
 ax4.set_ylabel('Pct')
 ax4.set_title(f'Crosstalk probability (Run {run_number})')
+# Add a horizontal line at y = 0.5
 
 # Add a horizontal line at y = 0.5
 #ax2.axhline(y=41.7, color='red', linestyle='--', label = 'Max 41.7')
 #ax2.axhline(y=13.9, color='blue', linestyle='--', label = 'Typical 13.9')
 # Set x-axis ticks and labels
 ax4.set_xticks(x)
-ax4.set_xticklabels([str(i+1) for i in range(16)])
+ax4.set_xticklabels([str(i) for i in range(16)])
 
 # Set grid lines on the y-axis
 ax4.grid(axis='y')
@@ -434,8 +438,8 @@ for ch in range(16):
     
       
 # Set labels and title
-ax5.set_xlabel('Tiles')
-ax5.set_ylabel('Vop')
+ax5.set_xlabel('SiPM Tile number')
+ax5.set_ylabel('Vop (V)')
 ax5.set_title(f'Optimized Operating Over Voltage (Run {run_number})')
 
 # Add a horizontal line at y = 0.5
@@ -443,7 +447,7 @@ ax5.set_title(f'Optimized Operating Over Voltage (Run {run_number})')
 #ax2.axhline(y=13.9, color='blue', linestyle='--', label = 'Typical 13.9')
 # Set x-axis ticks and labels
 ax5.set_xticks(x)
-ax5.set_xticklabels([str(i+1) for i in range(16)])
+ax5.set_xticklabels([str(i) for i in range(16)])
 
 # Set grid lines on the y-axis
 ax5.grid(axis='y')
@@ -473,6 +477,7 @@ for ch in range(16):
                      yerr=ov_err_dict['eps'][ch, po, :], fmt='-o', capsize=2, markersize=2, linewidth=1, label=label, color=color)
 
 
+plt.axhline(y=-0.25, color='red', linestyle='--', label = 'Min -25%')
 plt.xlabel('over voltage (V)')
 plt.ylabel('$\Delta\epsilon$')
 plt.xlim(0, 10)
@@ -483,6 +488,7 @@ plt.grid(True)
 # Update the legend with combined labels
 handles, labels = plt.gca().get_legend_handles_labels()
 combined_labels = [f"tile {po}" for po in range(16)]
+combined_labels.insert(0, 'Min -25%')
 plt.legend(handles, combined_labels, loc='upper right', bbox_to_anchor=(1.4, 1.0))
 
 # Adjusting the plot to accommodate the legend
@@ -509,6 +515,7 @@ for ch in range(16):
 plt.xlabel('over voltage (V)')
 plt.ylabel('PDE')
 plt.xlim(0, 10)
+plt.ylim(0.2, 0.8)
 ticks = np.arange(0, 10.1, 1)
 plt.xticks(ticks)
 plt.title(f'Photon Detection efficiency (Run {run_number})')
@@ -548,6 +555,7 @@ for ch in range(16):
 plt.xlabel('over voltage (V)')
 plt.ylabel('Pct')
 plt.xlim(0, 10)
+plt.ylim(0, 0.5)
 ticks = np.arange(0, 10.1, 1)
 plt.xticks(ticks)
 plt.title(f'Prompt Crosstalk Probability (Run {run_number})')
@@ -585,8 +593,9 @@ for ch in range(16):
 
 
 plt.xlabel('over voltage (V)')
-plt.ylabel('DCR')
+plt.ylabel('DCR (Hz/$mm^{2}$)')
 plt.xlim(0, 10)
+plt.ylim(0, 400)
 ticks = np.arange(0, 10.1, 1)
 plt.xticks(ticks)
 plt.title(f'Dark Counting Rate (Run {run_number})')
