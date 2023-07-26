@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os, sys
+import shutil
 
 if len(sys.argv) < 3:
     print("Usage: python prepare_harvest_jobs.py <input_dir> <run_info> <output_dir>")
@@ -12,6 +13,10 @@ output_dir = os.path.abspath(output_tmp)
 run_number = int(run_info.split("_")[-1])
 
 if not os.path.isdir(output_dir + "/jobs"):
+    os.makedirs(output_dir + "/jobs")
+else:
+    #os.rmdir(output_dir + "/jobs")
+    shutil.rmtree(output_dir + "/jobs")
     os.makedirs(output_dir + "/jobs")
 if not os.path.isdir(output_dir + "/pdf"):
     os.makedirs(output_dir + "/pdf")
