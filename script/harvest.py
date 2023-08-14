@@ -174,7 +174,7 @@ graph_file = ROOT.TFile(f"{root_dir}/maps_run{run_number}.root","recreate")
 sub_directory = graph_file.mkdir("light_map_full")
 sub_directory.cd()
 for po in range(16):
-    dt = ROOT.TH2F(f"tile{po}",f"light_map_tile{po}", 8, 0.5,8.5, 8, 0.5 ,8.5)
+    dt = ROOT.TH2F(f"light_map_full_tile{po}",f"light_map_tile{po}", 8, 0.5,8.5, 8, 0.5 ,8.5)
     ROOT.gStyle.SetPalette(1)
     for point in range(1,65):
         filtered_df_light = df_light.loc[(df_light['position'] == po) & (df_light['point'] == point)]
@@ -186,25 +186,46 @@ for po in range(16):
 sub_directory_avr = graph_file.mkdir("light_map_average")
 sub_directory_sipm_mu = graph_file.mkdir("sipm_mu")
 sub_directory_rel_pde = graph_file.mkdir("relative_pde")
+sub_directory_vbd = graph_file.mkdir("vbd")
+sub_directory_dcr = graph_file.mkdir("dcr")
+sub_directory_ov = graph_file.mkdir("overvoltage")
 for po in range(16):
-    dt_light = ROOT.TH2F(f"tile{po}",f"light_map_average_tile{po}", 4, 0.5,4.5, 4, 0.5 ,4.5)
-    dt_tile = ROOT.TH2F(f"tile{po}",f"sipm_mu_tile{po}", 4, 0.5,4.5, 4, 0.5 ,4.5)
-    dt_rel = ROOT.TH2F(f"tile{po}",f"rel_pde_tile{po}", 4, 0.5,4.5, 4, 0.5 ,4.5)
+    dt_light = ROOT.TH2F(f"light_map_average_tile{po}",f"light_map_average_tile{po}", 4, 0.5,4.5, 4, 0.5 ,4.5)
+    dt_tile = ROOT.TH2F(f"sipm_mu_tile{po}",f"sipm_mu_tile{po}", 4, 0.5,4.5, 4, 0.5 ,4.5)
+    dt_rel = ROOT.TH2F(f"relative_pde_tile{po}",f"rel_pde_tile{po}", 4, 0.5,4.5, 4, 0.5 ,4.5)
+    dt_vbd = ROOT.TH2F(f"vbd_tile{po}",f"vbd_tile{po}", 4, 0.5,4.5, 4, 0.5 ,4.5)
+    dt_ov = ROOT.TH2F(f"overvoltage_tile{po}",f"overvoltage_tile{po}", 4, 0.5,4.5, 4, 0.5 ,4.5)
+    dt_dcr = ROOT.TH2F(f"dcr_tile{po}",f"dcr_tile{po}", 4, 0.5,4.5, 4, 0.5 ,4.5)
     for ch in range(1,17):
-        ov = 3
+        ov = 2
         filtered_df_signal = filter_data_frame(df_signal, po, ch, ov)
+        filtered_df_vbd = df_vbd.loc[ (df_vbd['channel'] == ch) &
+                        (df_vbd['position'] == po) ]
+        vbd = filtered_df_vbd.head(1)['vbd'].values[0]
+        filtered_df_dcr = filter_data_frame(df_dcr, po, ch, ov)
+        
+        dcr = filtered_df_dcr.head(1)['dcr'].values[0]
         mu_reff, mu_reff_err = get_reff_mu(df_light, po, ch)
         mu = filtered_df_signal.head(1)['mu'].values[0]
         x, y = get_coordinates_4x4(ch)
         dt_light.SetBinContent( x, y, mu_reff)
         dt_tile.SetBinContent( x, y, mu)
         dt_rel.SetBinContent( x, y, mu/mu_reff)
+        dt_vbd.SetBinContent( x, y, vbd - 48)
+        dt_ov.SetBinContent( x, y, 3 - (vbd - 48))
+        dt_dcr.SetBinContent( x, y, dcr)
     sub_directory_avr.cd()
     dt_light.Write()
     sub_directory_sipm_mu.cd()
     dt_tile.Write()
     sub_directory_rel_pde.cd()
     dt_rel.Write()
+    sub_directory_vbd.cd()
+    dt_vbd.Write()
+    sub_directory_dcr.cd()
+    dt_dcr.Write()
+    sub_directory_ov.cd()
+    dt_ov.Write()
 graph_file.Close()
 
 
