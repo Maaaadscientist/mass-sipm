@@ -20,6 +20,47 @@ ref_map = {1 :[1 , 2 , 15 , 16], 2 :[3 ,  4, 14, 13], 3 :[4 , 5 , 12, 11], 4 :[7
            5 :[17, 18 ,31 , 32], 6 :[19, 20, 30, 29], 7 :[20, 21, 28, 27], 8 :[23, 24, 26, 25],
            9 :[33, 34 ,47 , 48], 10:[35, 36, 46, 45], 11:[36, 37, 44, 43], 12:[39, 40, 42, 41],
            13:[49, 50 ,63 , 64], 14:[51, 52, 62, 61], 15:[52, 53, 60, 59], 16:[55, 56, 58, 57],}
+
+def get_reff_number(x, y):
+    if 1 <= x <= 8 and 1 <= y <= 8:
+        if y % 2 == 1:  # Odd rows
+            return (8 - (y - 1)) * 8 - (x - 1)
+        else:  # Even rows
+            return (8 - y) * 8 + x
+    else:
+        return None  # Coordinates are out of bounds
+
+def get_coordinates_8x8(ref_number):
+    ref_number -= 1
+    if 0 <= ref_number < 64:  # Valid ref_numbers are between 0 and 63
+        # Calculate row (y)
+        y_quotient, y_remainder = divmod(ref_number, 8)
+        y = 8 - y_quotient
+
+        # Calculate column (x)
+        if y % 2 == 1:  # Odd row
+            x = (8 - y_remainder) % 8
+            if x == 0:
+                x = 8
+        else:  # Even row
+            x = y_remainder + 1
+
+        return x, y
+    else:
+        return None  # Reference number is out of bounds
+
+def get_coordinates_4x4(ref_number):
+    ref_number -= 1
+    if 0 <= ref_number < 16:  # Valid ref_numbers are between 0 and 63
+        # Calculate row (y)
+        y_quotient, y_remainder = divmod(ref_number, 4)
+        y = 4 - y_quotient
+        x = y_remainder + 1
+
+        return x, y
+    else:
+        return None  # Reference number is out of bounds
+
 def get_vbd_difference(vbd_list, vbd_err_list):
 
     # Step 1: Find the maximum and minimum voltage values
@@ -88,9 +129,12 @@ if not os.path.isdir(output_dir + "/csv"):
     os.makedirs(output_dir + "/csv")
 if not os.path.isdir(output_dir + "/pdf"):
     os.makedirs(output_dir + "/pdf")
+if not os.path.isdir(output_dir + "/root"):
+    os.makedirs(output_dir + "/root")
 
 pdf_dir = output_dir + "/pdf/"
 csv_dir = output_dir + "/csv/"
+root_dir = output_dir + "/root/"
 # Specify the path to your YAML file
 yaml_path = os.path.abspath("valid-run.yaml")
 with open(yaml_path, "r") as afile:
@@ -125,6 +169,44 @@ for key in ['dcr', 'pde','pct','vop','vbd', 'vbd_err']:
 for key in ['dcr', 'pde','pct', 'eps', 'vov']:
     ov_dict[key] = np.zeros((16, 16, 6))
     ov_err_dict[key] = np.zeros((16, 16, 6))
+graph_file = ROOT.TFile(f"{root_dir}/maps_run{run_number}.root","recreate")
+# Create a directory within the file
+sub_directory = graph_file.mkdir("light_map_full")
+sub_directory.cd()
+for po in range(16):
+    dt = ROOT.TH2F(f"tile{po}",f"light_map_tile{po}", 8, 0.5,8.5, 8, 0.5 ,8.5)
+    ROOT.gStyle.SetPalette(1)
+    for point in range(1,65):
+        filtered_df_light = df_light.loc[(df_light['position'] == po) & (df_light['point'] == point)]
+        mu_point = filtered_df_light.head(1)['mu'].values[0]
+        x, y = get_coordinates_8x8(point)
+        dt.SetBinContent( x, y, mu_point)
+    dt.Write()
+# Create a directory within the file
+sub_directory_avr = graph_file.mkdir("light_map_average")
+sub_directory_sipm_mu = graph_file.mkdir("sipm_mu")
+sub_directory_rel_pde = graph_file.mkdir("relative_pde")
+for po in range(16):
+    dt_light = ROOT.TH2F(f"tile{po}",f"light_map_average_tile{po}", 4, 0.5,4.5, 4, 0.5 ,4.5)
+    dt_tile = ROOT.TH2F(f"tile{po}",f"sipm_mu_tile{po}", 4, 0.5,4.5, 4, 0.5 ,4.5)
+    dt_rel = ROOT.TH2F(f"tile{po}",f"rel_pde_tile{po}", 4, 0.5,4.5, 4, 0.5 ,4.5)
+    for ch in range(1,17):
+        ov = 3
+        filtered_df_signal = filter_data_frame(df_signal, po, ch, ov)
+        mu_reff, mu_reff_err = get_reff_mu(df_light, po, ch)
+        mu = filtered_df_signal.head(1)['mu'].values[0]
+        x, y = get_coordinates_4x4(ch)
+        dt_light.SetBinContent( x, y, mu_reff)
+        dt_tile.SetBinContent( x, y, mu)
+        dt_rel.SetBinContent( x, y, mu/mu_reff)
+    sub_directory_avr.cd()
+    dt_light.Write()
+    sub_directory_sipm_mu.cd()
+    dt_tile.Write()
+    sub_directory_rel_pde.cd()
+    dt_rel.Write()
+graph_file.Close()
+
 
 for ch in range(1, 17):
     dcr_tile = []
