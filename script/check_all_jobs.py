@@ -37,6 +37,9 @@ elif analysis_type =="signal-fit":
 elif analysis_type =="light-fit":
     runType = "light"
     file_type = "pdf"
+elif analysis_type =="main-run-light-fit":
+    runType = "main"
+    file_type = "pdf"
 elif analysis_type == "dcr-fit":
     runType = "main"
     file_type = "csv"

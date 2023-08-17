@@ -34,6 +34,8 @@ elif analysis_type =="signal-fit":
     runType = "main"
 elif analysis_type == "light-fit":
     runType = "light"
+elif analysis_type == "mainrun-light-fit":
+    runType = "main"
 elif analysis_type == "dcr-fit":
     runType = "main"
 elif analysis_type == "vbd":
@@ -96,6 +98,8 @@ for aFile in grouped_list:
         subprocess.run(['python', 'script/prepare_dcr_jobs.py', f'{output_dir}/dcr/{name_short}',f'{output_dir}/signal-fit/{name_short}', f'{output_dir}/{analysis_type}/{name_short}'])
     elif analysis_type == "light-fit":
         subprocess.run(['python', 'script/prepare_light_jobs.py', f'{output_dir}/light/{name_short}', f'{output_dir}/{analysis_type}/{name_short}'])
+    elif analysis_type == "mainrun-light-fit":
+        subprocess.run(['python', 'script/prepare_mainrun_light_jobs.py', f'{output_dir}/mainrun_light/{name_short}', f'{output_dir}/{analysis_type}/{name_short}'])
     elif analysis_type == "vbd":
         subprocess.run(['python', 'script/prepare_vbd_jobs.py', f'{output_dir}/signal-fit/{name_short}', f'{output_dir}/{analysis_type}/{name_short}'])
     elif analysis_type == "harvest":
