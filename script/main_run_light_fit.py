@@ -19,17 +19,17 @@ if not os.path.isdir(f"{output_path}/pdf"):
 if not os.path.isdir(f"{output_path}/csv"):
     os.makedirs(f"{output_path}/csv")
 
-pattern_name = r'(\w+)_run_(\w+)_ov_(\d+).00_sipmgr_(\d+)_(\w+)'
+if "/" in input_path:
+    filename = input_path.split("/")[-1]
+else:
+    filename = input_path
+pattern_name = r'(\w+)_run_(\w+)_ov_(\d+).00_sipmgr_(\d+)_(\w+).root'
 name_match = re.match(pattern_name, filename)
 if name_match:
     run = str(name_match.group(2))
     ov = int(name_match.group(3))
     channel = int(name_match.group(4))
     sipm_type = name_match.group(5)
-if "/" in input_path:
-    filename = input_path.split("/")[-1]
-else:
-    filename = input_path
 f1 = ROOT.TFile(input_path)
 tree = f1.Get(tree_name)
 mu_list = []
@@ -37,13 +37,13 @@ mu_err_list = []
 position_list = []
 run_list = []
 channel_list = []
-
+ov_list = []
 for po in range(16):
     tree.Draw(f"baselineQ_ch{po}>>histogram{po}")
     histogram = ROOT.gPad.GetPrimitive(f"histogram{po}") 
     baseline = histogram.GetMean()
     baseline_sigma = histogram.GetRMS()
-    hist = ROOT.TH1F(f"chargehist{po}", f"1st peak of light charge hist (run{run} channel{channel} ov{ov}V)", 500, baseline - 3 * baseline_sigma, baseline + 3 * baseline_sigma)
+    hist = ROOT.TH1F(f"chargehist{po}", f"1st peak of light charge hist (run{run} channel{channel} ov{ov}V po{po})", 500, baseline - 3 * baseline_sigma, baseline + 3 * baseline_sigma)
     canvas = ROOT.TCanvas("c1","c1", 1200, 800)
     tree.Draw(f"{branch_name}_ch{po}>>chargehist{po}")
     if po == 0:
