@@ -153,11 +153,13 @@ vbd_dir = input_dir + "/vbd/" + run_info + "/csv"
 signal_dir = input_dir + "/signal-fit/" + run_info + "/csv"
 light_dir = input_dir +"/light-fit/" + f"light_run_{light_run_number}" + "/csv"
 dcr_dir = input_dir + "/dcr-fit/" + run_info + "/csv"
+reff_dir = input_dir + "/mainrun-light/" + run_info + "/csv"
 # Read the CSV file into a pandas DataFrame
 df_vbd = get_data_frame(vbd_dir)
 df_dcr = get_data_frame(dcr_dir)
 df_light = get_data_frame(light_dir)
 df_signal = get_data_frame(signal_dir)
+df_reff = get_data_frame(reff_dir)
 
 best_dict = {}
 ov_dict = {}
@@ -189,6 +191,7 @@ sub_directory_rel_pde = graph_file.mkdir("relative_pde")
 sub_directory_vbd = graph_file.mkdir("vbd")
 sub_directory_dcr = graph_file.mkdir("dcr")
 sub_directory_ov = graph_file.mkdir("overvoltage")
+sub_directory_reff = graph_file.mkdir("reff_mu")
 for po in range(16):
     dt_light = ROOT.TH2F(f"light_map_average_tile{po}",f"light_map_average_tile{po}", 4, 0.5,4.5, 4, 0.5 ,4.5)
     dt_tile = ROOT.TH2F(f"sipm_mu_tile{po}",f"sipm_mu_tile{po}", 4, 0.5,4.5, 4, 0.5 ,4.5)
@@ -226,6 +229,16 @@ for po in range(16):
     dt_dcr.Write()
     sub_directory_ov.cd()
     dt_ov.Write()
+sub_directory_reff.cd()
+for ch in range(16):
+    for ov in range(1,7):
+        for po in range(1,17):
+            dt_reff = ROOT.TH2F(f"reff_mu_ch{ch}_ov{ov}V_tile{po}",f"reff_mu_ch{ch}_ov{ov}V_tile{po}", 1, 0.5,1.5, 1, 0.5 ,1.5)
+            filtered_df_reff = df_reff.loc[ (df_vbd['channel'] == ch) &
+                        (df_vbd['position'] == po) & (df_vbd['voltage'] == ov)]
+            reff_mu = filtered_df_reff.head(1)['mu'].values[0]
+            dt_reff.SetBinContent( 1, 1, reff_mu)
+            dt_reff.Write()
 graph_file.Close()
 
 
