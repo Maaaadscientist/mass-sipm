@@ -153,7 +153,7 @@ vbd_dir = input_dir + "/vbd/" + run_info + "/csv"
 signal_dir = input_dir + "/signal-fit/" + run_info + "/csv"
 light_dir = input_dir +"/light-fit/" + f"light_run_{light_run_number}" + "/csv"
 dcr_dir = input_dir + "/dcr-fit/" + run_info + "/csv"
-reff_dir = input_dir + "/mainrun-light/" + run_info + "/csv"
+reff_dir = input_dir + "/mainrun-light-fit/" + run_info + "/csv"
 # Read the CSV file into a pandas DataFrame
 df_vbd = get_data_frame(vbd_dir)
 df_dcr = get_data_frame(dcr_dir)
@@ -230,12 +230,15 @@ for po in range(16):
     sub_directory_ov.cd()
     dt_ov.Write()
 sub_directory_reff.cd()
-for ch in range(16):
+for ch in range(1,17):
     for ov in range(1,7):
-        for po in range(1,17):
+        for po in range(16):
             dt_reff = ROOT.TH2F(f"reff_mu_ch{ch}_ov{ov}V_tile{po}",f"reff_mu_ch{ch}_ov{ov}V_tile{po}", 1, 0.5,1.5, 1, 0.5 ,1.5)
-            filtered_df_reff = df_reff.loc[ (df_vbd['channel'] == ch) &
-                        (df_vbd['position'] == po) & (df_vbd['voltage'] == ov)]
+            filtered_df_reff = df_reff.loc[ (df_reff['channel'] == ch) &
+                        (df_reff['position'] == po) & (df_reff['voltage'] == ov)]
+            print(po, ch, ov, filtered_df_reff)
+            if filtered_df_reff.empty:
+                continue
             reff_mu = filtered_df_reff.head(1)['mu'].values[0]
             dt_reff.SetBinContent( 1, 1, reff_mu)
             dt_reff.Write()
