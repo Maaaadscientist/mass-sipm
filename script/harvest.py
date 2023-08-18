@@ -184,6 +184,23 @@ for po in range(16):
         x, y = get_coordinates_8x8(point)
         dt.SetBinContent( x, y, mu_point)
     dt.Write()
+sub_directory = graph_file.mkdir("light_map_64add1")
+sub_directory.cd()
+for po in range(16):
+    dt = ROOT.TH2F(f"light_map_64add1_tile{po}",f"light_map_tile{po}", 9, 0.5,9.5, 9, 0.5 ,9.5)
+    ROOT.gStyle.SetPalette(1)
+    for point in range(1,65):
+        filtered_df_light = df_light.loc[(df_light['position'] == po) & (df_light['point'] == point)]
+        mu_point = filtered_df_light.head(1)['mu'].values[0]
+        x, y = get_coordinates_8x8(point)
+        dt.SetBinContent( x + 1, y, mu_point)
+    filtered_df_reff = df_reff.loc[ (df_reff['channel'] == 1) &
+                (df_reff['position'] == po) & (df_reff['voltage'] == 3)]
+    if filtered_df_reff.empty:
+        continue
+    reff_mu = filtered_df_reff.head(1)['mu'].values[0]
+    dt.SetBinContent( 1, 9, reff_mu)
+    dt.Write()
 # Create a directory within the file
 sub_directory_avr = graph_file.mkdir("light_map_average")
 sub_directory_sipm_mu = graph_file.mkdir("sipm_mu")
