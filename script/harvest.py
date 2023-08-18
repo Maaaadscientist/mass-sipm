@@ -209,6 +209,7 @@ sub_directory_vbd = graph_file.mkdir("vbd")
 sub_directory_dcr = graph_file.mkdir("dcr")
 sub_directory_ov = graph_file.mkdir("overvoltage")
 sub_directory_reff = graph_file.mkdir("reff_mu")
+sub_directory_reff_distr = graph_file.mkdir("reff_mu_1D")
 for po in range(16):
     dt_light = ROOT.TH2F(f"light_map_average_tile{po}",f"light_map_average_tile{po}", 4, 0.5,4.5, 4, 0.5 ,4.5)
     dt_tile = ROOT.TH2F(f"sipm_mu_tile{po}",f"sipm_mu_tile{po}", 4, 0.5,4.5, 4, 0.5 ,4.5)
@@ -253,12 +254,23 @@ for ch in range(1,17):
             dt_reff = ROOT.TH2F(f"reff_mu_ch{ch}_ov{ov}V_tile{po}",f"reff_mu_ch{ch}_ov{ov}V_tile{po}", 1, 0.5,1.5, 1, 0.5 ,1.5)
             filtered_df_reff = df_reff.loc[ (df_reff['channel'] == ch) &
                         (df_reff['position'] == po) & (df_reff['voltage'] == ov)]
-            print(po, ch, ov, filtered_df_reff)
             if filtered_df_reff.empty:
                 continue
             reff_mu = filtered_df_reff.head(1)['mu'].values[0]
             dt_reff.SetBinContent( 1, 1, reff_mu)
             dt_reff.Write()
+sub_directory_reff_distr.cd()
+for po in range(16):
+    dt_reff = ROOT.TH1F(f"reff_mu_tile{po}",f"reff_mu_tile{po}", 200, 0., 1.)
+    for ov in range(1,7):
+        for ch in range(1,17):
+            filtered_df_reff = df_reff.loc[ (df_reff['channel'] == ch) &
+                        (df_reff['position'] == po) & (df_reff['voltage'] == ov)]
+            if filtered_df_reff.empty:
+                continue
+            reff_mu = filtered_df_reff.head(1)['mu'].values[0]
+            dt_reff.Fill(reff_mu)
+    dt_reff.Write()
 graph_file.Close()
 
 
