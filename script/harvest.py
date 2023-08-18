@@ -261,7 +261,7 @@ for ch in range(1,17):
             dt_reff.Write()
 sub_directory_reff_distr.cd()
 for po in range(16):
-    dt_reff = ROOT.TH1F(f"reff_mu_tile{po}",f"reff_mu_tile{po}", 200, 0., 1.)
+    dt_reff = ROOT.TH1F(f"reff_mu_1D_tile{po}",f"reff_mu_1D_tile{po}", 200, 0., 1.)
     for ov in range(1,7):
         for ch in range(1,17):
             filtered_df_reff = df_reff.loc[ (df_reff['channel'] == ch) &
