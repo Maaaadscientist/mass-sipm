@@ -207,66 +207,12 @@ sub_directory_sipm_mu = graph_file.mkdir("sipm_mu")
 sub_directory_rel_pde = graph_file.mkdir("relative_pde")
 sub_directory_vbd = graph_file.mkdir("vbd")
 sub_directory_dcr = graph_file.mkdir("dcr")
-sub_directory_ov = graph_file.mkdir("overvoltage")
 sub_directory_ct = graph_file.mkdir("crosstalk")
-<<<<<<< HEAD
-sub_directory_reff_distr = graph_file.mkdir("reff_mu_1D")
-for po in range(16):
-=======
-sub_directory_reff = graph_file.mkdir("reff_mu")
 sub_directory_reff_distr = graph_file.mkdir("reff_mu_1D")
 for po in range(16):
     for ov in range(1,7):
-        dt_light = ROOT.TH2F(f"light_map_average_tile{po}",f"light_map_average_tile{po}", 4, 0.5,4.5, 4, 0.5 ,4.5)
         dt_tile = ROOT.TH2F(f"sipm_mu_ov{ov}_tile{po}",f"sipm_mu_ov{ov}_tile{po}", 4, 0.5,4.5, 4, 0.5 ,4.5)
         dt_rel = ROOT.TH2F(f"relative_pde_ov{ov}_tile{po}",f"rel_pde_ov{ov}_tile{po}", 4, 0.5,4.5, 4, 0.5 ,4.5)
-        dt_vbd = ROOT.TH2F(f"vbd_tile{po}",f"vbd_tile{po}", 4, 0.5,4.5, 4, 0.5 ,4.5)
-        dt_ov = ROOT.TH2F(f"overvoltage_ov{ov}_tile{po}",f"overvoltage_ov{ov}_tile{po}", 4, 0.5,4.5, 4, 0.5 ,4.5)
-        dt_dcr = ROOT.TH2F(f"dcr_ov{ov}_tile{po}",f"dcr_ov{ov}_tile{po}", 4, 0.5,4.5, 4, 0.5 ,4.5)
-        dt_ct = ROOT.TH2F(f"crosstalk_ov{ov}_tile{po}",f"crosstalk_ov{ov}_tile{po}", 4, 0.5,4.5, 4, 0.5 ,4.5)
-        for ch in range(1,17):
-            filtered_df_signal = filter_data_frame(df_signal, po, ch, ov)
-            filtered_df_vbd = df_vbd.loc[ (df_vbd['channel'] == ch) &
-                            (df_vbd['position'] == po) ]
-            vbd = filtered_df_vbd.head(1)['vbd'].values[0]
-            filtered_df_dcr = filter_data_frame(df_dcr, po, ch, ov)
-            
-            dcr = filtered_df_dcr.head(1)['dcr'].values[0]
-            lambda_ = filtered_df_dcr.head(1)['lambda'].values[0]
-            # Calculate Pct
-            Pct = 1 - math.exp(-lambda_)
-            
-            mu_reff, mu_reff_err = get_reff_mu(df_light, po, ch)
-            mu = filtered_df_signal.head(1)['mu'].values[0]
-            x, y = get_coordinates_4x4(ch)
-            dt_light.SetBinContent( x, y, mu_reff)
-            dt_tile.SetBinContent( x, y, mu)
-            dt_rel.SetBinContent( x, y, mu/mu_reff)
-            dt_vbd.SetBinContent( x, y, vbd - 48)
-            dt_ov.SetBinContent( x, y, 3 - (vbd - 48))
-            dt_dcr.SetBinContent( x, y, dcr)
-            dt_ct.SetBinContent(x, y, Pct)
-        sub_directory_avr.cd()
-        dt_light.Write()
-        sub_directory_sipm_mu.cd()
-        dt_tile.Write()
-        sub_directory_rel_pde.cd()
-        dt_rel.Write()
-        sub_directory_vbd.cd()
-        dt_vbd.Write()
-        sub_directory_dcr.cd()
-        dt_dcr.Write()
-        sub_directory_ov.cd()
-        dt_ov.Write()
-        sub_directory_ct.cd()
-        dt_ct.Write()
-sub_directory_reff.cd()
-for ch in range(1,17):
->>>>>>> a4ea981aac745c6dff58cee3befd8829b1b4307e
-    for ov in range(1,7):
-        dt_tile = ROOT.TH2F(f"sipm_mu_ov{ov}_tile{po}",f"sipm_mu_ov{ov}_tile{po}", 4, 0.5,4.5, 4, 0.5 ,4.5)
-        dt_rel = ROOT.TH2F(f"relative_pde_ov{ov}_tile{po}",f"rel_pde_ov{ov}_tile{po}", 4, 0.5,4.5, 4, 0.5 ,4.5)
-        dt_ov = ROOT.TH2F(f"overvoltage_ov{ov}_tile{po}",f"overvoltage_ov{ov}_tile{po}", 4, 0.5,4.5, 4, 0.5 ,4.5)
         dt_dcr = ROOT.TH2F(f"dcr_ov{ov}_tile{po}",f"dcr_ov{ov}_tile{po}", 4, 0.5,4.5, 4, 0.5 ,4.5)
         dt_ct = ROOT.TH2F(f"crosstalk_ov{ov}_tile{po}",f"crosstalk_ov{ov}_tile{po}", 4, 0.5,4.5, 4, 0.5 ,4.5)
         for ch in range(1,17):
@@ -274,31 +220,32 @@ for ch in range(1,17):
             filtered_df_dcr = filter_data_frame(df_dcr, po, ch, ov)
             
             dcr = filtered_df_dcr.head(1)['dcr'].values[0]
-            lambda_ = filtered_df_dcr.head(1)['lambda'].values[0]
+            dcr_err = filtered_df_dcr.head(1)['dcr_err'].values[0]
+            lambda_val = filtered_df_dcr.head(1)['lambda'].values[0]
+            lambda_err = filtered_df_signal.head(1)['lambda_err'].values[0]
             # Calculate Pct
-            Pct = 1 - math.exp(-lambda_)
+            Pct = 1 - math.exp(-lambda_val)
+            
+            # Calculate Pct_err using error propagation formula
+            Pct_err = abs(Pct * lambda_err * math.exp(-lambda_val))
             
             mu_reff, mu_reff_err = get_reff_mu(df_light, po, ch)
             mu = filtered_df_signal.head(1)['mu'].values[0]
+            mu_err = filtered_df_signal.head(1)['mu_err'].values[0]
             x, y = get_coordinates_4x4(ch)
             dt_tile.SetBinContent( x, y, mu)
+            dt_tile.SetBinError( x, y, mu_err)
             dt_rel.SetBinContent( x, y, mu/mu_reff)
-            dt_vbd.SetBinContent( x, y, vbd - 48)
-            dt_ov.SetBinContent( x, y, 3 - (vbd - 48))
             dt_dcr.SetBinContent( x, y, dcr)
+            dt_dcr.SetBinError( x, y, dcr_err)
             dt_ct.SetBinContent(x, y, Pct)
-        sub_directory_avr.cd()
-        dt_light.Write()
+            dt_ct.SetBinError(x, y, Pct_err)
         sub_directory_sipm_mu.cd()
         dt_tile.Write()
         sub_directory_rel_pde.cd()
         dt_rel.Write()
-        sub_directory_vbd.cd()
-        dt_vbd.Write()
         sub_directory_dcr.cd()
         dt_dcr.Write()
-        sub_directory_ov.cd()
-        dt_ov.Write()
         sub_directory_ct.cd()
         dt_ct.Write()
 for po in range(16):
@@ -309,11 +256,13 @@ for po in range(16):
             filtered_df_vbd = df_vbd.loc[ (df_vbd['channel'] == ch) &
                             (df_vbd['position'] == po) ]
             vbd = filtered_df_vbd.head(1)['vbd'].values[0]
+            vbd_err = filtered_df_vbd.head(1)['vbd_err'].values[0]
             
             mu_reff, mu_reff_err = get_reff_mu(df_light, po, ch)
             x, y = get_coordinates_4x4(ch)
             dt_light.SetBinContent( x, y, mu_reff)
             dt_vbd.SetBinContent( x, y, vbd - 48)
+            dt_vbd.SetBinError( x, y, vbd_err)
         sub_directory_avr.cd()
         dt_light.Write()
         sub_directory_vbd.cd()
