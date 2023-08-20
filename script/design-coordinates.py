@@ -147,6 +147,7 @@ if __name__ == '__main__':
     
     for file in root_files:
         filepath = "/".join(os.path.abspath(file).split("/")[0:-1])
+        filepath_lightmap = "/".join(os.path.abspath(file).split("/")[0:-2])
         print(filepath)
         filename = os.path.abspath(file).split("/")[-1]  # Extracts "xxx.root"
         name_without_extension = filename.split(".")[0]  # Extracts "xxx"
@@ -162,7 +163,7 @@ if __name__ == '__main__':
         z_list = []
         z_good_list = []
         file1 = ROOT.TFile(f"{file}")
-        file2 = ROOT.TFile("/Users/wanghanwen/codes/new666/harvest/main_run_0162/maps_run162.root")
+        file2 = ROOT.TFile(f"{filepath_lightmap}/main_run_0162/maps_run162.root")
         hname = "light_map_full"
         hname2 = "reff_mu_1D"
         reff_x = []
