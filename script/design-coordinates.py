@@ -168,7 +168,7 @@ if __name__ == '__main__':
         for po in range(16):
         
             light_hist = file1.Get(hname + f"/{hname}_tile{po}")
-            reff_hist = file1.Get(hname2 + f"/reff_mu_tile{po}")
+            reff_hist = file1.Get(hname2 + f"/reff_mu_1D_tile{po}")
             x_po, y_po = get_coordinates_4x4(po + 1)
             x_ref, y_ref = convert_coordinates_4x4(x_po, y_po, float(ref_offset_x), float(ref_offset_y), yaml_data)
             #x_list.append(x_ref)
@@ -210,13 +210,14 @@ if __name__ == '__main__':
             square = Rectangle((square_x, square_y), square_length, square_length, edgecolor='red', fill=False)
             plt.gca().add_patch(square)
         
-        plt.xlabel('X')
-        plt.ylabel('Y')
-        plt.title('(po, pt) Text Scatter Plot with Squares')
+        plt.xlabel('X (mm)')
+        plt.ylabel('Y (mm)')
+        plt.title('Reference SiPM positions')
         
         plt.axis('equal')
         
         plt.savefig(f"{filepath}/{name_without_extension}_positions.pdf")
+        plt.clf()
         # Create the interpolation/extrapolation function
         rbf = Rbf(x_list, y_list, z_list, function='linear')
         
@@ -233,18 +234,23 @@ if __name__ == '__main__':
         # Plot the original data as scatter plot
         plt.figure(figsize=(15, 5))
         plt.subplot(1, 2, 1)
-        plt.scatter(x_list, y_list, c=z_list, cmap='viridis', s=100)
+        plt.scatter(x_list, y_list, c=z_list, cmap='viridis', s=50)
         plt.colorbar(label='Light Intensity')
-        plt.title('Original Data')
+        plt.title('Original Light Data $\mu_{ref}/$PDE')
+        plt.xlabel('X (mm)')
+        plt.ylabel('Y (mm)')
         plt.axis('equal')
         
         # Plot the interpolated/extrapolated data as a heat map
         plt.subplot(1, 2, 2)
         plt.imshow(z_new, origin='lower', extent=[-20, 300, -20, 300], aspect='auto', cmap='viridis')
         plt.colorbar(label='Light Intensity')
-        plt.title('Interpolated/Extrapolated Data')
+        plt.title(f'Interpolated/Extrapolated light map of Run-{run_number}')
+        plt.xlabel('X (mm)')
+        plt.ylabel('Y (mm)')
         plt.axis('equal')
         plt.savefig(f"{filepath}/{name_without_extension}_lightmap.pdf")
+        plt.clf()
         
         observed_intensities = np.array(reff_z)
         observed_intensities_var = np.array(reff_z_var)
@@ -274,24 +280,25 @@ if __name__ == '__main__':
         # Plot the 2D chi-squared profile
         plt.figure(figsize=(8, 6))
         plt.imshow(chi2_values, origin='lower', extent=[offset_range.min(), offset_range.max(), offset_range.min(), offset_range.max()], cmap='YlGnBu')
-        plt.colorbar(label='Chi-squared')
+        plt.colorbar(label='$\chi^2$')
         
         contour1 = plt.contour(dx, dy, chi2_values, levels=[chi2_1sigma], colors=['mediumslateblue'])
         contour2 = plt.contour(dx, dy, chi2_values, levels=[chi2_2sigma], colors=['mediumorchid'])
         plt.plot(0, 0, 'go', label='Original Point')
         plt.text(-16, -10, '(0, 0)', fontsize=8, color='black', fontweight='bold')
-        plt.plot(dx[min_pos], dy[min_pos], 'ro', label=f'Minimum $\Chi^2$ ({min_chi2:.2f})')
+        plt.plot(dx[min_pos], dy[min_pos], 'ro', label=f'Minimum $\chi^2$ ({min_chi2:.2f})')
         plt.text(dx[min_pos] + 3, dy[min_pos] + 3, f'({dx[min_pos]: 0.2f}, {dy[min_pos]: 0.2f})', fontsize=8, color='firebrick', fontweight='bold')
         
         # Set the legend labels for the contours
         plt.clabel(contour1, inline=1, fontsize=10, fmt={chi2_1sigma:r'$\bar{\Delta\mu} = 0.01 $'})
         plt.clabel(contour2, inline=1, fontsize=10, fmt={chi2_2sigma:r'$\bar{\Delta\mu} = 0.02 $'})
         
-        plt.xlabel('$\Delta x$')
-        plt.ylabel('$\Delta y$')
-        plt.title(f'2D $\Chi^2$ Profile of Main-run {run_number}')
+        plt.xlabel('$\Delta x (mm)$')
+        plt.ylabel('$\Delta y (mm)$')
+        plt.title(f'2D $\chi^2$ Profile of Main-run {run_number}')
         plt.legend()
         plt.savefig(f"{filepath}/{name_without_extension}_chi2profile.pdf")
+        plt.clf()
         
 #        for po in range(16):
 #        
