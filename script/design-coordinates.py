@@ -286,7 +286,7 @@ if __name__ == '__main__':
         plt.clf()
         # Plot the 2D chi-squared profile
         plt.figure(figsize=(8, 6))
-        plt.imshow(chi2_values, origin='lower', extent=[offset_range.min(), offset_range.max(), offset_range.min(), offset_range.max()], cmap='YlGnBu')
+        plt.imshow(chi2_values_good, origin='lower', extent=[offset_range.min(), offset_range.max(), offset_range.min(), offset_range.max()], cmap='YlGnBu')
         plt.colorbar(label='$\chi^2$')
         
         contour1 = plt.contour(dx, dy, chi2_values_good, levels=[chi2_1sigma], colors=['mediumslateblue'])
@@ -344,7 +344,7 @@ if __name__ == '__main__':
             hist_vbd = file1.Get(f"vbd/vbd_tile{po}")
             for ch in range(1, 17):
                 x, y = get_coordinates_4x4(ch)
-                print(po, ch, hist_vbd.GetBinContent(x,y))
+                #print(po, ch, hist_vbd.GetBinContent(x,y))
                 for ov in range(1, 7):
                     ov_dict[po][ch-1][ov-1] = ov - hist_vbd.GetBinContent(x,y) 
         
@@ -379,7 +379,7 @@ if __name__ == '__main__':
                 pde_map_uncorrected[position, channel] = interpolated_mu / light_map_uncorrected[position, channel]
                 pde_map_corrected[position, channel] = interpolated_mu / light_map_corrected[position, channel]
                 pde_map_centrallycorrected[position, channel] = interpolated_mu / light_map_centrallycorrected[position, channel]
-                print(position, channel+1, interpolated_dcr)
+                #print(position, channel+1, interpolated_dcr)
 
 
 
