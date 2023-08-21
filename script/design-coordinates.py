@@ -237,7 +237,7 @@ if __name__ == '__main__':
         initial_x = np.array(reff_x)
         initial_y = np.array(reff_y)
         # Define the range of offsets to scan in the x and y directions
-        offset_range = np.linspace(-100, 100, 1000)
+        offset_range = np.linspace(-100, 100, 2001)
         
         # Create a 2D mesh grid of offsets
         dx, dy = np.meshgrid(offset_range, offset_range)
