@@ -144,6 +144,9 @@ if __name__ == '__main__':
     length_tile = yaml_data['length_tile']
     length_ch = yaml_data['length_ch']
     length_half_ch = yaml_data['length_half_ch']
+    logfile = open("completed.txt")
+    completed_run = [line.rstrip('\n') for line in logfile.readlines()]
+    
     
     for file in root_files:
         filepath = "/".join(os.path.abspath(file).split("/")[0:-1])
@@ -152,8 +155,8 @@ if __name__ == '__main__':
         filename = os.path.abspath(file).split("/")[-1]  # Extracts "xxx.root"
         name_without_extension = filename.split(".")[0]  # Extracts "xxx"
         run_number = re.findall(r'\d+', name_without_extension)[0]
-
-    
+        if str(run_number) in completed_run:
+            continue
         # ... and so on for other variables
         
         x_list = []
