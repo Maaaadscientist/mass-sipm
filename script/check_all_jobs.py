@@ -48,12 +48,14 @@ elif analysis_type == "vbd":
     file_type = "pdf"
 elif analysis_type == "harvest":
     runType = "main"
-    file_type = "pdf"
+    file_type = "root"
 main_runs = []
 light_runs = []
 
 if file_type == "root":
     threshold = 7000
+    if analysis_type == "harvest":
+        threshold = 500
 elif file_type == "pdf":
     threshold = 1000
 elif file_type == "csv":
