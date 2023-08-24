@@ -37,9 +37,8 @@ with open(table_path, 'r') as file:
             main_runs.append(int(key.strip()))
             light_runs.append(int(value.strip()))
 
-if not os.path.isdir(output_dir):
-    os.makedirs(output_dir)
-output_dir = os.path.abspath(output_tmp)
+#analysis_list = ['dcr-fit', 'signal-fit', 'vbd', 'harvest', 'light-fit']
+analysis_list = [ 'harvest', ]
 
 
 # Remove elements that don't contain "main" or "light"
@@ -61,11 +60,16 @@ for aFile in grouped_list:
         continue
     if run_type != "main" and run_type != "light":
         continue
+    print(name_short)
 
-    analysis_type = "harvest"
-    command = f'cp  {input_dir}/{analysis_type}/{name_short}  {output_dir}'
-    #print(command)
+    for key in analysis_list:
+        filepath = output_dir + "/" + key + "/" + name_short
+        if not os.path.isdir(filepath):
+            os.makedirs(filepath)
+        command1 = f'cp  {input_dir}/{key}/{name_short}/pdf/*.pdf  {filepath}'
+        command2 = f'cp  {input_dir}/{key}/{name_short}/root/*.root  {filepath}'
+        process = subprocess.Popen(command1, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+        process = subprocess.Popen(command2, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
 
     # Execute the shell script
     #process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
