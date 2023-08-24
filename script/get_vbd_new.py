@@ -1,5 +1,6 @@
 import pandas as pd
 import math
+import random
 import re
 import os, sys
 import statistics
@@ -198,7 +199,11 @@ def linear_fit_bootstrap(x_list, y_list, y_err_list, n_bootstrap=1000):
 
     for _ in range(n_bootstrap):
         # create bootstrap sample by varying each element of y_list separately
-        bootstrap_y = np.array([y[i] + np.random.choice([-1, 1]) * y_err[i] for i in range(len(y))])
+        y_values = []
+        for i in range(len(y)):
+            rand = random.gauss(0, 1)
+            y_values.append(y[i] + rand * y_err[i])
+        bootstrap_y = np.array(y_values)
 
         # perform linear regression on the bootstrap sample
         bootstrap_slope, bootstrap_intercept, _, _, _ = stats.linregress(x, bootstrap_y)
@@ -210,6 +215,33 @@ def linear_fit_bootstrap(x_list, y_list, y_err_list, n_bootstrap=1000):
         bootstrap_slopes.append(bootstrap_slope)
         bootstrap_intercepts.append(bootstrap_intercept)
         bootstrap_x_intercepts.append(bootstrap_x_intercept)
+
+    
+    # Create a grid of parameter combinations
+    slope_grid, intercept_grid = np.meshgrid(bootstrap_slopes, bootstrap_x_intercepts)
+    
+    # Generate x values for the lines
+    x_values = np.linspace(-50, 50, 100)
+    
+    # Plotting the scatter plot
+    plt.figure(figsize=(10, 6))
+    plt.scatter(slope_grid, intercept_grid, color='b', marker='o', label='Parameter Space')
+    plt.xlabel('Slope')
+    plt.ylabel('X Intercept')
+    plt.title('Scatter Plot of Parameter Space')
+    plt.legend()
+    
+    # Plotting the lines defined by the parameter space
+    plt.figure(figsize=(10, 6))
+    plt.xlabel('X')
+    plt.ylabel('Y')
+    plt.title('Lines Defined by Parameter Space')
+    
+    for slope, intercept in zip(slope_grid.flatten(), intercept_grid.flatten()):
+        y_values = slope * x_values + intercept
+        plt.plot(x_values, y_values, alpha=0.5)
+    
+    plt.show()
 
     # calculate uncertainties using bootstrap results
     slope_std_err = np.std(bootstrap_slopes)
@@ -307,7 +339,7 @@ for position in range(16):
 
     vols, mean_diff_list, mean_unc_list = remove_outliers(vols, mean_diff_list, mean_unc_list)
     #slope, x_intercept, x_intercept_err, chi2ndf =  linear_fit(vols,mean_diff_list,mean_unc_list)
-    slope, intercept, x_intercept , slope_err, intercept_err, x_intercept_err, chi2ndf =  linear_fit_bootstrap(vols,mean_diff_list, mean_unc_list, 2000)
+    slope, intercept, x_intercept , slope_err, intercept_err, x_intercept_err, chi2ndf =  linear_fit_bootstrap(vols,mean_diff_list, mean_unc_list, 100)
     vols_plus = deepcopy(vols)
     vols_plus.insert(0, x_intercept)
     # Set the title of the plot
