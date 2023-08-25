@@ -182,32 +182,95 @@ if __name__ == '__main__':
     # For example, let's create a random 2D array with 5 tiles and 10 time points
     
     # Plot the scatter points and outlier-removed linear fit for each tile separately
+#    for tile_idx in range(num_tiles):
+#        plt.figure(figsize=(8, 4))  # Adjust the figure size as needed
+#    
+#        x = np.arange(num_time_points)  # Time points
+#        y = data[tile_idx]              # Values for the current tile
+#    
+#        # Calculate Z-scores for the y values
+#        z_scores = zscore(y)
+#        threshold = 1.0  # Adjust this threshold to control outlier removal
+#        
+#        # Filter out outliers
+#        filtered_indices = np.abs(z_scores) < threshold
+#        x_filtered = x[filtered_indices]
+#        y_filtered = y[filtered_indices]
+#        
+#        plt.scatter(x_filtered, y_filtered, label=f'Tile {tile_idx}', color='blue')
+#        
+#        # Perform linear fit on the filtered data
+#        slope, intercept, r_value, p_value, std_err = linregress(x_filtered, y_filtered)
+#        fit_line = slope * x + intercept
+#        plt.plot(x, fit_line, color='red', label='Linear Fit')
+#        
+#        plt.title(f'Tile {tile_idx} - Linear Fit (Outliers Removed)')
+#        plt.xlabel('Time')
+#        plt.ylabel('Value')
+#        plt.legend()
+#        plt.tight_layout()
+#        plt.savefig(f"tile{tile_idx}_stability.pdf")
+#    # Plot the scatter points and best-fit line for each tile separately
+#    for tile_idx in range(num_tiles):
+#        plt.figure(figsize=(8, 4))  # Adjust the figure size as needed
+#    
+#        x = np.arange(num_time_points)  # Time points
+#        y = data[tile_idx]              # Values for the current tile
+#        
+#        # Perform polynomial fitting for degree 1 (linear)
+#        coefficients = np.polyfit(x, y, 1)
+#        best_fit_line = np.polyval(coefficients, x)
+#        
+#        plt.scatter(x, y, label=f'Tile {tile_idx}', color='blue')
+#        plt.plot(x, best_fit_line, color='red', label='Best Fit')
+#        
+#        plt.title(f'Tile {tile_idx} - Best Fit Line')
+#        plt.xlabel('Time')
+#        plt.ylabel('Value')
+#        plt.legend()
+#        plt.tight_layout()
+#        plt.show()
+    # Plot the scatter points and best-fit line with outlier removal for each tile separately
     for tile_idx in range(num_tiles):
         plt.figure(figsize=(8, 4))  # Adjust the figure size as needed
     
         x = np.arange(num_time_points)  # Time points
         y = data[tile_idx]              # Values for the current tile
-    
-        # Calculate Z-scores for the y values
-        z_scores = zscore(y)
-        threshold = 2.0  # Adjust this threshold to control outlier removal
         
-        # Filter out outliers
-        filtered_indices = np.abs(z_scores) < threshold
+        # Perform polynomial fitting for degree 1 (linear)
+        coefficients = np.polyfit(x, y, 1)
+        best_fit_line = np.polyval(coefficients, x)
+        
+        # Calculate residuals (differences between data and best-fit line)
+        residuals = y - best_fit_line
+        
+        # Set a threshold for residual-based outlier removal
+        residual_threshold = 0.1  # Adjust this threshold as needed
+        
+        # Filter out outliers based on residuals
+        filtered_indices = np.abs(residuals) < residual_threshold
         x_filtered = x[filtered_indices]
         y_filtered = y[filtered_indices]
         
         plt.scatter(x_filtered, y_filtered, label=f'Tile {tile_idx}', color='blue')
         
-        # Perform linear fit on the filtered data
-        slope, intercept, r_value, p_value, std_err = linregress(x_filtered, y_filtered)
-        fit_line = slope * x + intercept
-        plt.plot(x, fit_line, color='red', label='Linear Fit')
+        # Perform polynomial fitting on the filtered data
+        coefficients_filtered = np.polyfit(x_filtered, y_filtered, 1)
+        best_fit_line_filtered = np.polyval(coefficients_filtered, x)
+        plt.plot(x, best_fit_line_filtered, color='red', label='Best Fit')
+         
+        # Calculate average value of the data
+        average_value = np.mean(y_filtered)
+        # Add slope text to the plot
+        slope = coefficients_filtered[0] * 100 / average_value * 100
+        plt.text(0.05, 0.55, f'Relative slope (100 Run) : {slope:.3f}%', transform=plt.gca().transAxes)
+    
         
-        plt.title(f'Tile {tile_idx} - Linear Fit (Outliers Removed)')
+        plt.title(f'Tile {tile_idx} - Best Fit Line (Outliers Removed)')
         plt.xlabel('Time')
         plt.ylabel('Value')
+        plt.ylim(0,1.2)
         plt.legend()
         plt.tight_layout()
-        plt.show()
-        plt.savefig(f"tile{tile_idx}_stability.pdf")
+        plt.savefig(f"light_stability_tile{tile_idx}.pdf")
+        #plt.show()
