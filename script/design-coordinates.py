@@ -120,6 +120,7 @@ def find_root_files(start_path):
                     root_files.append(full_path)
     elif os.path.isfile(start_path) and start_path.endswith('.root'):
         root_files.append(start_path)
+    root_files.sort()
 
     return root_files
 if __name__ == '__main__':
@@ -155,7 +156,8 @@ if __name__ == '__main__':
         filename = os.path.abspath(file).split("/")[-1]  # Extracts "xxx.root"
         name_without_extension = filename.split(".")[0]  # Extracts "xxx"
         run_number = re.findall(r'\d+', name_without_extension)[0]
-        if str(run_number) in completed_run:
+        if str(int(run_number)) in completed_run:
+            print("skip", run_number)
             continue
         # ... and so on for other variables
         
@@ -173,11 +175,15 @@ if __name__ == '__main__':
         reff_y = []
         reff_z = []
         reff_z_var = []
+        err_flag = False
         for po in range(16):
         
             light_hist = file1.Get(hname + f"/{hname}_tile{po}")
             light_hist_good = file2.Get(hname + f"/{hname}_tile{po}")
             reff_hist = file1.Get(hname2 + f"/reff_mu_1D_tile{po}")
+            if not reff_hist:
+                err_flag = True
+                break
             x_po, y_po = get_coordinates_4x4(po + 1)
             x_ref, y_ref = convert_coordinates_4x4(x_po, y_po, float(ref_offset_x), float(ref_offset_y), yaml_data)
             pde = reff_data.get(po)
@@ -201,12 +207,14 @@ if __name__ == '__main__':
                 mu_good = light_hist_good.GetBinContent(x_pt, y_pt)
                 z_good_list.append(mu_good / pde)
         # Create the interpolation/extrapolation function
+        if err_flag:
+            continue
         rbf = Rbf(x_list, y_list, z_list, function='linear')
         rbf_good = Rbf(x_list, y_list, z_good_list, function='linear')
         
         # Specify the coordinates where you want to interpolate/extrapolate
-        x_new = np.linspace(-20, 300, 1280)  # Note that we are extending the range for extrapolation
-        y_new = np.linspace(-20, 300, 1280)  # Note that we are extending the range for extrapolation
+        x_new = np.linspace(-20, 300, 640)  # Note that we are extending the range for extrapolation
+        y_new = np.linspace(-20, 300, 640)  # Note that we are extending the range for extrapolation
         
         # Create a meshgrid for plotting
         X_new, Y_new = np.meshgrid(x_new, y_new)
@@ -240,7 +248,7 @@ if __name__ == '__main__':
         initial_x = np.array(reff_x)
         initial_y = np.array(reff_y)
         # Define the range of offsets to scan in the x and y directions
-        offset_range = np.linspace(-100, 100, 2001)
+        offset_range = np.linspace(-100, 100, 1001)
         
         # Create a 2D mesh grid of offsets
         dx, dy = np.meshgrid(offset_range, offset_range)
@@ -485,3 +493,6 @@ if __name__ == '__main__':
         plt.subplots_adjust(right=0.7)  # Increase the value to move the legend leftwards
         plt.savefig(f"{filepath}/pde_tiles_centrallycorrected_run{run_number}.pdf")
         plt.clf()
+
+        with open("completed.txt","a") as logfile:
+            logfile.write(str(int(run_number))+"\n")
