@@ -94,47 +94,34 @@ int main(int argc, char **argv) {
          if (FileIndex.po+uiEVENT_HEADER[1] > sSizeOfFile) break;
       }
    }
-   if (skipEvents > num_events){ 
-      LOG_ERROR << "skipEvents larger than maxEvents";
-      std::abort(); 
-   }
-   std::ofstream outputFile;
-   outputFile.open(outputName);
-   for (int nev = skipEvents ; nev < std::min(num_events, maxEvents + skipEvents)  ; ++nev) {
-      int offset = 0;
-      std::uint32_t word;
-      fseek(fp,vFInd.at(nev).po + sizeof(word) *  offset ,SEEK_SET);
+   int nev = skipEvents;
+   int offset = 0;
+   std::uint32_t word;
+   fseek(fp,vFInd.at(nev).po + sizeof(word) *  offset ,SEEK_SET);
+   fread(&word,sizeof(word),1,fp);
+   //std::cout << offset << "\t" << std::hex << "0x" << std::setw(8) << std::setfill('0') << word << std::dec << std::endl;
+   int pass = 13;
+   fseek(fp, sizeof(word) *  pass ,SEEK_CUR);
+   offset += pass;
+   for (int ch = 0; ch < 16 ; ch ++) {
+      if (ch != 0) continue;
       fread(&word,sizeof(word),1,fp);
-      //std::cout << offset << "\t" << std::hex << "0x" << std::setw(8) << std::setfill('0') << word << std::dec << std::endl;
-      int pass = 13;
-      fseek(fp, sizeof(word) *  pass ,SEEK_CUR);
-      offset += pass;
-      for (int ch = 0; ch < 16 ; ch ++) {
-         if (ch != 0) continue;
-         fread(&word,sizeof(word),1,fp);
-         //std::cout << std::hex << "0x" << std::setw(8) << std::setfill('0') << word << std::dec << std::endl;
-         int chsize =  word & 0x0000FFFF;
-         fseek(fp, sizeof(word) ,SEEK_CUR);
-         std::int16_t vol;
-         int BS = chsize / 2 - 2;
-         int count = 0;
-         while (BS != 0) {
-            fread(&vol, sizeof(vol), 1 ,fp);
-            float time = count * 8.;
-            float amp = 0;
-            amp = vol * TQDC_BITS_TO_PC;
-            std::cout<< amp<< std::endl;
-            if (count >= 1255 and count <= 1300) {
-               if (count != 1255) outputFile << " "; 
-               outputFile << amp;
-            }
-            BS --;
-            count ++;
-         }
-         outputFile << std::endl;
+      //std::cout << std::hex << "0x" << std::setw(8) << std::setfill('0') << word << std::dec << std::endl;
+      int chsize =  word & 0x0000FFFF;
+      fseek(fp, sizeof(word) ,SEEK_CUR);
+      std::int16_t vol;
+      int BS = chsize / 2 - 2;
+      int count = 0;
+      while (BS != 0) {
+         fread(&vol, sizeof(vol), 1 ,fp);
+         float time = count * 8.;
+         float amp = 0;
+         amp = vol * TQDC_BITS_TO_PC;
+         std::cout<< amp<< std::endl;
+         BS --;
+         count ++;
       }
    }
-   outputFile.close();
    return 0;
 }
 
