@@ -83,8 +83,8 @@ for file_path in files:
         script_tmp += f'/usr/bin/eos cp {file_path} $directory\n'
         script_tmp += 'cd $directory\n'
         script_tmp += 'sleep 3\n'
-        script_tmp += 'cp /junofs/users/wanghanwen/sipm-massive/*.yaml .\n'
-        script_tmp += 'cp /junofs/users/wanghanwen/sipm-massive/env_lcg.sh .\n'
+        script_tmp += f'cp {parrent_path}/*.yaml .\n'
+        script_tmp += f'cp {parrent_path}/env_lcg.sh .\n'
         script_tmp += '. ./env_lcg.sh\n'
         output_name = "_".join(components[0:-3])
         script_tmp += f'{binary_path} -i {file_name} -c new.yaml -r {run_number} -v 0 -t {run_type}_{sipm_type}_ch{channel} -o {output_dir}/root/{output_name}.root\n'
