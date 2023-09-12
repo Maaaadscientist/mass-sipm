@@ -1,9 +1,0 @@
-signal_start: 1255
-signal_end: 1300
-baseline_start: 1200
-baseline_end: 1245
-DCR_amplitude_threshold: 1
-Butterworth_cutoff_frequency: 200
-Butterworth_order: 5
-dcr_start: 50
-dcr_end: 1150
