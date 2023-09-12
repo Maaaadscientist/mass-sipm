@@ -35,6 +35,7 @@ elif analysis_type =="signal-fit":
     runType = "main"
 elif analysis_type == "light-fit":
     runType = "light"
+    binary_path = os.path.abspath("script/light_fit.py")
 elif analysis_type == "mainrun-light-fit":
     runType = "main"
 elif analysis_type == "dcr-fit":
@@ -101,7 +102,7 @@ for aFile in grouped_list:
     elif analysis_type == "dcr-fit":
         subprocess.run(['python', 'script/prepare_dcr_jobs.py', f'{output_dir}/dcr/{name_short}',f'{output_dir}/signal-fit/{name_short}', f'{output_dir}/{analysis_type}/{name_short}'])
     elif analysis_type == "light-fit":
-        subprocess.run(['python', 'script/prepare_light_jobs.py', f'{output_dir}/light/{name_short}', f'{output_dir}/{analysis_type}/{name_short}'])
+        subprocess.run(['python', 'script/prepare_light_jobs.py', f'{output_dir}/light/{name_short}', f'{output_dir}/{analysis_type}/{name_short}', f'{binary_path}'])
     elif analysis_type == "mainrun-light-fit":
         subprocess.run(['python', 'script/prepare_mainrun_light_jobs.py', f'{output_dir}/main/{name_short}', f'{output_dir}/{analysis_type}/{name_short}'])
     elif analysis_type == "vbd":

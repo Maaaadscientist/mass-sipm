@@ -24,6 +24,7 @@ if "/" in input_path:
     filename = input_path.split("/")[-1]
 else:
     filename = input_path
+filename_short = filename.replace(".root", "")
 name_match = re.match(pattern_name, filename)
 if name_match:
     run = str(name_match.group(2))
@@ -80,5 +81,5 @@ df['mu_err'] = mu_err_list
 df['position'] = position_list
 df['run_number'] = run_list
 df['point'] = point_list
-df.to_csv(f"{output_path}/csv/charge_hist_reff_point{point}.csv", index=False)
-canvas.Print(f"{output_path}/pdf/charge_hist_reff_point{point}.pdf]")
+df.to_csv(f"{output_path}/csv/{filename_short}.csv", index=False)
+canvas.Print(f"{output_path}/pdf/{filename_short}.pdf]")
