@@ -1,6 +1,7 @@
 import os, sys
 import subprocess
 import glob
+import yaml
 
 # Execute a Python script
 
@@ -48,13 +49,16 @@ if not os.path.isdir(f'{output_dir}/{analysis_type}'):
 main_runs = []
 light_runs = []
 
-with open(table_path, 'r') as file:
-    for line in file:
-        line = line.strip()
-        if line:
-            key, value = line.split(':')
-            main_runs.append(int(key.strip()))
-            light_runs.append(int(value.strip()))
+with open(table_path, 'r') as yaml_file:
+    yaml_data = yaml.safe_load(yaml_file)   
+    light_runs = yaml_data["light_runs"]
+    main_runs = yaml_data["main_runs"]
+    #for line in file:
+    #    line = line.strip()
+    #    if line:
+    #        key, value = line.split(':')
+    #        main_runs.append(int(key.strip()))
+    #        light_runs.append(int(value.strip()))
 
 if not os.path.isdir(output_dir):
     os.makedirs(output_dir)
