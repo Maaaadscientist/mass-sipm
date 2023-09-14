@@ -1,4 +1,5 @@
 import yaml
+from array import array
 import os, sys
 import re
 import ROOT
@@ -182,6 +183,7 @@ if __name__ == '__main__':
         file2 = ROOT.TFile(f"{filepath_lightmap}/main_run_0162/maps_run162.root")
         hname = "light_map_full"
         hname2 = "reff_mu_1D"
+        reff_num = []
         reff_x = []
         reff_y = []
         reff_z = []
@@ -200,6 +202,7 @@ if __name__ == '__main__':
             pde = reff_data.get(po)
             reff_light_intensity = reff_hist.GetMean()/pde
             reff_stddev = reff_hist.GetRMS()/pde
+            reff_num.append(po)
             reff_x.append(x_ref)
             reff_y.append(y_ref)
             reff_z.append(reff_light_intensity)
@@ -217,6 +220,14 @@ if __name__ == '__main__':
                 z_list.append(mu / pde)
                 mu_good = light_hist_good.GetBinContent(x_pt, y_pt)
                 z_good_list.append(mu_good / pde)
+        for i in range(len(reff_x)):
+            print(reff_num[i], reff_x[i], reff_y[i])
+        # Create the TGraph2D light map
+        x_array = array('d', x_list)
+        y_array = array('d', y_list)
+        z_array = array('d', z_good_list)
+        n_points = len(x_list)
+        graph = ROOT.TGraph2D(n_points, x_array, y_array, z_array)
         # Create the interpolation/extrapolation function
         if err_flag:
             invalid_run_list.append(int(run_number))
@@ -225,14 +236,26 @@ if __name__ == '__main__':
         rbf_good = Rbf(x_list, y_list, z_good_list, function='linear')
         
         # Specify the coordinates where you want to interpolate/extrapolate
-        x_new = np.linspace(-20, 300, 640)  # Note that we are extending the range for extrapolation
-        y_new = np.linspace(-20, 300, 640)  # Note that we are extending the range for extrapolation
+        x_new = np.linspace(-20, 300, 3201)  # Note that we are extending the range for extrapolation
+        y_new = np.linspace(-20, 300, 3201)  # Note that we are extending the range for extrapolation
         
         # Create a meshgrid for plotting
         X_new, Y_new = np.meshgrid(x_new, y_new)
         
+        z_new = rbf_good(X_new, Y_new)
+        # Initialize TGraph2D object
+        graph2 = ROOT.TGraph2D("precise2DMap")
+        # Populate the TGraph2D object
+        point_index = 0  # Counter for adding points to TGraph2D
+        for i in range(len(z_new)):
+            for j in range(len(z_new[i])):
+                graph2.SetPoint(point_index, round(X_new[i, j]), round(Y_new[i, j]), z_new[i, j])
+                point_index += 1
+
+        file_lightmap = ROOT.TFile("preciseMap.root", "recreate")
+        graph.Write()
+        file_lightmap.Close()
         # Perform the interpolation/extrapolation
-        z_new = rbf(X_new, Y_new)
         
         # Plot the original data as scatter plot
         plt.figure(figsize=(15, 5))
@@ -260,7 +283,7 @@ if __name__ == '__main__':
         initial_x = np.array(reff_x)
         initial_y = np.array(reff_y)
         # Define the range of offsets to scan in the x and y directions
-        offset_range = np.linspace(-100, 100, 1001)
+        offset_range = np.linspace(-100, 100, 2001)
         
         # Create a 2D mesh grid of offsets
         dx, dy = np.meshgrid(offset_range, offset_range)
@@ -270,8 +293,8 @@ if __name__ == '__main__':
         chi2_values_good = np.zeros_like(dx)
         for i in range(len(offset_range)):
             for j in range(len(offset_range)):
-                x_unknown = initial_x + dx[i, j]
-                y_unknown = initial_y + dy[i, j]
+                x_unknown = round(initial_x + dx[i, j])
+                y_unknown = round(initial_y + dy[i, j])
                 expected_intensities = rbf(x_unknown, y_unknown)
                 expected_intensities_good = rbf_good(x_unknown, y_unknown)
                 chi2_values[i, j] = np.sum((observed_intensities - expected_intensities) ** 2 )
