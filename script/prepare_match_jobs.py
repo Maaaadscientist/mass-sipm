@@ -56,7 +56,7 @@ for file_path in files:
     count += 1
     components = file_name.split("_")
     run_number = int(components[2])
-    point_number = components[4]
+    point_number = int(components[4])
     script_tmp = deepcopy(script)
     script_tmp += f'/usr/bin/eos cp {file_path} $directory\n'
     script_tmp += 'cd $directory\n'
