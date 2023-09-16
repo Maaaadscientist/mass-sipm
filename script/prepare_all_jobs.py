@@ -28,6 +28,9 @@ if analysis_type == "main":
 elif analysis_type == "light":
     runType = "light"
     binary_path = os.path.abspath("bin/skim-signal")
+elif analysis_type == "light-match":
+    runType = "light"
+    binary_path = os.path.abspath("../light-match/bin/light_match")
 elif analysis_type == "dcr":
     runType = "main"
     binary_path = os.path.abspath("bin/skim-dcr")
@@ -109,6 +112,9 @@ for aFile in grouped_list:
         subprocess.run(['python', 'script/prepare_vbd_jobs.py', f'{output_dir}/signal-fit/{name_short}', f'{output_dir}/{analysis_type}/{name_short}'])
     elif analysis_type == "harvest":
         subprocess.run(['python', 'script/prepare_harvest_jobs.py', f'{output_dir}', f'{name_short}', f'{output_dir}/{analysis_type}/{name_short}'])
-    elif analysis_type == "main" or "light" or "dcr":
+    elif analysis_type == "main" or analysis_type == "light" or analysis_type == "dcr":
         subprocess.run(['python', 'script/prepare_skim_jobs.py',f'datasets/{aFile}', f'{output_dir}/{analysis_type}', f'{binary_path}'])
+    elif analysis_type == "light-match":
+        print("light-match")
+        subprocess.run(['python', 'script/prepare_match_jobs.py',f'datasets/{aFile}', f'{output_dir}/{analysis_type}', f'{binary_path}'])
 

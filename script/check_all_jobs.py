@@ -1,6 +1,7 @@
 import os, sys
 import subprocess
 import glob
+import yaml
 
 # Execute a Python script
 
@@ -37,6 +38,9 @@ elif analysis_type =="signal-fit":
 elif analysis_type =="light-fit":
     runType = "light"
     file_type = "pdf"
+elif analysis_type =="light-match":
+    runType = "light"
+    file_type = "root"
 elif analysis_type =="mainrun-light-fit":
     runType = "main"
     file_type = "pdf"
@@ -55,18 +59,16 @@ light_runs = []
 if file_type == "root":
     threshold = 7000
     if analysis_type == "harvest":
-        threshold = 500
+        threshold = 5
 elif file_type == "pdf":
     threshold = 1000
 elif file_type == "csv":
     threshold = 1000
-with open(table_path, 'r') as file:
-    for line in file:
-        line = line.strip()
-        if line:
-            key, value = line.split(':')
-            main_runs.append(int(key.strip()))
-            light_runs.append(int(value.strip()))
+
+with open(table_path, 'r') as yaml_file:
+    yaml_data = yaml.safe_load(yaml_file)   
+    light_runs = yaml_data["light_runs"]
+    main_runs = yaml_data["main_runs"]
 
 if not os.path.isdir(output_dir):
     os.makedirs(output_dir)
