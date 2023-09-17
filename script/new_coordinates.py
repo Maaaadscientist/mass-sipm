@@ -110,7 +110,7 @@ for index, row in combined_df.iterrows():
                     new_x = next_decoder_x
                 elif abs(next_exp_x - x) < 3:
                     new_x = next_exp_x
-                elif abs(prev_decoder_x - next_decoder_x) < 0.1:
+                elif abs(prev_decoder_x - next_decoder_x) < 0.1 and prev_decoder_x < 999: # in case next = prev = 1000
                     new_x = prev_decoder_x
                 else:
                     new_x = x
@@ -138,7 +138,7 @@ for index, row in combined_df.iterrows():
                     new_y = next_decoder_y
                 elif abs(next_exp_y - y) < 3:
                     new_y = next_exp_y
-                elif abs(prev_decoder_y - next_decoder_y) < 0.1:
+                elif abs(prev_decoder_y - next_decoder_y) < 0.1 and prev_decoder_y < 1000:
                     new_y = prev_decoder_y
                 else:
                     new_y = y
