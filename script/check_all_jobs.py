@@ -125,8 +125,10 @@ if choice == "Y":
         # Define the command to execute the shell script
         if analysis_type == "light-match-bootstrap":
             command = f'./script/check_jobs_multi-thread.sh {threshold} {output_dir}/{analysis_type}/{name_short} {interactive} {file_type} {resubmit}'
+            print("Submitting jobs with multi-threading scripts!")
         else:
             command = f'./check_jobs.sh {threshold} {output_dir}/{analysis_type}/{name_short} {interactive} {file_type} {resubmit}'
+            print("Submitting jobs without multi-threading scripts!")
         #print(command)
 
         # Execute the shell script
