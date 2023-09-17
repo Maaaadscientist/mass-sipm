@@ -81,7 +81,7 @@ def convert_coordinates_4x4(x_po, y_po, x, y, yaml_data, original = (0 , 0)):
 
 if __name__ == '__main__':
     # Read and parse the YAML file
-    yaml_file_path = 'config/design-parameters.yaml'
+    yaml_file_path = 'config/design-parameters2.yaml'
     with open(yaml_file_path, 'r') as yaml_file:
         yaml_data = yaml.safe_load(yaml_file)
     # Now you can access the data in the YAML file as a dictionary
