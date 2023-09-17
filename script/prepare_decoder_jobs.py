@@ -18,6 +18,8 @@ output_dir = os.path.abspath(output_tmp)
 binary_path = os.path.abspath(binary_tmp)
 parrent_path = "/".join(binary_path.split("/")[0:-2])
 name_short = input_file.split("/")[-1].replace(".txt", "")
+comps = name_short.split("_")
+runNumber = comps[2]
 output_dir += "/" + name_short
 #output_dir = "/junofs/users/wanghanwen/main_run_0075"
 
@@ -52,8 +54,14 @@ for file_path in files:
         continue
     file_name = file_path.split("/")[-1]
     count += 1
-    components = file_name.split("_")
-    run_number = int(components[2])
+    file_name_short = file_name.replace(".log", "")
+    components = file_name_short.split("_")
+    if components[0] == "lfrun":
+        run_number = int(components[1])
+    elif components[0] == "light": 
+        run_number = int(components[2])
+    else:
+        raise ValueError("Unrecognized log name!")
     script_tmp = deepcopy(script)
     script_tmp += f'/usr/bin/eos cp {file_path} $directory\n'
     script_tmp += 'cd $directory\n'
@@ -62,16 +70,19 @@ for file_path in files:
     script_tmp += f'cp {binary_path} .\n'
     script_tmp += '. ./env_lcg.sh\n'
     script_tmp += 'python=$(which python3)\n'
-    script_tmp += f'input_file={input_path}'
-    script_tmp += f'output_file={output_dir}'
+    script_tmp += f'input_file={file_name}\n'
+    script_tmp += f'output_file={output_dir}\n'
     #output_name = "_".join(components[0:-3])
-    script_tmp += f'command="$python {binary_path}' + ' ${input_file}  ${output_file}/csv"\n'
-    script_tmp += 'echo "Executing command: ${command}"\n'
-    script_tmp += '$command\n'
+    script_tmp += f'decoder_command="$python {binary_path}' + ' ${input_file}  ${output_file}/csv"\n'
+    script_tmp += 'echo "Executing command: ${decoder_command}"\n'
+    script_tmp += '$decoder_command\n'
     script_tmp += 'sleep 5\n'
     script_tmp += f'rm -f {file_name}\n'
     script_tmp += 'cd -\n'
     with open(f'{output_dir}/jobs/decoder_run{run_number}.sh','w') as file_tmp:
         file_tmp.write(script_tmp)
 
-os.system(f"chmod +x {output_dir}/jobs/*.sh")
+if count == 0:
+    print(f"No log file found for Run-{runNumber}")
+else:
+    os.system(f"chmod +x {output_dir}/jobs/*.sh")
