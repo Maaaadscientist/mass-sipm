@@ -44,6 +44,9 @@ elif analysis_type =="light-match":
 elif analysis_type =="light-match-bootstrap":
     runType = "light"
     file_type = "png"
+elif analysis_type =="decoder":
+    runType = "light"
+    file_type = "csv"
 elif analysis_type =="mainrun-light-fit":
     runType = "main"
     file_type = "pdf"

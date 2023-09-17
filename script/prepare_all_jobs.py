@@ -31,6 +31,9 @@ elif analysis_type == "light":
 elif analysis_type == "light-match":
     runType = "light"
     binary_path = os.path.abspath("../light-match/bin/light_match")
+elif analysis_type == "decoder":
+    runType = "light"
+    binary_path = os.path.abspath("script/extract_decoder.py")
 elif analysis_type == "light-match-bootstrap":
     runType = "light"
     binary_path = os.path.abspath("../light-match/bin/light_match")
@@ -124,3 +127,6 @@ for aFile in grouped_list:
         print("light-match")
         subprocess.run(['python', 'script/prepare_bootstrap_jobs.py',f'datasets/{aFile}', f'{output_dir}/{analysis_type}', f'{binary_path}'])
 
+    elif analysis_type == "decoder":
+        print("decoder")
+        subprocess.run(['python', 'script/prepare_decoder_jobs.py',f'datasets/{aFile}', f'{output_dir}/{analysis_type}', f'{binary_path}'])
