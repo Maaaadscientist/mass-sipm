@@ -71,7 +71,7 @@ elif file_type == "pdf":
 elif file_type == "png":
     threshold = 100
 elif file_type == "csv":
-    threshold = 1000
+    threshold = 100
 
 with open(table_path, 'r') as yaml_file:
     yaml_data = yaml.safe_load(yaml_file)   

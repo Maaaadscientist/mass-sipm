@@ -83,7 +83,7 @@ if [[ $interactive_mode == true ]]; then
     # Loop through the array and resubmit jobs
     for script_file in "${scripts_to_resubmit[@]}"; do
       echo "Resubmitting job: $script_file"
-      hep_sub "$directory/jobs/$script_file" -o /dev/null -e /dev/null -cpu 8 -mem 8000
+      hep_sub "$directory/jobs/$script_file" -o /dev/null -e /dev/null -cpu 4 -mem 4000
     done
   else
     echo "Jobs not resubmitted."
@@ -109,7 +109,7 @@ else
     # Loop through the array and resubmit jobs
     for one_script_file in $script_files; do
       echo "Resubmitting job: $one_script_file"
-      hep_sub "$directory/jobs/$one_script_file" -o /dev/null -e /dev/null -cpu 8 -mem 8000
+      hep_sub "$directory/jobs/$one_script_file" -o /dev/null -e /dev/null -cpu 4 -mem 4000
     done
   fi
 
@@ -135,7 +135,7 @@ else
     # Loop through the array and resubmit jobs
     for script_file in "${scripts_to_resubmit[@]}"; do
       #echo "Resubmitting job: $script_file"
-      hep_sub "$directory/jobs/$script_file" -o /dev/null -e /dev/null -cpu 8 -mem 8000
+      hep_sub "$directory/jobs/$script_file" -o /dev/null -e /dev/null -cpu 4 -mem 4000 
     done
   fi
 fi

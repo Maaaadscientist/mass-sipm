@@ -108,7 +108,7 @@ else
     fi
     # Loop through the array and resubmit jobs
     for one_script_file in $script_files; do
-      echo "Resubmitting job: $one_script_file"
+      #echo "Resubmitting job: $one_script_file"
       hep_sub "$directory/jobs/$one_script_file" -o /dev/null -e /dev/null
     done
   fi
