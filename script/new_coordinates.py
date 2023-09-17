@@ -27,11 +27,21 @@ def format_row(row):
             formatted_row[col] = "{:0.2f}".format(row[col])
     return formatted_row
 
+
 # Reading the first CSV file
 df1 = pd.read_csv(decoder_csv)
 
-# Reading the second CSV file
-df2 = pd.read_csv(matcher_csv)
+# Read the CSV file into a pandas DataFrame
+if not os.path.isdir(matcher_csv):
+    df2 = pd.read_csv(matcher_csv)
+else:
+    all_data = []
+    for filename in os.listdir(matcher_csv):
+        if filename.endswith(".csv"):
+            file_path = os.path.join(matcher_csv, filename)
+            data = pd.read_csv(file_path)
+            all_data.append(data)
+    df2 = pd.concat(all_data, ignore_index=True)
 
 # Round all numerical columns in df1 to one decimal place
 df1 = df1.round(3)
