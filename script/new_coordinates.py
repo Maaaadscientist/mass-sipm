@@ -21,7 +21,8 @@ def format_row(row):
     for col in ['new_x', 'new_y']:
         exp_col = 'exp_' + col.split('_')[-1]
         est_col = col.split('_')[-1]
-        if abs(row[col] - row[est_col]) < 0.001:
+        decoder_col = 'decoder_' + col.split('_')[-1]
+        if abs(row[col] - row[est_col]) < 0.001 and row[col] != row[decoder_col]:
             formatted_row[col] = "\\textcolor{green}{" + "{:0.2f}".format(row[col]) + "}"
         elif abs(row[col] - row[exp_col]) > 3:
             formatted_row[col] = "\\textcolor{red}{" + "{:0.2f}".format(row[col]) + "}"
