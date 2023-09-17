@@ -20,7 +20,10 @@ def format_row(row):
     formatted_row = row.copy()
     for col in ['new_x', 'new_y']:
         exp_col = 'exp_' + col.split('_')[-1]
-        if abs(row[col] - row[exp_col]) > 3:
+        est_col = col.split('_')[-1]
+        if abs(row[col] - row[est_col]) < 0.001:
+            formatted_row[col] = "\\textcolor{green}{" + "{:0.2f}".format(row[col]) + "}"
+        elif abs(row[col] - row[exp_col]) > 3:
             formatted_row[col] = "\\textcolor{red}{" + "{:0.2f}".format(row[col]) + "}"
             formatted_row[exp_col] = "\\textcolor{blue}{" + "{:0.2f}".format(row[exp_col]) + "}"
         else:
@@ -41,7 +44,13 @@ else:
             file_path = os.path.join(matcher_csv, filename)
             data = pd.read_csv(file_path)
             all_data.append(data)
+    #df2 = pd.concat(all_data, ignore_index=True)
     df2 = pd.concat(all_data, ignore_index=True)
+
+try:
+    df2 = df2.sort_values(('point'), ascending=True).reset_index(drop=True)
+except KeyError:
+    print("Warning: No 'point' column found in 'df' for sorting.")
 
 # Round all numerical columns in df1 to one decimal place
 df1 = df1.round(3)
@@ -58,7 +67,7 @@ df1 = df1.sort_values(by='point', ascending=True)
 #df2['est_y'] = df2['y'].astype(str) + " [" + df2['y_up_error'].astype(str) + "," + df2['y_down_error'].astype(str) + "]"
 
 # Drop the unnecessary columns
-df2.drop(columns=['point','var','chi2','x_left_error', 'x_right_error', 'y_up_error', 'y_down_error'], inplace=True)
+df2.drop(columns=['run','point','var','chi2','x_left_error', 'x_right_error', 'y_up_error', 'y_down_error'], inplace=True)
 
 # Checking if both dataframes have the same number of rows
 if len(df1) != len(df2):
@@ -86,8 +95,8 @@ for index, row in combined_df.iterrows():
     elif abs(exp_x - x) < 3:
         new_x = exp_x
     elif index > 0:  # Not the first row
-        prev_decoder_x = df.loc[index - 1, 'decoder_x']
-        prev_exp_x = df.loc[index - 1, 'exp_x']
+        prev_decoder_x = combined_df.loc[index - 1, 'decoder_x']
+        prev_exp_x = combined_df.loc[index - 1, 'exp_x']
         
         if abs(prev_decoder_x - x) < 3:
             new_x = prev_decoder_x
@@ -95,12 +104,17 @@ for index, row in combined_df.iterrows():
             new_x = prev_exp_x
         else:
             if not is_last_point:  # Assuming you have a way to determine if it's the last point
-                if abs(decoder_x[index + 1] - x) < 3:
-                    new_x = decoder_x[index + 1]
-                elif abs(exp_x[index + 1] - x) < 3:
-                    new_x = exp_x[index + 1]
+                next_decoder_x = combined_df.loc[index + 1, 'decoder_x']
+                next_exp_x = combined_df.loc[index + 1, 'exp_x']
+                if abs(next_decoder_x - x) < 3:
+                    new_x = next_decoder_x
+                elif abs(next_exp_x - x) < 3:
+                    new_x = next_exp_x
+                elif abs(prev_decoder_x - next_decoder_x) < 0.1:
+                    new_x = prev_decoder_x
                 else:
-                    raise ValueError("No suitable value found for new_x")
+                    new_x = x
+                    #raise ValueError("No suitable value found for new_x:", f"exp_x:{exp_x}\tx:{x}\tdecoder_x:{decoder_x}")
     else:
         raise ValueError(f"Cannot determine new_x for point {index+1}")
     
@@ -109,8 +123,8 @@ for index, row in combined_df.iterrows():
     elif abs(exp_y - y) < 3:
         new_y = exp_y
     elif index > 0:  # Not the first row
-        prev_decoder_y = df.loc[index - 1, 'decoder_y']
-        prev_exp_y = df.loc[index - 1, 'exp_y']
+        prev_decoder_y = combined_df.loc[index - 1, 'decoder_y']
+        prev_exp_y = combined_df.loc[index - 1, 'exp_y']
         
         if abs(prev_decoder_y - y) < 3:
             new_y = prev_decoder_y
@@ -118,12 +132,17 @@ for index, row in combined_df.iterrows():
             new_y = prev_exp_y
         else:
             if not is_last_point:  # Assuming you have a way to determine if it's the last point
-                if abs(decoder_y[index + 1] - y) < 3:
-                    new_y = decoder_y[index + 1]
-                elif abs(exp_y[index + 1] - y) < 3:
-                    new_y = exp_y[index + 1]
+                next_decoder_y = combined_df.loc[index + 1, 'decoder_y']
+                next_exp_y = combined_df.loc[index + 1, 'exp_y']
+                if abs(next_decoder_y - y) < 3:
+                    new_y = next_decoder_y
+                elif abs(next_exp_y - y) < 3:
+                    new_y = next_exp_y
+                elif abs(prev_decoder_y - next_decoder_y) < 0.1:
+                    new_y = prev_decoder_y
                 else:
-                    raise ValueError("No suitable value found for new_y")
+                    new_y = y
+                    #raise ValueError("No suitable value found for new_y")
 
     else:
         raise ValueError(f"Cannot determine new_y for point {index+1}")
@@ -142,7 +161,7 @@ first_half_df = combined_df.iloc[:n//2]
 second_half_df = combined_df.iloc[n//2:]
 
 # Reorder the columns
-ordered_cols = ['point', 'decoder_x', 'x', 'exp_x', 'new_x', 'decoder_y', 'y', 'exp_y', 'new_y']
+ordered_cols = ['run', 'point', 'decoder_x', 'x', 'exp_x', 'new_x', 'decoder_y', 'y', 'exp_y', 'new_y']
 first_half_df = first_half_df[ordered_cols]
 second_half_df = second_half_df[ordered_cols]
 first_half_df = first_half_df.round(2) 
