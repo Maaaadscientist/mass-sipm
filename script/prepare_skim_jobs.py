@@ -93,6 +93,24 @@ for file_path in files:
         script_tmp += 'cd -\n'
         with open(f'{output_dir}/jobs/{output_name}.sh','w') as file_tmp:
             file_tmp.write(script_tmp)
+    elif run_type == "light-match":
+        run_number = components[2]
+        point_number = components[4]
+        script_tmp = deepcopy(script)
+        script_tmp += f'/usr/bin/eos cp {file_path} $directory\n'
+        script_tmp += 'cd $directory\n'
+        script_tmp += 'sleep 3\n'
+        script_tmp += f'cp {parrent_path}/*.yaml .\n'
+        script_tmp += f'cp {parrent_path}/data/* .\n'
+        script_tmp += f'cp {parrent_path}/env_lcg.sh .\n'
+        script_tmp += '. ./env_lcg.sh\n'
+        output_name = "_".join(components[0:-3])
+        script_tmp += f'{binary_path} -i {file_name} -c new.yaml -o {output_dir}/root\n'
+        script_tmp += 'sleep 5\n'
+        script_tmp += f'rm -f {file_name}\n'
+        script_tmp += 'cd -\n'
+        with open(f'{output_dir}/jobs/Run{run_number}_Point{point_number}.sh','w') as file_tmp:
+            file_tmp.write(script_tmp)
 if not isDCR:
     if "main" in name_short and count != 192:
         print(f"{name_short} : WARNING, there are only {count} lines and it's less than 192")

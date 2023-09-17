@@ -180,7 +180,8 @@ if __name__ == '__main__':
         z_list = []
         z_good_list = []
         file1 = ROOT.TFile(f"{file}")
-        file2 = ROOT.TFile(f"{filepath_lightmap}/main_run_0162/maps_run162.root")
+        file2 = ROOT.TFile(f"{file}")
+        #file2 = ROOT.TFile(f"{filepath_lightmap}/main_run_0162/maps_run162.root")
         hname = "light_map_full"
         hname2 = "reff_mu_1D"
         reff_num = []

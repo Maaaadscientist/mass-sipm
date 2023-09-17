@@ -217,31 +217,31 @@ def linear_fit_bootstrap(x_list, y_list, y_err_list, n_bootstrap=1000):
         bootstrap_x_intercepts.append(bootstrap_x_intercept)
 
     
-    # Create a grid of parameter combinations
-    slope_grid, intercept_grid = np.meshgrid(bootstrap_slopes, bootstrap_x_intercepts)
-    
-    # Generate x values for the lines
-    x_values = np.linspace(-50, 50, 100)
-    
-    # Plotting the scatter plot
-    plt.figure(figsize=(10, 6))
-    plt.scatter(slope_grid, intercept_grid, color='b', marker='o', label='Parameter Space')
-    plt.xlabel('Slope')
-    plt.ylabel('X Intercept')
-    plt.title('Scatter Plot of Parameter Space')
-    plt.legend()
-    
-    # Plotting the lines defined by the parameter space
-    plt.figure(figsize=(10, 6))
-    plt.xlabel('X')
-    plt.ylabel('Y')
-    plt.title('Lines Defined by Parameter Space')
-    
-    for slope, intercept in zip(slope_grid.flatten(), intercept_grid.flatten()):
-        y_values = slope * x_values + intercept
-        plt.plot(x_values, y_values, alpha=0.5)
-    
-    plt.show()
+   # # Create a grid of parameter combinations
+   # slope_grid, intercept_grid = np.meshgrid(bootstrap_slopes, bootstrap_x_intercepts)
+   # 
+   # # Generate x values for the lines
+   # x_values = np.linspace(-50, 50, 100)
+   # 
+   # # Plotting the scatter plot
+   # plt.figure(figsize=(10, 6))
+   # plt.scatter(slope_grid, intercept_grid, color='b', marker='o', label='Parameter Space')
+   # plt.xlabel('Slope')
+   # plt.ylabel('X Intercept')
+   # plt.title('Scatter Plot of Parameter Space')
+   # plt.legend()
+   # 
+   # # Plotting the lines defined by the parameter space
+   # plt.figure(figsize=(10, 6))
+   # plt.xlabel('X')
+   # plt.ylabel('Y')
+   # plt.title('Lines Defined by Parameter Space')
+   # 
+   # for slope, intercept in zip(slope_grid.flatten(), intercept_grid.flatten()):
+   #     y_values = slope * x_values + intercept
+   #     plt.plot(x_values, y_values, alpha=0.5)
+   # 
+    #plt.show()
 
     # calculate uncertainties using bootstrap results
     slope_std_err = np.std(bootstrap_slopes)

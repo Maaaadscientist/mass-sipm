@@ -68,7 +68,11 @@ for file_path in files:
     script_tmp += f'cp {parrent_path}/env_lcg.sh .\n'
     script_tmp += '. ./env_lcg.sh\n'
     #output_name = "_".join(components[0:-3])
-    script_tmp += f'{binary_path} -i {file_name} -c new.yaml -o {output_dir}/root --mt 4\n'
+    # Add a for loop to execute the command 10 times
+    script_tmp += 'for i in {1..10}; do\n'  # Opening the for loop in bash
+    script_tmp += f'  {binary_path} -i {file_name} -c test.yaml -o {output_dir}/root -b --mt 8\n'  # Command to run in each iteration, output files will be named root_1, root_2, ..., root_10
+    script_tmp += '  sleep 1\n'  # Optional: sleep for 1 second between iterations
+    script_tmp += 'done\n'  # Closing the for loop in bash
     script_tmp += 'sleep 5\n'
     script_tmp += f'rm -f {file_name}\n'
     script_tmp += 'cd -\n'

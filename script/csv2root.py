@@ -1,5 +1,6 @@
 import os, sys
 import pandas as pd
+import ROOT
 
 if len(sys.argv) < 2:
     print("Usage: python prepare_jobs <input_dir>")
@@ -8,7 +9,7 @@ else:
 
 csv_dir = os.path.abspath(input_tmp + "/csv")
 root_dir = os.path.abspath(input_tmp + "/root")
-name_short = input_tmp.split("/")[-1]
+name_short = os.path.abspath(input_tmp).split("/")[-1]
 if not os.path.isdir(root_dir):
     os.makedirs(root_dir)
 
@@ -31,6 +32,7 @@ for po in range(16):
                              (df['point'] == point)]
         mu = filtered_df.head(1)['mu'].values[0]
         mu_err = filtered_df.head(1)['mu_err'].values[0]
+        print(po, point, mu, mu_err)
         h2.SetBinContent(po + 1, point, mu)
         h2.SetBinError(po + 1, point, mu_err) 
 f1 = ROOT.TFile(f"{root_dir}/{name_short}_reff_mu.root", "recreate")

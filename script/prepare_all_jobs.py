@@ -31,6 +31,9 @@ elif analysis_type == "light":
 elif analysis_type == "light-match":
     runType = "light"
     binary_path = os.path.abspath("../light-match/bin/light_match")
+elif analysis_type == "light-match-bootstrap":
+    runType = "light"
+    binary_path = os.path.abspath("../light-match/bin/light_match")
 elif analysis_type == "dcr":
     runType = "main"
     binary_path = os.path.abspath("bin/skim-dcr")
@@ -117,4 +120,7 @@ for aFile in grouped_list:
     elif analysis_type == "light-match":
         print("light-match")
         subprocess.run(['python', 'script/prepare_match_jobs.py',f'datasets/{aFile}', f'{output_dir}/{analysis_type}', f'{binary_path}'])
+    elif analysis_type == "light-match-bootstrap":
+        print("light-match")
+        subprocess.run(['python', 'script/prepare_bootstrap_jobs.py',f'datasets/{aFile}', f'{output_dir}/{analysis_type}', f'{binary_path}'])
 

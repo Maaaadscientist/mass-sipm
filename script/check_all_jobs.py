@@ -41,6 +41,9 @@ elif analysis_type =="light-fit":
 elif analysis_type =="light-match":
     runType = "light"
     file_type = "root"
+elif analysis_type =="light-match-bootstrap":
+    runType = "light"
+    file_type = "png"
 elif analysis_type =="mainrun-light-fit":
     runType = "main"
     file_type = "pdf"
@@ -62,6 +65,8 @@ if file_type == "root":
         threshold = 5
 elif file_type == "pdf":
     threshold = 1000
+elif file_type == "png":
+    threshold = 100
 elif file_type == "csv":
     threshold = 1000
 
@@ -115,7 +120,10 @@ if choice == "Y":
             continue
        
         # Define the command to execute the shell script
-        command = f'./check_jobs.sh {threshold} {output_dir}/{analysis_type}/{name_short} {interactive} {file_type} {resubmit}'
+        if analysis_type == "light-match-bootstrap":
+            command = f'./script/check_jobs_multi-thread.sh {threshold} {output_dir}/{analysis_type}/{name_short} {interactive} {file_type} {resubmit}'
+        else:
+            command = f'./check_jobs.sh {threshold} {output_dir}/{analysis_type}/{name_short} {interactive} {file_type} {resubmit}'
         #print(command)
 
         # Execute the shell script
