@@ -38,6 +38,8 @@ position_list = []
 run_list = []
 channel_list = []
 ov_list = []
+signal_events = []
+total_events = []
 for po in range(16):
     tree.Draw(f"baselineQ_ch{po}>>histogram{po}")
     histogram = ROOT.gPad.GetPrimitive(f"histogram{po}") 
@@ -75,6 +77,8 @@ for po in range(16):
     run_list.append(run)
     ov_list.append(ov)
     channel_list.append(channel)
+    signal_events.append(integral)
+    total_events.append(entries)
 
 df = pd.DataFrame()
 df['mu'] = mu_list
@@ -83,5 +87,7 @@ df['position'] = position_list
 df['run_number'] = run_list
 df['channel'] = channel_list
 df['voltage'] = ov_list
+df['signal_events'] = signal_events
+df['total_events'] = total_events
 df.to_csv(f"{output_path}/csv/charge_fit_reff_ch{channel}_ov{ov}.csv", index=False)
 canvas.Print(f"{output_path}/pdf/charge_fit_reff_ch{channel}_ov{ov}.pdf]")
