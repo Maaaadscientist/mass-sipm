@@ -10,7 +10,12 @@ log_path = os.path.abspath(sys.argv[1])
 output_path = os.path.abspath(sys.argv[2])
 name_short = log_path.split("/")[-1].replace(".log", "")
 components = name_short.split("_")
-runNumber = int(components[2])
+if components[0] == "lfrun":
+    runNumber = int(components[1])
+elif components[0] == "light":
+    runNumber = int(components[2])
+else:
+    raise ValueError("filename not matched, cannot derive the run number")
 def convert_coordinates(decoder_x_values, decoder_y_values, expected_x_values, expected_y_values):
     converted_coordinates = []
     
