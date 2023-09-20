@@ -57,25 +57,34 @@ for file_path in files:
         continue
     count += 1
     components = file_name.split("_")
+    file_name_short = file_name.replace(".data", "")
     run_number = int(components[2])
-    point_number = int(components[4])
     script_tmp = deepcopy(script)
     script_tmp += f'/usr/bin/eos cp {file_path} $directory\n'
     script_tmp += 'cd $directory\n'
     script_tmp += 'sleep 3\n'
     script_tmp += f'cp {parrent_path}/*.yaml .\n'
-    script_tmp += f'cp {parrent_path}/data/* .\n'
+    if "light" in file_path:
+        script_tmp += f'cp {parrent_path}/data/* .\n'
     script_tmp += f'cp {parrent_path}/env_lcg.sh .\n'
     script_tmp += '. ./env_lcg.sh\n'
     #output_name = "_".join(components[0:-3])
-    script_tmp += f'{binary_path} -i {file_name} -c new.yaml -o {output_dir}/root --mt 4\n'
+    if "light" in file_path:
+        script_tmp += f'{binary_path} -i {file_name} -c new.yaml -o {output_dir}/root --mt 4\n'
+    elif "main" in file_path:
+        script_tmp += f'{binary_path} -i {file_name} -c new.yaml -o {output_dir}/root\n'
     script_tmp += 'sleep 5\n'
     script_tmp += f'rm -f {file_name}\n'
     script_tmp += 'cd -\n'
-    with open(f'{output_dir}/jobs/Run{run_number}_Point{point_number}.sh','w') as file_tmp:
-        file_tmp.write(script_tmp)
+    if "light" in file_path:
+        point_number = int(components[4])
+        with open(f'{output_dir}/jobs/Run{run_number}_Point{point_number}.sh','w') as file_tmp:
+            file_tmp.write(script_tmp)
+    elif "main" in file_path:
+        with open(f'{output_dir}/jobs/{file_name_short}.sh','w') as file_tmp:
+            file_tmp.write(script_tmp)
 if not isDCR:
-    if "main" in name_short and count != 192:
+    if "main" in name_short and count != 96:
         print(f"{name_short} : WARNING, there are only {count} lines and it's less than 192")
         with open(f"incompleteDataInfo-{name_short.split('_')[0]}.log", 'a') as file:
             line_of_text = f"main run {run_number} {count} 192"
@@ -95,7 +104,3 @@ else:
 
 
 os.system(f"chmod +x {output_dir}/jobs/*.sh")
-os.system(f"cp submit_jobs.sh {output_dir}")
-os.system(f"chmod +x {output_dir}/submit_jobs.sh ")
-os.system(f"cp check_failed_jobs.sh {output_dir}")
-os.system(f"chmod +x {output_dir}/check_failed_jobs.sh ")

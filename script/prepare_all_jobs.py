@@ -31,6 +31,9 @@ elif analysis_type == "light":
 elif analysis_type == "light-match":
     runType = "light"
     binary_path = os.path.abspath("../light-match/bin/light_match")
+elif analysis_type == "main-match":
+    runType = "main"
+    binary_path = os.path.abspath("../light-match/bin/light_match")
 elif analysis_type == "decoder":
     runType = "light"
     binary_path = os.path.abspath("script/extract_decoder.py")
@@ -49,6 +52,9 @@ elif analysis_type == "mainrun-light-fit":
     runType = "main"
 elif analysis_type == "dcr-fit":
     runType = "main"
+elif analysis_type == "main-reff":
+    runType = "main"
+    binary_path = os.path.abspath("../light-match/bin/main_match")
 elif analysis_type == "vbd":
     runType = "main"
 elif analysis_type == "harvest":
@@ -93,6 +99,7 @@ sorted_list = sorted(filtered_list, key=lambda x: int(x.split('_')[2][:-4]))
 # Group the "light_run" elements together while preserving the original order
 grouped_list = sorted(sorted_list, key=lambda x: ("light_run" not in x, sorted_list.index(x)))
 
+print(main_runs)
 for aFile in grouped_list:
     name_short = aFile.split("/")[-1].replace(".txt", "")
     run = int(name_short.split("_")[-1])
@@ -105,6 +112,7 @@ for aFile in grouped_list:
         continue
     if run_type != "main" and run_type != "light":
         continue
+    print(name_short)
     #os.system(f"python3 script/prepare_skim_jobs.py datasets/{aFile} {output_dir} {input_table}")
     if analysis_type == "signal-fit":
         subprocess.run(['python', 'script/prepare_signal_jobs.py', f'{output_dir}/main/{name_short}', f'{output_dir}/{analysis_type}/{name_short}'])
@@ -122,7 +130,11 @@ for aFile in grouped_list:
         subprocess.run(['python', 'script/prepare_skim_jobs.py',f'datasets/{aFile}', f'{output_dir}/{analysis_type}', f'{binary_path}'])
     elif analysis_type == "light-match":
         subprocess.run(['python', 'script/prepare_match_jobs.py',f'datasets/{aFile}', f'{output_dir}/{analysis_type}', f'{binary_path}'])
+    elif analysis_type == "main-match":
+        subprocess.run(['python', 'script/prepare_main_match_jobs.py',f'{output_dir}/main-reff/{name_short}', f'{output_dir}/{analysis_type}', f'{binary_path}'])
     elif analysis_type == "light-match-bootstrap":
         subprocess.run(['python', 'script/prepare_bootstrap_jobs.py',f'datasets/{aFile}', f'{output_dir}/{analysis_type}', f'{binary_path}'])
     elif analysis_type == "decoder":
         subprocess.run(['python', 'script/prepare_decoder_jobs.py',f'datasets/{aFile}', f'{output_dir}/{analysis_type}', f'{binary_path}'])
+    elif analysis_type == "main-reff":
+        subprocess.run(['python', 'script/prepare_match_jobs.py',f'datasets/{aFile}', f'{output_dir}/{analysis_type}', f'{binary_path}'])

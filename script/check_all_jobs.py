@@ -59,6 +59,12 @@ elif analysis_type == "vbd":
 elif analysis_type == "harvest":
     runType = "main"
     file_type = "root"
+elif analysis_type == "main-reff":
+    runType = "main"
+    file_type = "root"
+elif analysis_type == "main-match":
+    runType = "main"
+    file_type = "root"
 main_runs = []
 light_runs = []
 
@@ -66,6 +72,10 @@ if file_type == "root":
     threshold = 7000
     if analysis_type == "harvest":
         threshold = 5
+    elif analysis_type == "main-reff":
+        threshold = 1
+    elif analysis_type == "main-match":
+        threshold = 4000
 elif file_type == "pdf":
     threshold = 1000
 elif file_type == "png":
@@ -115,7 +125,7 @@ if choice == "Y":
         run_type = name_short.split('_')[0]
         if run_type != runType:
             continue
-        if run_type == "main" and not (run in main_runs):
+        if run_type == "main" and not (int(run) in main_runs):
             continue
         if run_type == "light" and not (run in light_runs):
             continue
