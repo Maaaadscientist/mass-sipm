@@ -3,6 +3,20 @@ import pandas as pd
 
 decoder_csv = os.path.abspath(sys.argv[1])
 matcher_csv = os.path.abspath(sys.argv[2])
+if len(sys.argv) == 4:
+  output_path = os.path.abspath(sys.argv[3])
+else:
+  output_path = os.getcwd()
+name_short = decoder_csv.split("/")[-1].replace(".csv", "")
+components = name_short.split("_")
+runNumber = int(components[2])
+runType = components[0]
+filename = f"positions_{runType}_run_{runNumber}"
+csv_output = output_path + "/" + filename + ".csv"
+tex_output = output_path + "/" + filename + ".tex"
+
+if not os.path.isdir(output_path):
+    os.makedirs(output_path)
 def format_new_x(value, exp_x):
     if abs(value - exp_x) > 3:
         return "\\textcolor{red}{" + "{:0.2f}".format(value) + "}"
@@ -68,14 +82,16 @@ df1 = df1.sort_values(by='point', ascending=True)
 #df2['est_y'] = df2['y'].astype(str) + " [" + df2['y_up_error'].astype(str) + "," + df2['y_down_error'].astype(str) + "]"
 
 # Drop the unnecessary columns
-df2.drop(columns=['run','point','var','chi2','x_left_error', 'x_right_error', 'y_up_error', 'y_down_error'], inplace=True)
+df2.drop(columns=['run','var','chi2','x_left_error', 'x_right_error', 'y_up_error', 'y_down_error'], inplace=True)
 
 # Checking if both dataframes have the same number of rows
 if len(df1) != len(df2):
     print("Warning: The two dataframes have different numbers of rows.")
 
 # Combining the two dataframes by columns, adding keys to distinguish the source of each column
-combined_df = pd.concat([df1, df2], axis=1)
+#combined_df = pd.concat([df1, df2], axis=1)
+# Merging the two dataframes based on the 'point' column
+combined_df = pd.merge(df1, df2, on='point', how='inner') # You can also use 'outer' or 'left' or 'right' based on your requirement
 
 # Initialize new columns for new_x and new_y with NaN values
 combined_df['new_x'] = None
@@ -89,7 +105,7 @@ for index, row in combined_df.iterrows():
     decoder_y = row['decoder_y']
     exp_x = row['exp_x']
     exp_y = row['exp_y']
-    is_last_point = index == 63
+    is_last_point = index == len(combined_df) - 1
     
     if abs(decoder_x - x) < 3:
         new_x = decoder_x
@@ -153,7 +169,7 @@ for index, row in combined_df.iterrows():
     combined_df.loc[index, 'new_y'] = new_y
 
 # Save the updated DataFrame to a new CSV file
-combined_df.to_csv('combined_with_new_columns.csv', index=False)
+combined_df.to_csv(csv_output, index=False)
 
 
 # Split the combined dataframe into two halves
@@ -175,36 +191,6 @@ second_half_df_formatted = second_half_df.apply(format_row, axis=1)
 latex_code1 = first_half_df_formatted.to_latex(index=False, escape=False, multirow=True, float_format="{:0.2f}".format)
 latex_code2 = second_half_df_formatted.to_latex(index=False, escape=False, multirow=True, float_format="{:0.2f}".format)
 
-# Convert the second half to LaTeX code
-#latex_code2 = second_half_df.to_latex(index=False, multirow=True, float_format="{:0.2f}".format)
-
-## Reorder the columns for the first half DataFrame
-#first_half_df = first_half_df[['point', 'decoder_x', 'x', 'exp_x', 'new_x', 'decoder_y', 'y', 'exp_y', 'new_y']]
-## Reorder the columns for the second half DataFrame
-#second_half_df = second_half_df[['point', 'decoder_x', 'x', 'exp_x', 'new_x', 'decoder_y', 'y', 'exp_y', 'new_y']]
-## Create custom formatters for new_x and new_y
-#new_x_formatter = lambda x: format_new_x(x, first_half_df['exp_x'])
-#new_y_formatter = lambda y: format_new_y(y, first_half_df['exp_y'])
-#latex_code1 = first_half_df.to_latex(
-#    index=False, 
-#    multirow=True, 
-#    float_format="{:0.2f}".format,
-#    formatters={
-#        'new_x': new_x_formatter,
-#        'new_y': new_y_formatter
-#    }
-#)
-## Convert the first half to LaTeX code
-##latex_code1 = first_half_df.to_latex(index=False, multirow=True, float_format="{:0.2f}".format)
-
-# Optionally, you can save the first LaTeX code to a text file
-with open('table1_in_latex.txt', 'w') as f:
-    f.write(latex_code1)
-
-# Optionally, you can save the second LaTeX code to a text file
-with open('table2_in_latex.txt', 'w') as f:
-    f.write(latex_code2)
-
 headers = '''\\documentclass{article}
 \\usepackage{graphicx} % Required for inserting images
 \\usepackage{booktabs}
@@ -224,7 +210,19 @@ end = '''
 '''
 print(headers, "\n", sep="")
 print(latex_code1, sep="")
-print("\n")
 print(latex_code2, sep="")
 print(end, "\n", sep="")
 
+# Open the .tex file for writing
+with open(tex_output, 'w') as f:
+    # Write the LaTeX headers
+    f.write(headers + "\n")
+    
+    # Write the LaTeX code for the first half
+    f.write(latex_code1 + "\n")
+    
+    # Write the LaTeX code for the second half
+    f.write(latex_code2 + "\n")
+    
+    # Write the LaTeX end content
+    f.write(end + "\n")
