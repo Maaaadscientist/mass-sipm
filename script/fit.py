@@ -73,9 +73,16 @@ for tile in range(16):
     # Define the parameters of the distribution
     lambda_ = RooRealVar("lambda", "lambda", 0.2, 0.05, 0.8)
     mu = RooRealVar("mu", "mu", 2, 0.1, 5)
+    sigma0 = RooRealVar("sigma0", "sigma0", 5,1,10)
+    sigmak = RooRealVar("sigmak", "sigmak", 2,0.01,10)
+    A = RooRealVar("A", "A", 2,0.01,10)
+    B = RooRealVar("B", "B", 2,0.01,10)
+    C = RooRealVar("C", "C", 2,0.01,10)
     
-    for i in range(16):
-        globals()[f'sigma{i}'] = RooRealVar(f"sigma{i}", "sigma{i}", 5,1,10)
+    for i in range(1,16):
+        #globals()[f'sigma{i}'] = RooRealVar(f"sigma{i}", "sigma{i}", 5,1,10)
+        #globals()[f'sigma{i}'] = RooFormulaVar(f"sigma{i}", f"TMath::Sqrt( pow(sigma0, 2) + pow({i}, 2) * pow(sigmak, 2))", RooArgList(sigma0,sigmak))
+        globals()[f'sigma{i}'] = RooFormulaVar(f"sigma{i}", f"TMath::Sqrt( pow(sigma0, 2) + (A + B * {i} + C * {i} * {i}) * pow(sigmak, 2))", RooArgList(sigma0,sigmak, A, B, C))
     # Define the Gaussian PDF
     ped = RooRealVar("ped", "ped", baseline, baseline - baseline_res *2, baseline + baseline_res * 2)
     gain = RooRealVar("gain", "gain", distance, distance *0.8, distance *1.2)
@@ -137,12 +144,12 @@ for tile in range(16):
     param_box.AddText(f"#lambda = {lambda_.getVal():.3f} #pm {lambda_.getError():.3f}")
     param_box.AddText(f"ped = {ped.getVal():.3f} #pm {ped.getError():.3f}")
     param_box.AddText(f"gain = {gain.getVal():.3f} #pm {gain.getError():.3f}")
-    param_box.AddText(f"#sigma0 = {sigma0.getVal():.3f} #pm {sigma0.getError():.3f}")
-    param_box.AddText(f"#sigma1 = {sigma1.getVal():.3f} #pm {sigma1.getError():.3f}")
-    param_box.AddText(f"#sigma2 = {sigma2.getVal():.3f} #pm {sigma2.getError():.3f}")
-    param_box.AddText(f"#sigma3 = {sigma3.getVal():.3f} #pm {sigma3.getError():.3f}")
-    param_box.AddText(f"#sigma4 = {sigma4.getVal():.3f} #pm {sigma4.getError():.3f}")
-    param_box.AddText(f"#sigma5 = {sigma5.getVal():.3f} #pm {sigma5.getError():.3f}")
+    param_box.AddText(f"#sigma0 = {sigma0.getVal():.3f} ")
+    param_box.AddText(f"#sigma1 = {sigma1.getVal():.3f} ")
+    param_box.AddText(f"#sigma2 = {sigma2.getVal():.3f} ")
+    param_box.AddText(f"#sigma3 = {sigma3.getVal():.3f} ")
+    param_box.AddText(f"#sigma4 = {sigma4.getVal():.3f} ")
+    param_box.AddText(f"#sigma5 = {sigma5.getVal():.3f} ")
     param_box.AddText(f"#chi2/NDF = {chi2_ndf:.3f}")
     param_box.Draw("same")
     
@@ -168,16 +175,16 @@ for tile in range(16):
                     'sigma7' : float(sigma7.getVal()),
                     'sigma8' : float(sigma8.getVal()),
                     'sigma9' : float(sigma9.getVal()),
-                    'sigma0_err' : float(sigma0.getError()),
-                    'sigma1_err' : float(sigma1.getError()),
-                    'sigma2_err' : float(sigma2.getError()),
-                    'sigma3_err' : float(sigma3.getError()),
-                    'sigma4_err' : float(sigma4.getError()),
-                    'sigma5_err' : float(sigma5.getError()),
-                    'sigma6_err' : float(sigma6.getError()),
-                    'sigma7_err' : float(sigma7.getError()),
-                    'sigma8_err' : float(sigma8.getError()),
-                    'sigma9_err' : float(sigma9.getError()),
+                    #'sigma0_err' : float(sigma0.getError()),
+                    #'sigma1_err' : float(sigma1.getError()),
+                    #'sigma2_err' : float(sigma2.getError()),
+                    #'sigma3_err' : float(sigma3.getError()),
+                    #'sigma4_err' : float(sigma4.getError()),
+                    #'sigma5_err' : float(sigma5.getError()),
+                    #'sigma6_err' : float(sigma6.getError()),
+                    #'sigma7_err' : float(sigma7.getError()),
+                    #'sigma8_err' : float(sigma8.getError()),
+                    #'sigma9_err' : float(sigma9.getError()),
                     }
     fit_info['events'] = n_entry
     fit_info['run_number'] = run

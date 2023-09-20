@@ -2,7 +2,7 @@
 
 # Check if the threshold argument and directory argument are provided
 if [[ -z $1 || -z $2 ]]; then
-  echo "Usage: ./check_failed_jobs.sh <threshold_in_MB> <directory> [interactive_mode]"
+  echo "Usage: ./check_jobs.sh <threshold_in_KB> <directory> [interactive_mode]"
   exit 1
 fi
 
