@@ -1,4 +1,5 @@
 import os, sys
+import numpy as np
 import pandas as pd
 
 decoder_csv = os.path.abspath(sys.argv[1])
@@ -7,7 +8,7 @@ if len(sys.argv) == 4:
   output_path = os.path.abspath(sys.argv[3])
 else:
   output_path = os.getcwd()
-name_short = decoder_csv.split("/")[-1].replace(".csv", "")
+name_short = matcher_csv.split("/")[-2]
 components = name_short.split("_")
 runNumber = int(components[2])
 runType = components[0]
@@ -15,8 +16,17 @@ filename = f"positions_{runType}_run_{runNumber}"
 csv_output = output_path + "/" + filename + ".csv"
 tex_output = output_path + "/" + filename + ".tex"
 
+
 if not os.path.isdir(output_path):
     os.makedirs(output_path)
+
+def find_nearest(value, array):
+    """Find the nearest value in an array to the given value."""
+    array = np.array(array)
+    idx = (np.abs(array - value)).argmin()
+    return array[idx]
+
+
 def format_new_x(value, exp_x):
     if abs(value - exp_x) > 3:
         return "\\textcolor{red}{" + "{:0.2f}".format(value) + "}"
@@ -49,6 +59,8 @@ def format_row(row):
 # Reading the first CSV file
 df1 = pd.read_csv(decoder_csv)
 
+if runType == "main":
+    df1.at[0, 'run'] = int(runNumber)
 # Read the CSV file into a pandas DataFrame
 if not os.path.isdir(matcher_csv):
     df2 = pd.read_csv(matcher_csv)
@@ -129,11 +141,9 @@ for index, row in combined_df.iterrows():
                     new_x = next_exp_x
                 elif abs(prev_decoder_x - next_decoder_x) < 0.1 and prev_decoder_x < 999: # in case next = prev = 1000
                     new_x = prev_decoder_x
-                else:
-                    new_x = x
-                    #raise ValueError("No suitable value found for new_x:", f"exp_x:{exp_x}\tx:{x}\tdecoder_x:{decoder_x}")
     else:
-        raise ValueError(f"Cannot determine new_x for point {index+1}")
+        new_x = x
+        print("No suitable value found for new_x, use the matched one")
     
     if abs(decoder_y - y) < 3:
         new_y = decoder_y
@@ -157,12 +167,32 @@ for index, row in combined_df.iterrows():
                     new_y = next_exp_y
                 elif abs(prev_decoder_y - next_decoder_y) < 0.1 and prev_decoder_y < 1000:
                     new_y = prev_decoder_y
-                else:
-                    new_y = y
-                    #raise ValueError("No suitable value found for new_y")
-
     else:
-        raise ValueError(f"Cannot determine new_y for point {index+1}")
+        new_y = y
+        print("No suitable value found for new_y, use the matched one")
+
+    if runType == "light":
+        new_x_grid = [0, 3.07, 9.07, 15.07, 21.07, 27.07, 33.07, 39.07, 45.07, 51.07, 57.07, 63.07]
+        new_y_grid = [0, -6.0, -12.0, -18.0, -24.0, -30.0, -36.0, -42.0, -48.0, -54.0, -60.0]
+        
+        # ... (The rest of your code to calculate new_x and new_y)
+        
+        # Snap new_x and new_y to the nearest grid values
+        new_x = find_nearest(new_x, new_x_grid)
+        new_y = find_nearest(new_y, new_y_grid)
+    elif runType == "main":
+        if x < 6 and x > 2:
+            new_x = 0.
+        elif x >= 6:
+            new_x = 1000
+        else:
+            new_x = -1000
+        if y < 0 and y > -4:
+            new_y = 0.
+        elif y >= 0:
+            new_y = 1000.
+        else:
+            new_y = -1000.
 
     # Update new_x and new_y columns with calculated values
     combined_df.loc[index, 'new_x'] = new_x
@@ -208,10 +238,12 @@ end = '''
 \\section{Introduction}
 \\end{document}
 '''
-print(headers, "\n", sep="")
-print(latex_code1, sep="")
-print(latex_code2, sep="")
-print(end, "\n", sep="")
+print_output = False
+if print_output:
+    print(headers, "\n", sep="")
+    print(latex_code1, sep="")
+    print(latex_code2, sep="")
+    print(end, "\n", sep="")
 
 # Open the .tex file for writing
 with open(tex_output, 'w') as f:
