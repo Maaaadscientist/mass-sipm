@@ -40,10 +40,9 @@ export PATH=/afs/ihep.ac.cn/soft/common/sysgroup/hep_job/bin:$PATH
 
 ## 💻 Run the analysis
 
-There are two major scripts for the job manipulation, `script/prepare_all_jobs.py` and `script/check_all_jobs.py`.
-Allowed analysis types:  
-🔳: should use the main run list
-💡: should use the light run list
+There are two major scripts for the job manipulation,   
+`script/prepare_all_jobs.py` and `script/check_all_jobs.py`.  
+Allowed analysis types:   
 - [🔳main] Convert the binary data files from EOS to root tree files at target path
 - [💡light] Convert the binary data files from EOS to root tree files at target path
 - [🔳signal-fit] Run after `main` analysis, perform the charge spectrum fit
@@ -59,6 +58,9 @@ Allowed analysis types:
 - [🔳main-match] Perform the position matching of the reference mu in main runs to the light map
 - [💡decoder] Extract decoder logs from EOS (outdated, replaced by `test/getLightLogs.py`)
 
+🔳: should use the main run list  
+💡: should use the light run list  
+
 To prepare the job scripts for the light run:
 ```
 python script/prepare_all_jobs.py config/simple_light_run.yaml <target-path-on-junofs> <analysis-type-from-above>
@@ -68,7 +70,7 @@ To prepare the job scripts for the main run:
 ```
 python script/prepare_all_jobs.py config/simple_light_run.yaml <target-path-on-junofs> <analysis-type-from-above>
 ```
-Then you can check a single job script at `<target-path-on-junofs>/<analysis-type-from-above>/<type_run_number>/jobs`
+Then you can check a single job script at `<target-path-on-junofs>/<analysis-type-from-above>/<type_run_number>/jobs`  
 To submit the jobs, run:  
 ```
 python script/check_all_jobs.py config/simple_light_run.yaml <target-path-on-junofs> <analysis-type-from-above>
