@@ -1,62 +1,55 @@
 #!/bin/bash
 
-# Initialize a global variable to keep track of the last update time
-last_update_time=0
 # Function to display progress bar
 # Arguments: current_step, total_steps
 show_progress_bar () {
-  current_time=$(date +%s)
-  if (( current_time - last_update_time >= 1 || last_update_time == 0 )); then
-    last_update_time=$current_time
-    current_step=$1
-    total_steps=$2
+  current_step=$1
+  total_steps=$2
 
-    # Clear the line
-    echo -ne "\r\033[K"
+  # Clear the line
+  echo -ne "\r\033[K"
 
-    # Calculate percentage
-    percent=$(echo "scale=3; ($current_step / $total_steps) * 100" | bc)
+  # Calculate percentage
+  percent=$(echo "scale=2; ($current_step / $total_steps) * 100" | bc)
 
-    # Create progress bar
-    num_bars=$(printf "%.0f" $(echo "scale=5; ($current_step / $total_steps) * 50" | bc)) # Increased to 50 bars
-    #num_bars=$(echo "scale=1; 80 * ($current_step / $total_steps)" | bc)
+  # Create progress bar
+  num_bars=$(printf "%.0f" $(echo "scale=1; ($current_step / $total_steps) * 50" | bc)) # Increased to 50 bars
+  #num_bars=$(echo "scale=1; 80 * ($current_step / $total_steps)" | bc)
 
-    bar=""
-    for ((i=0; i<$num_bars; i++)); do
-      bar+=">"
-    done
-    for ((i=$num_bars; i<50; i++)); do  # Correspondingly increased to 50 bars
-      bar+="-"
-    done
+  #echo $num_bars
+  bar=""
+  for ((i=0; i<$num_bars; i++)); do
+    bar+=">"
+  done
+  for ((i=$num_bars; i<50; i++)); do  # Correspondingly increased to 50 bars
+    bar+="-"
+  done
 
-    # Calculate elapsed time
-    elapsed_time=$(($SECONDS - $start_time))
-    if ((elapsed_time >= 3600)); then
-      elapsed_str="$((elapsed_time/3600))h $((elapsed_time%3600/60))m $((elapsed_time%60))s"
-    elif ((elapsed_time >= 60)); then
-      elapsed_str="$((elapsed_time/60))m $((elapsed_time%60))s"
-    else
-      elapsed_str="$((elapsed_time))s"
-    fi
-
-    # Calculate estimated time
-    estimated_time=$(printf "%.0f" $(echo "scale=10; ($elapsed_time / $current_step) * ($total_steps - $current_step)" | bc))
-    if ((estimated_time >= 3600)); then
-      estimated_str="$((estimated_time/3600))h $((estimated_time%3600/60))m $((estimated_time%60))s"
-    elif ((estimated_time >= 60)); then
-      estimated_str="$((estimated_time/60))m $((estimated_time%60))s"
-    else
-      estimated_str="$((estimated_time))s"
-    fi
-
-    if ((estimated_time != 0)); then
-    # Print progress bar
-      echo -ne "[$bar] ${percent}% | Elapsed Time: ${elapsed_str} | Estimated Remaining: ${estimated_str}\r"
-    fi 
+  # Calculate elapsed time
+  elapsed_time=$(($SECONDS - $start_time))
+  if ((elapsed_time >= 3600)); then
+    elapsed_str="$((elapsed_time//3600))h $((elapsed_time%3600/60))m $((elapsed_time%60))s"
+  elif ((elapsed_time >= 60)); then
+    elapsed_str="$((elapsed_time//60))m $((elapsed_time%60))s"
+  else
+    elapsed_str="$((elapsed_time))s"
   fi
+
+  # Calculate estimated time
+  estimated_time=$(printf "%.0f" $(echo "scale=1; ($elapsed_time / $current_step) * ($total_steps - $current_step)" | bc))
+  if ((estimated_time >= 3600)); then
+    estimated_str="$((estimated_time/3600))h $((estimated_time%3600/60))m $((estimated_time%60))s"
+  elif ((estimated_time >= 60)); then
+    estimated_str="$((estimated_time/60))m $((estimated_time%60))s"
+  else
+    estimated_str="$((estimated_time))s"
+  fi
+
+  # Print progress bar
+  echo -ne "[$bar] ${percent}% | Elapsed Time: ${elapsed_str} | Estimated Remaining: ${estimated_str}\r"
 }
 # Input and output CSV files
-input_csv=$1
+input_csv="combined_data.csv"
 output_csv="output.csv"
 
 # Get total number of lines in the input CSV (excluding the header)
@@ -103,7 +96,7 @@ tail -n +2 "$input_csv" | while read -r line; do
   fi
 
   # Create ROOT file path
-  root_file_path="${root_file_dir}Run${run_id}_Point${point}.txt"
+  root_file_path="${root_file_dir}Run${run_id}_Point${point}.root"
 
   # Run the getReffMu binary to get the mu values and errors
   while read -r mu_line; do
@@ -115,7 +108,7 @@ tail -n +2 "$input_csv" | while read -r line; do
     # Append the row to the output CSV
     echo "$run_type,$run_id,$point,$new_x,$new_y,$total_time,$mu_index,$mu_value,$mu_error" >> "$output_csv"
 
-  done < <(cat "$root_file_path")
+  done < <(./getReffMu "$root_file_path")
 
 done
 
