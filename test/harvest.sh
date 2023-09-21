@@ -6,6 +6,61 @@ if [ "$#" -ne 3 ]; then
   exit 1
 fi
 
+# Initialize a global variable to keep track of the last update time
+last_update_time=0
+# Function to display progress bar
+# Arguments: current_step, total_steps
+show_progress_bar () {
+  current_time=$(date +%s)
+  if (( current_time - last_update_time >= 1 || last_update_time == 0 )); then
+    last_update_time=$current_time
+    current_step=$1
+    total_steps=$2
+
+    # Clear the line
+    echo -ne "\r\033[K"
+
+    # Calculate percentage
+    percent=$(echo "scale=2; ($current_step / $total_steps) * 100" | bc)
+
+    # Create progress bar
+    num_bars=$(printf "%.0f" $(echo "scale=5; ($current_step / $total_steps) * 50" | bc)) # Increased to 50 bars
+    #num_bars=$(echo "scale=1; 80 * ($current_step / $total_steps)" | bc)
+
+    bar=""
+    for ((i=0; i<$num_bars; i++)); do
+      bar+=">"
+    done
+    for ((i=$num_bars; i<50; i++)); do  # Correspondingly increased to 50 bars
+      bar+="-"
+    done
+
+    # Calculate elapsed time
+    elapsed_time=$(($SECONDS - $start_time))
+    if ((elapsed_time >= 3600)); then
+      elapsed_str="$((elapsed_time/3600))h $((elapsed_time%3600/60))m $((elapsed_time%60))s"
+    elif ((elapsed_time >= 60)); then
+      elapsed_str="$((elapsed_time/60))m $((elapsed_time%60))s"
+    else
+      elapsed_str="$((elapsed_time))s"
+    fi
+
+    # Calculate estimated time
+    estimated_time=$(printf "%.0f" $(echo "scale=10; ($elapsed_time / $current_step) * ($total_steps - $current_step)" | bc))
+    if ((estimated_time >= 3600)); then
+      estimated_str="$((estimated_time/3600))h $((estimated_time%3600/60))m $((estimated_time%60))s"
+    elif ((estimated_time >= 60)); then
+      estimated_str="$((estimated_time/60))m $((estimated_time%60))s"
+    else
+      estimated_str="$((estimated_time))s"
+    fi
+
+    if ((estimated_time != 0)); then
+    # Print progress bar
+      echo -ne "[$bar] ${percent}% | Elapsed Time: ${elapsed_str} | Estimated Remaining: ${estimated_str}\r"
+    fi 
+  fi
+}
 # Assign arguments to variables
 CONFIG_FILE=$1
 ANALYSIS_TYPE=$3
@@ -53,11 +108,27 @@ fi
 MAIN_RUNS=$(awk '/main_runs:/{flag=1;next}/^[^ ]/{flag=0}flag' $CONFIG_FILE | sed 's/ - //g')
 LIGHT_RUNS=$(awk '/light_runs:/{flag=1;next}/^[^ ]/{flag=0}flag' $CONFIG_FILE | sed 's/ - //g')
 
+total_lines=0
+if [ "$SUFFIX" == "main-match" ]; then
+  # Convert it to an array; assuming the elements are separated by newlines
+  for RUN in $MAIN_RUNS; do
+    ((total_lines++))
+  done
+elif [ "$SUFFIX" == "light-match" ]; then
+  for RUN in $LIGHT_RUNS; do
+    ((total_lines++))
+  done
+fi
 
+counter=0
+# Record start time
+start_time=$SECONDS
 PYTHON3=$(which python3)
 hadd=$(which hadd)
 # Loop over the main runs
 IFS=$'\n' # Set Internal Field Separator to newline for iteration
+# Initialize the last update time to 0
+last_update_time=0
 for RUN in $MAIN_RUNS; do
   # Zero-pad the run number to form the directory name
   RUN=$(echo "$RUN" | tr -d ' ')
@@ -70,6 +141,8 @@ for RUN in $MAIN_RUNS; do
     echo "Failed to process run number: $RUN"
   fi
 
+  ((counter++))
+  show_progress_bar $counter $total_lines
   # Construct the directory name
   DIR_NAME="${DIRECTORY_PATH}/main_run_${PADDED_RUN}"
 
@@ -77,10 +150,8 @@ for RUN in $MAIN_RUNS; do
   if [ -d "$DIR_NAME" ]; then
     # Execute your commands here
     # For demonstration, I'm just printing the directory name
-    echo "Executing commands in $DIR_NAME"
     if [ "$ANALYSIS_TYPE" == "merge-root" ]; then
       COMMAND=".$hadd $DIR_NAME/root/Run${RUN}_Point0.root $DIR_NAME/root/main_*.root"
-      echo $COMMAND
       $hadd "$DIR_NAME/root/Run${RUN}_Point0.root" $DIR_NAME/root/main_*.root
       sleep 2 
     elif [ "$ANALYSIS_TYPE" == "combine-csv" ]; then
@@ -97,8 +168,6 @@ for RUN in $MAIN_RUNS; do
       CSV_FILE="$DIR_NAME/root/Run${RUN}_Point0.csv"
       if [ -f "$CSV_FILE" ]; then
         awk 'NR>1' "$CSV_FILE" >> "$COMBINED_CSV"
-      else
-        echo "CSV file $CSV_FILE not found, skipping..."
       fi
     elif [ "$ANALYSIS_TYPE" == "main-position" ]; then
       COMMAND="$PYTHON3 $(dirname $0)/new_coordinates.py $(dirname $0)/test.csv $DIR_NAME/root positions_main_run"
@@ -111,6 +180,8 @@ for RUN in $MAIN_RUNS; do
   fi
 done
 
+# Initialize the last update time to 0
+last_update_time=0
 for RUN in $LIGHT_RUNS; do
   # Zero-pad the run number to form the directory name
   # PADDED_RUN=$(printf "%04d" $RUN 2>/dev/null)
@@ -125,6 +196,8 @@ for RUN in $LIGHT_RUNS; do
     echo "Failed to process run number: $RUN"
   fi
 
+  ((counter++))
+  show_progress_bar $counter $total_lines
   # Construct the directory name
   DIR_NAME="${DIRECTORY_PATH}/light_run_${PADDED_RUN}"
 
@@ -132,11 +205,9 @@ for RUN in $LIGHT_RUNS; do
   if [ -d "$DIR_NAME" ]; then
     # Execute your commands here
     # For demonstration, I'm just printing the directory name
-    echo "Executing commands in $DIR_NAME"
     if [ "$ANALYSIS_TYPE" == "light-position" ]; then
       COMMAND="$PYTHON3 $(dirname $0)/new_coordinates.py $(dirname $0)/../datasets/lightRunPositions/light_run_${RUN}.csv $DIR_NAME/root positions_light_run"
       $PYTHON3 $(dirname $0)/new_coordinates.py $(dirname $0)/../datasets/lightRunPositions/light_run_${RUN}.csv $DIR_NAME/root positions_light_run
-      echo $COMMAND
     fi
     # cd $DIR_NAME
     # Your commands here

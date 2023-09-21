@@ -15,7 +15,7 @@ show_progress_bar () {
     echo -ne "\r\033[K"
 
     # Calculate percentage
-    percent=$(echo "scale=3; ($current_step / $total_steps) * 100" | bc)
+    percent=$(echo "scale=2; ($current_step / $total_steps) * 100" | bc)
 
     # Create progress bar
     num_bars=$(printf "%.0f" $(echo "scale=5; ($current_step / $total_steps) * 50" | bc)) # Increased to 50 bars
@@ -70,6 +70,8 @@ counter=0
 # Record start time
 start_time=$SECONDS
 
+# Initialize the last update time to 0
+last_update_time=0
 # Skip the first line (headers) and read each line from the input CSV
 tail -n +2 "$input_csv" | while read -r line; do
   # Increment counter

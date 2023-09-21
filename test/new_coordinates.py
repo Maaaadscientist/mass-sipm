@@ -72,6 +72,8 @@ else:
             data = pd.read_csv(file_path)
             all_data.append(data)
     #df2 = pd.concat(all_data, ignore_index=True)
+    if len(all_data) == 0:
+        exit()
     df2 = pd.concat(all_data, ignore_index=True)
 
 try:
@@ -97,8 +99,8 @@ df1 = df1.sort_values(by='point', ascending=True)
 df2.drop(columns=['run','var','chi2','x_left_error', 'x_right_error', 'y_up_error', 'y_down_error'], inplace=True)
 
 # Checking if both dataframes have the same number of rows
-if len(df1) != len(df2):
-    print("Warning: The two dataframes have different numbers of rows.")
+#if len(df1) != len(df2):
+#    print("Warning: The two dataframes have different numbers of rows.")
 
 # Combining the two dataframes by columns, adding keys to distinguish the source of each column
 #combined_df = pd.concat([df1, df2], axis=1)
@@ -143,7 +145,6 @@ for index, row in combined_df.iterrows():
                 #    new_x = prev_decoder_x
     else:
         new_x = x
-        print("No suitable value found for new_x, use the matched one")
     
     if abs(decoder_y - y) < 3:
         new_y = decoder_y
@@ -169,7 +170,6 @@ for index, row in combined_df.iterrows():
                 #    new_y = prev_decoder_y
     else:
         new_y = y
-        print("No suitable value found for new_y, use the matched one")
 
     if runType == "light":
         new_x_grid = [0, 3.07, 9.07, 15.07, 21.07, 27.07, 33.07, 39.07, 45.07, 51.07, 57.07, 63.07, 69.07]
