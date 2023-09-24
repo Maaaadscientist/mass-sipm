@@ -1,7 +1,7 @@
-signal_start: 1255
-signal_end: 1300
-baseline_start: 1200
-baseline_end: 1245
+signal_start: 1255 # including the start point
+signal_end: 1300 # but not including the end point
+baseline_start: 1155
+baseline_end: 1200
 DCR_amplitude_threshold: 1
 Butterworth_cutoff_frequency: 200
 Butterworth_order: 5

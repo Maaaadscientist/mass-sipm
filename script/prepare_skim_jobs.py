@@ -65,7 +65,7 @@ for file_path in files:
         script_tmp += f'/usr/bin/eos cp {file_path} $directory\n'
         script_tmp += 'cd $directory\n'
         script_tmp += 'sleep 3\n'
-        script_tmp += f'cp {parrent_path}/config/*.yaml .\n'
+        script_tmp += f'cp {parrent_path}/config/new.yaml .\n'
         script_tmp += f'cp {parrent_path}/env_lcg.sh .\n'
         script_tmp += '. ./env_lcg.sh\n'
         output_name = "_".join(components[0:-3])
