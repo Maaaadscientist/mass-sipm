@@ -22,11 +22,32 @@ for directory in $directories; do
 
   # Check if the output file already exists
   if [[ -f "$output_file" ]]; then
-    echo "Skipping $directory (already exists)"
+    file_type=""
+    if [[ "$output_file" =~ light_run_.* ]]; then
+      file_type="light"
+    elif [[ "$output_file" =~ main_run_.* ]]; then
+      file_type="main"
+    fi
+    
+    count_lines=$(grep -c ".data$" "$output_file")
+
+    if [[ "$file_type" == "main" && $count_lines -lt 192 ]] || [[ "$file_type" == "light" && $count_lines -lt 64 ]]; then
+      eos find "$dir_path" -type f > "$output_file"
+      echo "Regenerated $output_file due to insufficient .data lines"
+    else
+      echo "Skipping $directory (already exists)"
+    fi
   else
-    # Use eos find to find files in the current directory and save the results to the output file
     eos find "$dir_path" -type f > "$output_file"
     echo "Generated $output_file"
   fi
+ # # Check if the output file already exists
+ # if [[ -f "$output_file" ]]; then
+ #   echo "Skipping $directory (already exists)"
+ # else
+ #   # Use eos find to find files in the current directory and save the results to the output file
+ #   eos find "$dir_path" -type f > "$output_file"
+ #   echo "Generated $output_file"
+ # fi
 done
 
