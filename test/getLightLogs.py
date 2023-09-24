@@ -1,10 +1,11 @@
 import yaml
+import os, sys
 import paramiko
 from subprocess import Popen, PIPE
 
 password = sys.argv[1]
 # Load YAML file
-with open('config/light-runs.yaml', 'r') as f:
+with open('../config/light-runs.yaml', 'r') as f:
     data = yaml.safe_load(f)
     light_runs = data['light_runs']
 
@@ -20,14 +21,14 @@ ssh_client.connect(hostname, username="shifter", key_filename=private_key_path)
 
 # Loop through each light run and execute MySQL command
 for run in light_runs:
-    mysql_cmd = f'mysql -u tao {password} -h {hostname} -e "SELECT lsid,reff_orn,point_orn,dx,dy FROM tao_mass_tests_data.lscan_data WHERE reff_orn=1 and lsid={run}"'
+    mysql_cmd = f'mysql -u tao -p{password} -h {hostname} -e "SELECT lsid,reff_orn,point_orn,dx,dy FROM tao_mass_tests_data.lscan_data WHERE reff_orn=1 and lsid={run}"'
     
     # Execute command on remote server
     stdin, stdout, stderr = ssh_client.exec_command(mysql_cmd)
     output = stdout.read().decode()
     
     # Save output to text file
-    with open(f'datasets/lightLogs/light_run_{run}.txt', 'w') as f:
+    with open(f'../datasets/lightLogs/light_run_{run}.txt', 'w') as f:
         f.write(output)
 
 # Close SSH client
