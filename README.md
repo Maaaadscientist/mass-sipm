@@ -2,7 +2,7 @@
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](#license)
 
-Extract and fit SiPM signals with ease using a ROOT-based workflow. Suitable for research labs, academic projects, and industrial applications.
+Extracting and fitting SiPM charge spectrum with ease using a ROOT-based workflow, this is a dedicated framework of the SiPM mass testing for the Taishan Anti-neutrino Observatory (TAO) experiment. We are adopting 4024 SiPM tiles (= 64384 SiPM units) covering an area of 10$m^2$ of the sphere central detector operating at -50&deg;.
 
 ## 📋 Table of Contents
 
@@ -68,7 +68,7 @@ python script/prepare_all_jobs.py config/simple_light_run.yaml <target-path-on-j
 
 To prepare the job scripts for the main run:
 ```
-python script/prepare_all_jobs.py config/simple_light_run.yaml <target-path-on-junofs> <analysis-type-from-above>
+python script/prepare_all_jobs.py config/simple_main_run.yaml <target-path-on-junofs> <analysis-type-from-above>
 ```
 Then you can check a single job script at `<target-path-on-junofs>/<analysis-type-from-above>/<type_run_number>/jobs`  
 To submit the jobs, run:  
