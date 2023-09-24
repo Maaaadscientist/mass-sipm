@@ -47,12 +47,18 @@ x_max = num_bins
 file1 = ROOT.TFile(input_file)
 tree = file1.Get(tree_name)
 n_entry = tree.GetEntries()
+mu_dcr = -np.log(integral / n_entry)
 combined_dict = defaultdict(list)
 for tile in range(16):
     tree.Draw(f"baselineQ_ch{tile}>>histogram{tile}")
     histogram = ROOT.gPad.GetPrimitive(f"histogram{tile}")
     baseline = histogram.GetMean()
     baseline_res = histogram.GetRMS()
+    
+    bin1 = histogram.GetXaxis()/FindBin(- 3 * baseline_res);
+    bin2 = histogram.GetXaxis().FindBin(3 * baseline_res);
+    integral = histogram.Integral(bin1, bin2) / 0.9973;
+
     hist = ROOT.TH1F("hist","hist", int(num_bins), baseline - baseline_res * 5, baseline + float(x_max))
     tree.Draw("{}>>hist".format(f'{variable_name}_ch{tile}'))
     # Print the final result
@@ -157,6 +163,7 @@ for tile in range(16):
     canvas.Print(f"{output_path}/pdf/charge_fit_tile_ch{channel}_ov{ov}.pdf")
     fit_info = {
                     'mu' : float(mu.getVal()),
+                    'mu_dcr' : float(mu_dcr),
                     'mu_err' : float(mu.getError()),
                     'lambda' : float(lambda_.getVal()),
                     'lambda_err' : float(lambda_.getError()),
