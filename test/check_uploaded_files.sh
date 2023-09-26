@@ -19,6 +19,12 @@ for tao_directory in "${tao_directory_array[@]}"; do
     continue
   fi
 
+  # If $tao_directory doesn't contain "light_run" or "main_run", skip it
+  if [[ "$tao_directory" != *"light_run"* && "$tao_directory" != *"main_run"* ]]; then
+    echo "Skipping $tao_directory (not a relevant run directory)"
+    continue
+  fi
+
   # Fetch file list and sizes from TAO directory in one go, store in a temp file
   ssh shifter@tao "find $tao_base_dir/$tao_directory -type f -exec stat -c '%s %n' {} +" > tao_files.txt
 
