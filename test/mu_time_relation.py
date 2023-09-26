@@ -90,11 +90,12 @@ for remove_run_type, id_list in invalid_runs.items():
     for run_id in id_list:
         print("invalid", remove_run_type,"run", run_id, "has been removed")
         df = df[~((df['run_id'] == run_id) & (df['run_type'] == remove_run_type))]
+
+csv_data = []
+
 for x in new_x_grid:
     for y in new_y_grid:
         if x == 0 and y != 0:
-            continue
-        if y == 0 and x != 0:
             continue
         for index in range(1,17):
             # Filter the DataFrame based on the given position (x, y, index)
@@ -179,3 +180,10 @@ for x in new_x_grid:
             plt.legend(loc='lower right')
             plt.savefig(f"outputs/point_x{int(x+1e-8)}_y{int(y)}_index{index}.pdf")
             plt.clf()
+            csv_data.append([x, y, index, slope, intercept, np.sqrt(chi2/ndf)])
+
+# Convert the list to a DataFrame
+csv_df = pd.DataFrame(csv_data, columns=['x', 'y', 'index', 'slope', 'intercept', 'mu_unc'])
+
+# Export the DataFrame to a CSV file
+csv_df.to_csv('new_output.csv', index=False)
