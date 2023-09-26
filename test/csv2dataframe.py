@@ -1,4 +1,5 @@
 import ROOT
+from copy import deepcopy
 
 def column_to_list(rdf, column_name):
     """
@@ -69,10 +70,11 @@ if __name__ == '__main__':
     column_names = df.GetColumnNames()
     #print("Available column names:\n")
     names = ""
-    columns = []
+    columns_origin = []
     for name in column_names:
         names += f"{name}\t"
-        columns.append(f'{name}')
+        columns_origin.append(f'{name}')
+    columns = deepcopy(columns_origin)
     #print(names)
     selections = "1"
     print(columns)
@@ -86,39 +88,51 @@ if __name__ == '__main__':
     # print("\033[1;97mBold White Text\033[0m")
 
     while True:
-        query_help_front = "\033[1;92mEnter the query keyword:\033[0m"
-        query_help = "\033[1;94m(allowed ones are:\033[0m\n"
-        query_help += "* \033[1;93mSelect\033[0m           enter the selection string to filter the data\n"
-        query_help += "* \033[1;93mShowAllCol\033[0m       show all column names\n"
-        query_help += "* \033[1;93mCol\033[0m              enter the column names to show in the table\n"
-        query_help += "* \033[1;93mOK\033[0m               configuration finished and show the results\n"
-        query_help += "* \033[1;93mquit , q\033[0m         quit the query\n"
-        query_help += "\033[1;96m(Uppercase and lowercase are not distinguished)\033[0m"
-        if re_print_help:
-            print(query_help_front)
-            print(query_help)
-        else:
-            print(query_help_front)
-        query = input().strip()
-        if query.lower() == "select":
-            selections =  input("Enter the selection:\n")
-        elif query.lower() == "col":
-            # Get the column names from user input
-            column_input = input("Enter the columns to show: col1,col2,col3,... \n")
-            columns = [col.strip() for col in column_input.split(',')]
-            print(columns)
-        elif query.lower() == "showallcol":
-            print(names)
-        elif query.lower() == "quit" or query.lower() == "q":
-            exit()
-        elif query.lower() == "ok":
-            break
-        else:
-            print("\033[91mplease enter the correct keyword for the search\033[0m\n")
-            print(query_help)
-        re_print_help = False
+        while True:
+            query_help_front = "\033[1;92mEnter the query keyword:\033[0m"
+            query_help = "\033[1;94m(allowed ones are:\033[0m\n"
+            query_help += "* \033[1;93mSelect\033[0m           enter the selection string to filter the data\n"
+            query_help += "* \033[1;93mShowAllCol\033[0m       show all column names\n"
+            query_help += "* \033[1;93mCol\033[0m              enter the column names to show in the table\n"
+            query_help += "* \033[1;93mOK\033[0m               configuration finished and show the results\n"
+            query_help += "* \033[1;93mquit , q\033[0m         quit the query\n"
+            query_help += "\033[1;96m(Uppercase and lowercase are not distinguished)\033[0m"
+            if re_print_help:
+                print(query_help_front)
+                print(query_help)
+            else:
+                print(query_help_front)
+            query = input().strip()
+            if query.lower() == "select":
+                selections =  input("Enter the selection:\n")
+            elif query.lower() == "col":
+                # Get the column names from user input
+                column_input = input("Enter the columns to show: col1,col2,col3,... \n")
+                columns = [col.strip() for col in column_input.split(',')]
+                all_match = True
+                for test_name in columns:
+                    name_match = False
+                    for name in column_names:
+                        if test_name == f'{name}':
+                            name_match = True
+                    if not name_match:
+                        all_match = False
+                        print("\033[1;91mPlease enter correct column names from available ones:\033[0m")
+                if not all_match:
+                    columns = deepcopy(columns_origin)
+                print(columns)
+            elif query.lower() == "showallcol":
+                print(names)
+            elif query.lower() == "quit" or query.lower() == "q":
+                exit()
+            elif query.lower() == "ok":
+                break
+            else:
+                print("\033[91mplease enter the correct keyword for the search\033[0m\n")
+                print(query_help)
+            re_print_help = False
 
-    filtered_df = print_filtered_data(df, selections, columns)
+        filtered_df = print_filtered_data(df, selections, columns)
     
 
 
