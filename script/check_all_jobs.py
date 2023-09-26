@@ -34,7 +34,7 @@ elif analysis_type == "dcr":
     binary_path = os.path.abspath("bin/skim-dcr")
 elif analysis_type =="signal-fit":
     runType = "main"
-    file_type = "pdf"
+    file_type = "root"
 elif analysis_type =="light-fit":
     runType = "light"
     file_type = "pdf"

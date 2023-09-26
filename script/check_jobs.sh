@@ -7,7 +7,7 @@ if [[ -z $1 || -z $2 ]]; then
 fi
 
 # Get the threshold from the input argument
-threshold_kb=$1
+threshold_bytes=$1
 
 # Get the directory location from the input argument and resolve to absolute path
 directory=$(realpath "$2")
@@ -41,7 +41,7 @@ for script_file in $script_files; do
 
     #echo $size_bytes
     # Compare the file size with the threshold
-    if (( size_bytes <= threshold_kb ))
+    if (( size_bytes <= threshold_bytes ))
     then
         #echo "Failed job: $root_file (Size: ${size_bytes}KB)"
         # Remove the ".root" suffix and add the file name to the array

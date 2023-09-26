@@ -70,9 +70,9 @@ for file_path in files:
     script_tmp += '. ./env_lcg.sh\n'
     #output_name = "_".join(components[0:-3])
     if "light" in file_path:
-        script_tmp += f'{binary_path} -i {file_name} -c new.yaml -o {output_dir}/root --mt 4\n'
+        script_tmp += f'{binary_path} -i {file_name} -c test.yaml -o {output_dir}/root --mt 4\n'
     elif "main" in file_path:
-        script_tmp += f'{binary_path} -i {file_name} -c new.yaml -o {output_dir}/root\n'
+        script_tmp += f'{binary_path} -i {file_name} -c test.yaml -o {output_dir}/root\n'
     script_tmp += 'sleep 5\n'
     script_tmp += f'rm -f {file_name}\n'
     script_tmp += 'cd -\n'

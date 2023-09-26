@@ -28,7 +28,7 @@ for ch in range(1, 17):
         script += 'fi\n'
         script += 'cd $directory\n'
         script += 'sleep 3\n'
-        script += 'cp /junofs/users/wanghanwen/sipm-massive/script/fit.py .\n'
+        script += 'cp /junofs/users/wanghanwen/sipm-massive/script/charge_fit.py .\n'
         script += 'cp /junofs/users/wanghanwen/sipm-massive/env_lcg.sh .\n'
         script += '. ./env_lcg.sh\n'
         script += 'python=$(which python3)\n'
@@ -42,7 +42,7 @@ for ch in range(1, 17):
         script += f'ov={ov}\n'
         script += 'input_file="${file_path}/root/${run_info}_ov_${ov}.00_sipmgr_$(printf "%02d" $sipmgr)_${root_type}.root"\n'
         script += '# Construct and execute the command\n'
-        script += 'charge_fit_command="$python fit.py ${input_file} signal sigQ ${output_file}"\n'
+        script += 'charge_fit_command="$python charge_fit.py ${input_file} signal sigQ ${output_file}"\n'
         script += 'echo "Executing command: ${charge_fit_command}"\n'
         script += '$charge_fit_command\n'
         script += '\n'
@@ -51,6 +51,3 @@ for ch in range(1, 17):
                 file_tmp.write(script)
 
 os.system(f"chmod +x {output_dir}/jobs/*.sh")
-os.system(f"cp submit_jobs.sh {output_dir}")
-os.system(f"chmod +x {output_dir}/submit_jobs.sh ")
-os.system(f"cp script/combine_csv.py {output_dir}")
