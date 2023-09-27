@@ -11,9 +11,6 @@ from scipy.optimize import curve_fit
 from copy import deepcopy
 #from PyPDF2 import PdfMerger
 
-import ROOT
-from ROOT import RooRealVar, RooArgList, RooArgSet, RooDataSet, RooFit, RooPlot, RooPolynomial
-
 import statsmodels.api as sm
 
 def remove_outliers(x_list, y_list, y_err_list, threshold=2):
@@ -33,8 +30,8 @@ def remove_outliers(x_list, y_list, y_err_list, threshold=2):
 
     # Identify outliers
     outliers = np.abs(standardized_residuals) > threshold
-    print(np.abs(standardized_residuals))
-    print("outliers", outliers)
+    #print(np.abs(standardized_residuals))
+    #print("outliers", outliers)
 
     # Create new lists without outliers
     x_list_new = np.array(x_list)[~outliers].tolist()
@@ -188,7 +185,7 @@ def linear_fit_bootstrap(x_list, y_list, y_err_list, n_bootstrap=1000):
     squared_residuals = residuals ** 2
     # Calculate the sum of squared residuals (SSR)
     SSR = np.sum(squared_residuals)
-    print(SSR)
+    #print(SSR)
     degrees_of_freedom = len(x) - 2  # Number of data points minus number of fitted parameters
     reduced_chi2 = SSR / degrees_of_freedom
 
@@ -298,19 +295,26 @@ for position in range(16):
     mean_unc_list = []
     vols = []
     for voltage in range(1,7):
-      filtered_df = df.loc[ (df['ch'] == channel) &
-                      (df['pos'] == position) &(df['vol'] == voltage)]
-      #chi2 = filtered_df.head(1)['chi2'].values[0]
-      # For ov = 1V, 2V, use rob_gain, for 5V, 6V ,use avg_gain
-      if ov == 1 or ov == 2:
-          gain = filtered_df.head(1)['rob_gain'].values[0]
-          gain_err = filtered_df.head(1)['rob_gain_err'].values[0]
-      elif ov == 5 or ov == 6:
-          gain = filtered_df.head(1)['avg_gain'].values[0]
-          gain_err = filtered_df.head(1)['gain_err'].values[0]
-      else:
-          gain = filtered_df.head(1)['gain'].values[0]
-          gain_err = filtered_df.head(1)['gain_err'].values[0]
+        print(position, channel, voltage)
+        filtered_df = df.loc[ (df['ch'] == channel) &
+                        (df['pos'] == position) &(df['vol'] == voltage)]
+        #chi2 = filtered_df.head(1)['chi2'].values[0]
+        # For ov = 1V, 2V, use rob_gain, for 5V, 6V ,use avg_gain
+        if voltage == 1 or voltage == 2:
+            if len(filtered_df['rob_gain'].tolist()) != 0:
+                gain = filtered_df.head(1)['rob_gain'].values[0]
+                gain_err = filtered_df.head(1)['rob_gain_err'].values[0]
+            else:
+                continue
+        #elif voltage == 5 or voltage == 6:
+        #    gain = filtered_df.head(1)['avg_gain'].values[0]
+        #    gain_err = filtered_df.head(1)['gain_err'].values[0]
+        else:
+            if len(filtered_df['gain'].tolist()) != 0:
+                gain = filtered_df.head(1)['gain'].values[0]
+                gain_err = filtered_df.head(1)['gain_err'].values[0]
+            else:
+                continue
 
       #if chi2 < 5 and gain_err / gain < 0.02:
         mean_diff_list.append(gain)
