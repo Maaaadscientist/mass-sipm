@@ -209,20 +209,41 @@ for position in range(16):
             filtered_df = df.loc[ (df['ch'] == channel) &
                             (df['pos'] == position) &(df['vol'] == voltage)]
             #chi2 = filtered_df.head(1)['chi2'].values[0]
+            hasAvg = False
+            hasNormGain = True
+            hasRobGain = True
             if len(filtered_df['rob_gain'].tolist()) != 0:
                 rob_gain = filtered_df.head(1)['rob_gain'].values[0]
                 rob_gain_err = filtered_df.head(1)['rob_gain_err'].values[0]
             if len(filtered_df['gain'].tolist()) != 0:
                 gain = filtered_df.head(1)['gain'].values[0]
                 gain_err = filtered_df.head(1)['gain_err'].values[0]
-            if gain_err / gain < 0.05:
+            if len(filtered_df['avg_gain'].tolist()) != 0:
+                avg_gain = filtered_df.head(1)['avg_gain'].values[0]
+                avg_gain_err = filtered_df.head(1)['avg_gain_err'].values[0]
+                if avg_gain != 0 and agv_gain_err != 0:
+                    hasAvg = True
+            if gain_err / gain < 0.05 and gain_err / gain > 0.0001: # in case of fit failure
                 gains.append(gain)
                 gain_errors.append(gain_err)
                 vols.append(voltage + 48)
-            if rob_gain_err / rob_gain < 0.05:
+            elif hasAvg:
+                gains.append(avg_gain)
+                gain_errors.append(avg_gain_err)
+                vols.append(voltage + 48)
+            else:
+                hasNormGain = False
+            
+            if rob_gain_err / rob_gain < 0.05 and  rob_gain_err / rob_gain > 0.0001: # in case of fit failure:
                 rob_gains.append(rob_gain)
                 rob_gain_errors.append(rob_gain_err)
                 rob_vols.append(voltage + 48)
+            elif hasAvg:
+                rob_gains.append(avg_gain)
+                rob_gain_errors.append(avg_gain_err)
+                rob_vols.append(voltage + 48)
+            else:
+                hasRobGain = False
 
         vols, gains, gain_errors = remove_outliers(vols, gains, gain_errors)
         rob_vols, rob_gains, rob_gain_errors = remove_outliers(rob_vols, rob_gains, rob_gain_errors)
