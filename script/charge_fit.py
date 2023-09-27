@@ -142,6 +142,7 @@ def main():
     output_file = ROOT.TFile(f"{output_path}/root/charge_fit_tile_ch{file_info.get('channel')}_ov{file_info.get('ov')}.root", "recreate") 
     sub_directory = output_file.mkdir(f"charge_fit_run_{run}")
     sub_directory.cd()
+    ROOT.TVirtualFitter.SetDefaultFitter("Minuit2")
     for tile in range(16):
         tree.Draw(f"baselineQ_ch{tile}>>histogram{tile}")
         histogram = ROOT.gPad.GetPrimitive(f"histogram{tile}")
@@ -204,11 +205,13 @@ def main():
           
         poisson_gen = RooGenericPdf("poisson_gen", formula, argList)
         # Specify the optimization algorithm
-        minimizer = ROOT.RooMinimizer(poisson_gen.createNLL(data))
-        minimizer.setMinimizerType("Minuit2")  # Choose Minuit2 as the optimizer
+        #minimizer = ROOT.RooMinimizer(poisson_gen.createNLL(data))
+        #minimizer.setMinimizerType("Minuit2")  # Choose Minuit2 as the optimizer
         
         # Perform the fit
-        result = minimizer.fit("")
+        #result = minimizer.fit("")
+        poisson_gen.fitTo(data, ROOT.RooFit.PrintLevel(-1), ROOT.RooFit.Save())
+        #poisson_gen.fitTo(data, ROOT.RooFit.SumW2Error(ROOT.kTRUE),ROOT.RooFit.PrintLevel(-1), ROOT.RooFit.Save(), ROOT.RooFit.Strategy(2), ROOT.RooFit.InitialHesse(ROOT.kTRUE))
         mu_value = mu.getVal()
         lambda_value = lambda_.getVal()
         max_peak_to_fit = 0
@@ -242,7 +245,7 @@ def main():
             gaussian = RooGaussian("gaussian", "gaussian", sigQ, mean_tmp, sigma_tmp)
             
             # Fit the histogram in the specified range
-            gaussian.fitTo(data, ROOT.RooFit.Range(lower_bound, upper_bound))
+            gaussian.fitTo(data, ROOT.RooFit.Range(lower_bound, upper_bound))#,ROOT.RooFit.SumW2Error(ROOT.kTRUE),ROOT.RooFit.PrintLevel(-1), ROOT.RooFit.Save(), ROOT.RooFit.Strategy(2), ROOT.RooFit.InitialHesse(ROOT.kTRUE))
             
             # 3. Extract the mean (center) of each Gaussian
             centers.append(mean_tmp.getVal())
@@ -264,11 +267,26 @@ def main():
         sigQ.setRange("newRange", new_x_min, new_x_max)
         new_data = ROOT.RooDataHist("new_data", "new_data", ROOT.RooArgSet(sigQ), new_hist)
         # Specify the optimization algorithm
-        new_minimizer = ROOT.RooMinimizer(poisson_gen.createNLL(new_data))
-        new_minimizer.setMinimizerType("Minuit2")  # Choose Minuit2 as the optimizer
-        
+        #new_minimizer = ROOT.RooMinimizer(poisson_gen.createNLL(new_data))
+        #new_minimizer.setMinimizerType("Minuit2")  # Choose Minuit2 as the optimizer
+        result2 = poisson_gen.fitTo(new_data,ROOT.RooFit.SumW2Error(ROOT.kTRUE),ROOT.RooFit.PrintLevel(-1), ROOT.RooFit.Save(), ROOT.RooFit.Strategy(2), ROOT.RooFit.InitialHesse(ROOT.kTRUE))
+        #poisson_gen.fitTo(data,ROOT.RooFit.PrintLevel(-1), ROOT.RooFit.SumW2Error(kTRUE), ROOT.RooFit.Save() )
         # Perform the fit
-        result = new_minimizer.fit("")
+        #new_minimizer.fit("")
+        #result = new_minimizer.save()
+        fit_status = result2.status()
+        initial_FD_bin_width = FD_bin_width
+        while fit_status != 0 and FD_bin_width > 0.5 * initial_FD_bin_width:
+            FD_bin_width -= 0.1
+            new_Nbins = (new_x_max - new_x_min) / FD_bin_width
+            
+            new_hist = ROOT.TH1F("new_hist","new_hist", int(new_Nbins) + 1, new_x_min, new_x_max)
+            tree.Draw("{}>>new_hist".format(f'{variable_name}_ch{tile}'))
+            new_data = ROOT.RooDataHist("new_data", "new_data", ROOT.RooArgSet(sigQ), new_hist)
+            result2 = poisson_gen.fitTo(new_data, ROOT.RooFit.PrintLevel(-1), ROOT.RooFit.Save(), ROOT.RooFit.Strategy(2))
+            fit_status = result2.status()
+            
+
         ## Create a chi-squared variable from the pdf and the data
         chi2 = ROOT.RooChi2Var("chi2", "chi2", poisson_gen, new_data)
         # Get the chi-squared value
@@ -327,6 +345,7 @@ def main():
         )
         
         fit_info = {
+            'status': int(fit_status),
             'mu': float(mu_val - mean_bkg),
             'mu_dcr': float(mean_bkg / gain_value),  # Changed gain.getVal() to gain_value
             'mu_err': mu_err,
