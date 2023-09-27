@@ -308,6 +308,7 @@ def main():
                         'ap_new' : float(ap_new),
                         'ap_err' : float(ap_err),
                         'mean' : float(mean_sig),
+                        'stderr' : float(stderr_sig),
                         'enf_GP' : enf_GP,
                         'enf_data' : enf_data,
                         'res_data' : res_data,

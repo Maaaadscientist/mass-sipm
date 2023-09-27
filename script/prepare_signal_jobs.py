@@ -2,12 +2,15 @@
 import os, sys
 
 if len(sys.argv) < 3:
-    print("Usage: python prepare_fit_jobs_new.py <input_dir> <output_dir>")
+    print("Usage: python prepare_signal_jobs.py <input_dir> <output_dir> <binary_path>")
 else:
    input_tmp = sys.argv[1]
    output_tmp = sys.argv[2]
+   binary_tmp = sys.argv[3]
 input_dir = os.path.abspath(input_tmp)
 output_dir = os.path.abspath(output_tmp)
+binary_path = os.path.abspath(binary_tmp)
+parrent_path = "/".join(binary_path.split("/")[0:-2])
 run_info = input_dir.split("/")[-1]
 run_number = int(run_info.split("_")[-1])
 
@@ -28,8 +31,8 @@ for ch in range(1, 17):
         script += 'fi\n'
         script += 'cd $directory\n'
         script += 'sleep 3\n'
-        script += 'cp /junofs/users/wanghanwen/sipm-massive/script/charge_fit.py .\n'
-        script += 'cp /junofs/users/wanghanwen/sipm-massive/env_lcg.sh .\n'
+        script += f'cp {parrent_path}/script/charge_fit.py .\n'
+        script += f'cp {parrent_path}/env_lcg.sh .\n'
         script += '. ./env_lcg.sh\n'
         script += 'python=$(which python3)\n'
         script += f'sipmgr={ch}\n'
