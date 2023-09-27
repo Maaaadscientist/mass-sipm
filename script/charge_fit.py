@@ -148,6 +148,52 @@ def main():
         histogram = ROOT.gPad.GetPrimitive(f"histogram{tile}")
         baseline = histogram.GetMean()
         baseline_res = histogram.GetRMS()
+        if baseline >= 7000 or baseline <= -7000:
+            fit_info = {
+                'status': -2,
+                'mu': 0.,
+                'mu_dcr': 0.,  # Changed gain.getVal() to gain_value
+                'mu_err': 0.,
+                'lambda': 0.,
+                'lambda_err': 0.,
+                'ap': 0.,
+                'ap_err': 0.,  # Placeholder for ap_err
+                'mean': float(baseline),
+                'stderr': float(baseline_res),
+                'enf_GP': 0.,
+                'enf_GP_err': 0,
+                'enf_data': 0,
+                'enf_data_err': 0,
+                'res_data': 0,
+                'res_GP': 0,
+                'res_GP_err': 0,
+                'ped': 0,
+                'ped_err': 0,
+                'gain': 0,
+                'rob_gain': 0,
+                'rob_gain_err': 0,
+                'avg_gain': 0,
+                'avg_gain_err': 0,
+                'gain_err': 0,  # Changed gain.getError() to gain_error
+                'chi2': 0,
+                'sigma0': 0,
+                'sigmak': 0,
+                'a': 0,
+                'b': 0,
+                'c': 0,
+                'n_peaks': 0,
+            }
+
+            fit_info['events'] = n_entry
+            fit_info['run'] = run
+            fit_info['vol'] = ov
+            fit_info['ch'] = channel
+            fit_info['pos'] = tile
+            fit_info['bl_rms'] = float(baseline_res / 45)
+            fit_info['bl'] = float(baseline / 45)
+            for key, value in fit_info.items():
+                combined_dict[key].append(value)
+            continue
         
         bin1 = histogram.GetXaxis().FindBin(- 3 * baseline_res);
         bin2 = histogram.GetXaxis().FindBin(3 * baseline_res);
@@ -257,7 +303,8 @@ def main():
             average_gain_err = 0. #standard_error_of_average_gain(gains)
             average_gain_err = np.sqrt(average_gain_err**2 + fit_err_square/len(gains)**2)
         else:
-            average_gain = 0
+            average_gain = 0.
+            average_gain_err = 0.
         new_x_min = ped.getVal() - sigma0.getVal() * 5
         new_x_max = ped.getVal() + globals()[f'sigma{max_peak_to_fit}'].getVal() * 3 + max_peak_to_fit * gain.getVal()
         new_Nbins = (new_x_max - new_x_min) / FD_bin_width
@@ -386,9 +433,6 @@ def main():
         fit_info['pos'] = tile
         fit_info['bl_rms'] = float(baseline_res / 45)
         fit_info['bl'] = float(baseline / 45)
-        print(distance, gain.getVal())
-        print(mu.getVal(), lambda_.getVal())
-        print(len(peaks_tspectrum))
         for key, value in fit_info.items():
             combined_dict[key].append(value)
         # Plot the data and the fit
