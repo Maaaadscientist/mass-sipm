@@ -142,7 +142,7 @@ def main():
     output_file = ROOT.TFile(f"{output_path}/root/charge_fit_tile_ch{file_info.get('channel')}_ov{file_info.get('ov')}.root", "recreate") 
     sub_directory = output_file.mkdir(f"charge_fit_run_{run}")
     sub_directory.cd()
-    for tile in range(16):
+    for tile in range(1):
         tree.Draw(f"baselineQ_ch{tile}>>histogram{tile}")
         histogram = ROOT.gPad.GetPrimitive(f"histogram{tile}")
         baseline = histogram.GetMean()
@@ -251,7 +251,7 @@ def main():
         gains = [centers[i+1] - centers[i] for i in range(len(centers)-1)]
         if len(gains) >= 2:
             average_gain = sum(gains) / len(gains)
-            average_gain_err = standard_error_of_average_gain(gains)
+            average_gain_err = 0. #standard_error_of_average_gain(gains)
             average_gain_err = np.sqrt(average_gain_err**2 + fit_err_square/len(gains)**2)
         else:
             average_gain = 0
