@@ -282,59 +282,7 @@ def main():
                             (partial_gain * gain_error)**2 + 
                             (partial_mu * mu_error)**2)
             return dap
-        #gain_value = gain.getVal() if ov <=2 else average_gain 
-        #gain_error = gain.getError()
-        #mu_val = mu.getVal()
-        #lambda_val = lambda_.getVal()
-        #mu_err = mu.getError()
-        #lambda_err = lambda_.getError()
-
-        #enf_data = float(mu.getVal() * stderr_sig **2 / mean_sig**2)
-        #enf_data_err = float(mu.getError() * stderr_sig **2 / mean_sig**2)
-        #enf_GP = float(1 /(1-lambda_.getVal()))
-        #enf_GP_err = abs(1 / (1 - lambda_.getVal())**2 * lambda_.getError())
-
-        #res_data = float(stderr_sig / mean_sig)
-        #res_GP = float(1 / np.sqrt(mu.getVal()*(1-lambda_.getVal())))
-        #f_val = mu_val * (1 - lambda_val)
-        #delta_f = np.sqrt((1-lambda_val)**2 * mu_err**2 + (-mu_val * lambda_err)**2)
-        #res_GP_err = abs(-0.5 / f_val**(1.5) * delta_f)
-        #ap = (enf_data - enf_GP) / mu.getVal()
-        #rob_gain = float(stderr_sig ** 2 / mean_sig / enf_data **2)
-        ## Compute error in rob_gain due to error in enf_data
-        #delta_rob_gain = float(rob_gain * (2 * enf_data_err / enf_data))
-
-    
-        #fit_info = {
-        #                'mu' : float(mu.getVal()-mean_bkg),
-        #                'mu_dcr' : float(mean_bkg / gain.getVal()),
-        #                'mu_err' : float(mu.getError()),
-        #                'lambda' : float(lambda_.getVal()),
-        #                'lambda_err' : float(lambda_.getError()),
-        #                'ap' : float(ap),
-        #                'ap_err' : float(ap_err),
-        #                'mean' : float(mean_sig),
-        #                'stderr' : float(stderr_sig),
-        #                'enf_GP' : enf_GP,
-        #                'enf_data' : enf_data,
-        #                'res_data' : res_data,
-        #                'res_GP' : res_GP,
-        #                'ped' : float(ped.getVal()),
-        #                'ped_err' : float(ped.getError()),
-        #                'gain' : float(gain.getVal()),
-        #                'rob_gain' : rob_gain,
-        #                'rob_gain_err' : delta_rob_gain,
-        #                'avg_gain' : float(average_gain),
-        #                'gain_err' : float(gain.getError()),
-        #                'chi2' : chi2_ndf,
-        #                'sigma0' : float(sigma0.getVal()),
-        #                'sigmak' : float(sigmak.getVal()),
-        #                'a' : float(A.getVal()),
-        #                'b' : float(B.getVal()),
-        #                'c' : float(C.getVal()),
-        #                'n_peaks' : n_peaks,
-        #                }
-        gain_value = gain.getVal() if ov <= 2 else average_gain 
+        gain_value = gain.getVal() #if ov <= 2 else average_gain 
         gain_error = gain.getError()
         
         mu_val = mu.getVal()
@@ -353,10 +301,11 @@ def main():
         delta_f = np.sqrt((1 - lambda_val)**2 * mu_err**2 + (-mu_val * lambda_err)**2)
         res_GP_err = abs(-0.5 / f_val**(1.5) * delta_f)
         ap = (enf_data - enf_GP) / mu_val
-        rob_gain = float(stderr_sig ** 2 / mean_sig / enf_data **2)
-        
-        # Compute error in rob_gain due to error in enf_data
-        delta_rob_gain = float(rob_gain * (2 * enf_data_err / enf_data))
+        rob_gain = float(stderr_sig ** 2 / mean_sig / enf_data / enf_GP)
+        rob_gain_err = np.sqrt(
+    (-stderr_sig**2 * enf_data_err / (mean_sig * enf_data**2 * enf_GP))**2 +
+    (-stderr_sig**2 * enf_GP_err / (mean_sig * enf_data * enf_GP**2))**2
+)
         
         ap_err = np.sqrt(
             (1 / mu_val * enf_data_err)**2 +
@@ -384,8 +333,8 @@ def main():
             'ped': float(ped.getVal()),
             'ped_err': float(ped.getError()),
             'gain': float(gain_value),
-            'rob_gain': rob_gain,
-            'rob_gain_err': delta_rob_gain,
+            'rob_gain': float(rob_gain),
+            'rob_gain_err': float(rob_gain_err),
             'avg_gain': float(average_gain),
             'gain_err': float(gain_error),  # Changed gain.getError() to gain_error
             'chi2': chi2_ndf,
