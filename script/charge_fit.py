@@ -142,7 +142,7 @@ def main():
     output_file = ROOT.TFile(f"{output_path}/root/charge_fit_tile_ch{file_info.get('channel')}_ov{file_info.get('ov')}.root", "recreate") 
     sub_directory = output_file.mkdir(f"charge_fit_run_{run}")
     sub_directory.cd()
-    for tile in range(1):
+    for tile in range(16):
         tree.Draw(f"baselineQ_ch{tile}>>histogram{tile}")
         histogram = ROOT.gPad.GetPrimitive(f"histogram{tile}")
         baseline = histogram.GetMean()
