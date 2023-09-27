@@ -50,6 +50,14 @@ def calculate_GP(k, mu, lambda_):
     result = f1.Eval(1000.)  
     return result
 
+def standard_error_of_average_gain(gains):
+    n = len(gains)
+    average_gain = sum(gains) / n
+    variance = sum([(gain - average_gain) ** 2 for gain in gains]) / (n - 1)
+    standard_deviation = variance ** 0.5
+    standard_error = standard_deviation / n ** 0.5
+    return standard_error
+
 def median(data):
     """Calculate the median of a list of numbers."""
     n = len(data)
@@ -217,6 +225,7 @@ def main():
                 break
         min_peak_to_fit = min(min_peak_to_fit, n_peaks)
         centers = []
+        fit_err_square = 0.
         for k in range(min_peak_to_fit):
             if k == 0:
                 sigmak_value = sigma0.getVal()
@@ -237,9 +246,13 @@ def main():
             
             # 3. Extract the mean (center) of each Gaussian
             centers.append(mean_tmp.getVal())
+            if k == 0 or k == min_peak_to_fit:
+                fit_err_square += mean_tmp.getError() ** 2
         gains = [centers[i+1] - centers[i] for i in range(len(centers)-1)]
-        if len(gains) != 0:
+        if len(gains) >= 2:
             average_gain = sum(gains) / len(gains)
+            average_gain_err = standard_error_of_average_gain(gains)
+            average_gain_err = np.sqrt(average_gain_err**2 + fit_err_square/len(gains)**2)
         else:
             average_gain = 0
         new_x_min = ped.getVal() - sigma0.getVal() * 5
@@ -336,6 +349,7 @@ def main():
             'rob_gain': float(rob_gain),
             'rob_gain_err': float(rob_gain_err),
             'avg_gain': float(average_gain),
+            'avg_gain_err': float(average_gain_err),
             'gain_err': float(gain_error),  # Changed gain.getError() to gain_error
             'chi2': chi2_ndf,
             'sigma0': float(sigma0.getVal()),
