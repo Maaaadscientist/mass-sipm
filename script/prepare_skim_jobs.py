@@ -10,6 +10,7 @@ else:
    binary_tmp = sys.argv[3]
 #file_list = "main_run_0075.txt"  # Path to the file containing the list of files
 isDCR = 'dcr' in binary_tmp
+isMain = 'signal' in binary_tmp
 file_list =  os.path.abspath(input_tmp)  # Path to the file containing the list of files
 eos_mgm_url = "root://junoeos01.ihep.ac.cn"
 directory = "/tmp/tao-sipmtest"
@@ -52,6 +53,8 @@ for file_path in files:
         continue
     file_name = file_path.split("/")[-1]
     if isDCR and 'reff' in file_name:
+        continue
+    if isMain and 'reff' in file_name:
         continue
     count += 1
     components = file_name.split("_")
