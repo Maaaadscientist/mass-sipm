@@ -216,33 +216,6 @@ def linear_fit_bootstrap(x_list, y_list, y_err_list, n_bootstrap=1000):
         bootstrap_intercepts.append(bootstrap_intercept)
         bootstrap_x_intercepts.append(bootstrap_x_intercept)
 
-    
-   # # Create a grid of parameter combinations
-   # slope_grid, intercept_grid = np.meshgrid(bootstrap_slopes, bootstrap_x_intercepts)
-   # 
-   # # Generate x values for the lines
-   # x_values = np.linspace(-50, 50, 100)
-   # 
-   # # Plotting the scatter plot
-   # plt.figure(figsize=(10, 6))
-   # plt.scatter(slope_grid, intercept_grid, color='b', marker='o', label='Parameter Space')
-   # plt.xlabel('Slope')
-   # plt.ylabel('X Intercept')
-   # plt.title('Scatter Plot of Parameter Space')
-   # plt.legend()
-   # 
-   # # Plotting the lines defined by the parameter space
-   # plt.figure(figsize=(10, 6))
-   # plt.xlabel('X')
-   # plt.ylabel('Y')
-   # plt.title('Lines Defined by Parameter Space')
-   # 
-   # for slope, intercept in zip(slope_grid.flatten(), intercept_grid.flatten()):
-   #     y_values = slope * x_values + intercept
-   #     plt.plot(x_values, y_values, alpha=0.5)
-   # 
-    #plt.show()
-
     # calculate uncertainties using bootstrap results
     slope_std_err = np.std(bootstrap_slopes)
     intercept_std_err = np.std(bootstrap_intercepts)
@@ -325,12 +298,21 @@ for position in range(16):
     mean_unc_list = []
     vols = []
     for voltage in range(1,7):
-      filtered_df = df.loc[ (df['channel'] == channel) &
-                      (df['position'] == position) &(df['voltage'] == voltage)]
-      chi2 = filtered_df.head(1)['chi2'].values[0]
-      gain = filtered_df.head(1)['gain'].values[0]
-      gain_err = filtered_df.head(1)['gain_err'].values[0]
-      if chi2 < 5 and gain_err / gain < 0.02:
+      filtered_df = df.loc[ (df['ch'] == channel) &
+                      (df['pos'] == position) &(df['vol'] == voltage)]
+      #chi2 = filtered_df.head(1)['chi2'].values[0]
+      # For ov = 1V, 2V, use rob_gain, for 5V, 6V ,use avg_gain
+      if ov == 1 or ov == 2:
+          gain = filtered_df.head(1)['rob_gain'].values[0]
+          gain_err = filtered_df.head(1)['rob_gain_err'].values[0]
+      elif ov == 5 or ov == 6:
+          gain = filtered_df.head(1)['avg_gain'].values[0]
+          gain_err = filtered_df.head(1)['gain_err'].values[0]
+      else:
+          gain = filtered_df.head(1)['gain'].values[0]
+          gain_err = filtered_df.head(1)['gain_err'].values[0]
+
+      #if chi2 < 5 and gain_err / gain < 0.02:
         mean_diff_list.append(gain)
         mean_unc_list.append(gain_err)
       # Clear the lists before each iteration
@@ -361,14 +343,6 @@ for position in range(16):
     fig.clf()
     plt.clf()
   
-  # Merge all the PDF files into a single file
-  #pdf_merger.write(output_dir + f'/pdf/linear-regression_tile{position}.pdf')
-  #pdf_merger.close()
-  # Remove the individual PDF files
-  #for channel in range(1,17):
-  #    filename = f'linear-regression_ch{channel}_sipm{position}.pdf'
-  #    file_path = output_dir + "/pdf/" +filename
-  #    os.remove(file_path)
   # Generate random values for the two arrays of breakdown voltage 
   size = 16  # Size of each array 
   breakdown_voltage = vbd_dict
