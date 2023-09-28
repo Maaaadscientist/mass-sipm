@@ -148,7 +148,7 @@ def main():
         histogram = ROOT.gPad.GetPrimitive(f"histogram{tile}")
         baseline = histogram.GetMean()
         baseline_res = histogram.GetRMS()
-        if baseline >= 7000 or baseline <= -7000:
+        if baseline >= 5000 or baseline <= -5000 or baseline_res == 0 or baseline_res > 300:
             fit_info = {
                 'status': -2,
                 'mu': 0.,

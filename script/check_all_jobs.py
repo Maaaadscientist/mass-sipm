@@ -121,6 +121,7 @@ if choice == "Y":
         resubmit = "true"
     else:
         sys.exit("do nothing and exit")
+    failed_jobs = ""
     for aFile in grouped_list:
         name_short = aFile.split("/")[-1].replace(".txt", "")
         run = int(name_short.split("_")[-1])
@@ -152,6 +153,9 @@ if choice == "Y":
         # Read and print the output line by line
         for line in process.stdout:
             print(line, end='')
+            if "failed job path:" in line:
+                failed_jobs += line.split("failed job path:")[1].strip()
+                failed_jobs += "\n"
         
         # Check the return code of the process
         return_code = process.wait()
@@ -160,5 +164,8 @@ if choice == "Y":
             print(f"Error executing script. Return code: {return_code}")
             print("Error output:")
             print(error.decode('utf-8'))
+    with open(f"failed_jobs_{analysis_type}.txt", "w") as aFile:
+        aFile.write(failed_jobs)
+        aFile.close()
 else:
     print("Jobs not resubmitted.")

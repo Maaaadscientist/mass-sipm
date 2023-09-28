@@ -116,7 +116,8 @@ else
   if [[ $resubmit_mode == true ]]; then
     # Prompt the user to resubmit jobs
     for a_script_file in "${scripts_to_resubmit[@]}"; do
-      echo "$a_script_file"
+      #echo "$a_script_file"
+      echo "failed job path:$directory/jobs/$a_script_file"
     done
     length=${#scripts_to_resubmit[@]}
     echo -e "${GREEN}Number of jobs to be submitted (resubmitted): $length ${NC}"

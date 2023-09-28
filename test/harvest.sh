@@ -61,6 +61,27 @@ show_progress_bar () {
     fi 
   fi
 }
+
+process_csv_file() {
+  local input_file=$1
+  local output_file=$2
+  local header_captured=$3
+
+  awk -v header="$header_captured" '
+  BEGIN { FS=OFS="," }
+  NR == 1 {
+    for (i=1; i<=NF; i++) if ($i == "run") col=i;
+    if (header == "false") print;
+    next;
+  }
+  {
+    if ($col ~ /^00[0-9A-Z]{2}$/) $col = substr($col,3,2);
+    else if ($col ~ /^0[0-9A-Z]{3}$/) $col = substr($col,2,3);
+    print;
+  }
+  ' "$input_file" >> "$output_file"
+}
+
 # Assign arguments to variables
 CONFIG_FILE=$1
 ANALYSIS_TYPE=$3
@@ -201,10 +222,11 @@ for RUN in $MAIN_RUNS; do
 
         # Merge the CSV files into the master CSV
         for file in $CSV_DIR/*.csv; do
-          if $HEADER_CAPTURED; then
-            tail -n +2 $file >> $MASTER_CSV
-          else
-            cat $file > $MASTER_CSV
+          process_csv_file "$file" "$MASTER_CSV" "$HEADER_CAPTURED"
+          if ! $HEADER_CAPTURED; then
+          #  tail -n +2 $file >> $MASTER_CSV
+          #else
+          #  cat $file > $MASTER_CSV
             HEADER_CAPTURED=true
           fi
         done
