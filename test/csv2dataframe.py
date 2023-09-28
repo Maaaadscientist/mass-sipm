@@ -18,7 +18,13 @@ def column_to_list(rdf, column_name):
     
     return list(rdf.AsNumpy([column_name])[column_name])
 
-def csv_to_root_rdataframe(csv_file, root_file = ""):
+def save_dataframe(csv_name, file_name = "dataframe.root", tree_name = "tree"):
+    print("Save to", f"{file_name}:{tree_name}" )
+    # Write the dataframe to a ROOT file
+    df = ROOT.RDF.MakeCsvDataFrame(csv_name)
+    df.Snapshot(tree_name, file_name)
+
+def csv_to_root_rdataframe(csv_file):
 # Read the CSV file into a pandas DataFrame
     if os.path.isdir(csv_file):
         all_data = []
@@ -35,11 +41,12 @@ def csv_to_root_rdataframe(csv_file, root_file = ""):
         # Create a RDataFrame from the CSV file
         df = ROOT.RDF.MakeCsvDataFrame("tmp.csv")
     else:
-        df = ROOT.RDF.MakeCsvDataFrame(csv_file)
-
-    # Write the dataframe to a ROOT file
-    if root_file != "":
-        df.Snapshot("tree", root_file)
+        if csv_file.endswith(".csv"):
+            df = ROOT.RDF.MakeCsvDataFrame(csv_file)
+        elif csv_file.endswith(".root"):
+            df = ROOT.RDataFrame("tree", csv_file)
+        else:
+            raise TypeError("Unrecognised file syntax")
 
     # By default return the dataframe
     return df
@@ -85,7 +92,8 @@ if __name__ == '__main__':
         print("Usage: csv_to_ntuple.py <csv_file>")
         sys.exit(1)
 
-    df = csv_to_root_rdataframe(sys.argv[1],"df.root")# sys.argv[2])
+    csv_name = os.path.abspath(sys.argv[1])
+    df = csv_to_root_rdataframe(csv_name)# sys.argv[2])
     column_names = df.GetColumnNames()
     #print("Available column names:\n")
     names = ""
@@ -105,15 +113,16 @@ if __name__ == '__main__':
     # print("\033[1;95mBold Magenta Text\033[0m")
     # print("\033[1;96mBold Cyan Text\033[0m")
     # print("\033[1;97mBold White Text\033[0m")
-
+    ROOT.EnableImplicitMT() 
     while True:
         while True:
             query_help_front = "\033[1;92mEnter the query keyword:\033[0m"
             query_help = "\033[1;94m(allowed ones are:\033[0m\n"
-            query_help += "* \033[1;93mSelect\033[0m           enter the selection string to filter the data\n"
-            query_help += "* \033[1;93mShowAllCol\033[0m       show all column names\n"
-            query_help += "* \033[1;93mCol\033[0m              enter the column names to show in the table\n"
-            query_help += "* \033[1;93mOK\033[0m               configuration finished and show the results\n"
+            query_help += "* \033[1;93mselect\033[0m           enter the selection string to filter the data\n"
+            query_help += "* \033[1;93mshowallcol\033[0m       show all column names\n"
+            query_help += "* \033[1;93mcol\033[0m              enter the column names to show in the table\n"
+            query_help += "* \033[1;93mok\033[0m               configuration finished and show the results\n"
+            query_help += "* \033[1;93msave\033[0m             save the data in a root file\n"
             query_help += "* \033[1;93mquit , q\033[0m         quit the query\n"
             query_help += "\033[1;96m(Uppercase and lowercase are not distinguished)\033[0m"
             if re_print_help:
@@ -142,6 +151,13 @@ if __name__ == '__main__':
                 print(columns)
             elif query.lower() == "showallcol":
                 print(names)
+            elif query.lower() == "save":
+                tree_name = input("\033[1;93mEnter the name for the TTree object, default is\033[0m \033[1;93mtree\033[0m\n")
+                #tree_name = tree_name.strip()
+                if tree_name == "":
+                    tree_name = "tree"
+                save_dataframe(csv_name, "dataframe.root", tree_name)
+                
             elif query.lower() == "quit" or query.lower() == "q":
                 exit()
             elif query.lower() == "ok":
