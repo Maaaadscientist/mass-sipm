@@ -66,10 +66,12 @@ CONFIG_FILE=$1
 ANALYSIS_TYPE=$3
 
 # List of allowed analysis types
-ALLOWED_ANALYSIS_TYPES=("merge-root" "combine-csv" "main-position" "light-position")
 # Declare an associative array for analysis type to suffix mapping
+# Add new analysis type to the allowed types and its suffix
+ALLOWED_ANALYSIS_TYPES=("merge-root" "combine-csv" "main-position" "light-position" "signal-parameters")
+
 declare -A ANALYSIS_SUFFIXES
-ANALYSIS_SUFFIXES=(["merge-root"]="main-reff" ["combine-csv"]="main-match" ["main-position"]="main-match" ["light-position"]="light-match")
+ANALYSIS_SUFFIXES=(["merge-root"]="main-reff" ["combine-csv"]="main-match" ["main-position"]="main-match" ["light-position"]="light-match" ["signal-parameters"]="signal-fit")
 
 # Check if the analysis type is allowed
 if [[ ! " ${ALLOWED_ANALYSIS_TYPES[@]} " =~ " ${ANALYSIS_TYPE} " ]]; then
@@ -78,6 +80,12 @@ if [[ ! " ${ALLOWED_ANALYSIS_TYPES[@]} " =~ " ${ANALYSIS_TYPE} " ]]; then
   exit 1
 fi
 
+# If the analysis type is "signal-parameters", initialize the master CSV
+if [ "$ANALYSIS_TYPE" == "signal-parameters" ]; then
+  MASTER_CSV="$(pwd)/all_merged.csv"
+  : > "$MASTER_CSV"  # Initialize the master CSV file
+  HEADER_CAPTURED=false
+fi
 # Fetch the suffix for the analysis type
 SUFFIX=${ANALYSIS_SUFFIXES["$ANALYSIS_TYPE"]}
 
@@ -110,6 +118,11 @@ LIGHT_RUNS=$(awk '/light_runs:/{flag=1;next}/^[^ ]/{flag=0}flag' $CONFIG_FILE | 
 
 total_lines=0
 if [ "$SUFFIX" == "main-match" ]; then
+  # Convert it to an array; assuming the elements are separated by newlines
+  for RUN in $MAIN_RUNS; do
+    ((total_lines++))
+  done
+elif [ "$SUFFIX" == "signal-fit" ]; then
   # Convert it to an array; assuming the elements are separated by newlines
   for RUN in $MAIN_RUNS; do
     ((total_lines++))
@@ -172,6 +185,32 @@ for RUN in $MAIN_RUNS; do
     elif [ "$ANALYSIS_TYPE" == "main-position" ]; then
       COMMAND="$PYTHON3 $(dirname $0)/new_coordinates.py $(dirname $0)/test.csv $DIR_NAME/root positions_main_run"
       $PYTHON3 $(dirname $0)/new_coordinates.py $(dirname $0)/test.csv $DIR_NAME/root positions_main_run
+    # Handle the new analysis type
+    elif [ "$ANALYSIS_TYPE" == "signal-parameters" ]; then
+      # Construct the CSV directory path
+      CSV_DIR="$DIR_NAME/csv"
+
+      # Check if directory exists
+      if [ -d "$CSV_DIR" ]; then
+        # Check if there are 96 CSV files
+        NUM_CSV_FILES=$(ls $CSV_DIR/*.csv 2>/dev/null | wc -l)
+        if [ "$NUM_CSV_FILES" -ne 96 ]; then
+          echo "Expected 96 CSV files in $CSV_DIR but found $NUM_CSV_FILES. for run $RUN Skipping..."
+          #continue
+        fi
+
+        # Merge the CSV files into the master CSV
+        for file in $CSV_DIR/*.csv; do
+          if $HEADER_CAPTURED; then
+            tail -n +2 $file >> $MASTER_CSV
+          else
+            cat $file > $MASTER_CSV
+            HEADER_CAPTURED=true
+          fi
+        done
+      else
+        echo "CSV directory $CSV_DIR not found, skipping..."
+      fi
     fi
     # cd $DIR_NAME
     # Your commands here

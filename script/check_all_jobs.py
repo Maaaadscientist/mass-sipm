@@ -34,7 +34,7 @@ elif analysis_type == "dcr":
     binary_path = os.path.abspath("bin/skim-dcr")
 elif analysis_type =="signal-fit":
     runType = "main"
-    file_type = "root"
+    file_type = "csv"
 elif analysis_type =="light-fit":
     runType = "light"
     file_type = "pdf"
@@ -55,7 +55,7 @@ elif analysis_type == "dcr-fit":
     file_type = "csv"
 elif analysis_type == "vbd":
     runType = "main"
-    file_type = "pdf"
+    file_type = "csv"
 elif analysis_type == "harvest":
     runType = "main"
     file_type = "root"
@@ -82,6 +82,8 @@ elif file_type == "png":
     threshold = 100
 elif file_type == "csv":
     threshold = 100
+    if analysis_type == "vbd":
+        threshold == 20* 1024
 
 with open(table_path, 'r') as yaml_file:
     yaml_data = yaml.safe_load(yaml_file)   
@@ -131,7 +133,7 @@ if choice == "Y":
             continue
         if run_type != "main" and run_type != "light":
             continue
-       
+        print(name_short) 
         # Define the command to execute the shell script
         if analysis_type == "light-match-bootstrap":
             command = f'./script/check_jobs_multi-thread.sh {threshold} {output_dir}/{analysis_type}/{name_short} {interactive} {file_type} {resubmit}'

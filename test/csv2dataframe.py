@@ -1,4 +1,7 @@
 import ROOT
+import os
+import sys
+import pandas as pd
 from copy import deepcopy
 
 def column_to_list(rdf, column_name):
@@ -15,12 +18,28 @@ def column_to_list(rdf, column_name):
     
     return list(rdf.AsNumpy([column_name])[column_name])
 
-def csv_to_root_rdataframe(csv_file, root_file):
-    # Create a RDataFrame from the CSV file
-    df = ROOT.RDF.MakeCsvDataFrame(csv_file)
+def csv_to_root_rdataframe(csv_file, root_file = ""):
+# Read the CSV file into a pandas DataFrame
+    if os.path.isdir(csv_file):
+        all_data = []
+        for filename in os.listdir(csv_file):
+            if filename.endswith(".csv"):
+                file_path = os.path.join(csv_file, filename)
+                data = pd.read_csv(file_path)
+                all_data.append(data)
+        #df2 = pd.concat(all_data, ignore_index=True)
+        if len(all_data) == 0:
+            exit()
+        df2 = pd.concat(all_data, ignore_index=True)
+        df2.to_csv("tmp.csv", index=False)
+        # Create a RDataFrame from the CSV file
+        df = ROOT.RDF.MakeCsvDataFrame("tmp.csv")
+    else:
+        df = ROOT.RDF.MakeCsvDataFrame(csv_file)
 
     # Write the dataframe to a ROOT file
-    df.Snapshot("tree", root_file)
+    if root_file != "":
+        df.Snapshot("tree", root_file)
 
     # By default return the dataframe
     return df
@@ -54,7 +73,7 @@ def print_filtered_data(df, filter_string, columns):
         #filtered_df.Count()  # Triggering execution
         # Print the filtered rows
         #filtered_df.Display(20).Print()
-        filtered_df.Display(columns, 100000, 100000).Print()
+        filtered_df.Display(columns, 100000).Print()
     except Exception as e:
         print(f"Error encountered: {e}")
 

@@ -128,7 +128,7 @@ def linear_fit_bootstrap(x_list, y_list, y_err_list, n_bootstrap=1000):
     slope_std_err = np.std(bootstrap_slopes)
     intercept_std_err = np.std(bootstrap_intercepts)
     x_intercept_std_err = np.std(bootstrap_x_intercepts)
-    x_intercept_err = np.sqrt(x_intercept_std_err ** 2 + (reduced_chi2 / slope) ** 2)
+    x_intercept_err = np.sqrt(x_intercept_std_err ** 2 + (reduced_chi2 / slope**2) )
 
     return (
         slope,
@@ -137,7 +137,8 @@ def linear_fit_bootstrap(x_list, y_list, y_err_list, n_bootstrap=1000):
         slope_std_err,
         intercept_std_err,
         x_intercept_err,
-        reduced_chi2
+        SSR,
+        degrees_of_freedom
     )
 
 
@@ -149,11 +150,17 @@ else:
 #file_list = "main_run_0075.txt"  # Path to the file containing the list of files
 input_file =  os.path.abspath(input_tmp)  # Path to the file containing the list of files
 output_dir = os.path.abspath(output_tmp)
+#/junofs/users/wanghanwen/main-runs/vbd/main_run_0063
+name_short = output_dir.split("/")[-1]
+components = name_short.split("_")
+run = int(components[-1])
 # Find a certain element based on other column values
 
 if not os.path.isdir(output_dir + "/csv"):
     os.makedirs(output_dir + "/csv")
 
+if not os.path.isdir(output_dir + "/pdf"):
+    os.makedirs(output_dir + "/pdf")
 # Read the CSV file into a pandas DataFrame
 if not os.path.isdir(input_file):
     df = pd.read_csv(input_file)
@@ -189,12 +196,17 @@ for position in range(16):
     df_tmp = pd.DataFrame()
  
     vbd_dict = []
-    vbd_rob_dict = []
+    rob_vbd_dict = []
     vbd_err_dict = []
-    vbd_rob_err_dict = []
+    rob_vbd_err_dict = []
+    chi2_list = []
+    ndf_list = []
     # Create a PDF merger object
     #pdf_merger = PdfMerger()
     for channel in range(1,17):
+        # Set up the plot
+        fig, ax = plt.subplots()
+
       
         # Create a twin y-axis on the right side
 
@@ -205,10 +217,16 @@ for position in range(16):
         vols = []
         rob_vols = []
         for voltage in range(1,7):
-            print(position, channel, voltage)
+            #print(position, channel, voltage)
             filtered_df = df.loc[ (df['ch'] == channel) &
                             (df['pos'] == position) &(df['vol'] == voltage)]
             #chi2 = filtered_df.head(1)['chi2'].values[0]
+            if len(filtered_df['status'].tolist()) != 0:
+                status = filtered_df.head(1)['status'].values[0]
+                if status != 0:
+                    continue
+            else:
+                continue
             hasAvg = False
             hasNormGain = True
             hasRobGain = True
@@ -221,7 +239,7 @@ for position in range(16):
             if len(filtered_df['avg_gain'].tolist()) != 0:
                 avg_gain = filtered_df.head(1)['avg_gain'].values[0]
                 avg_gain_err = filtered_df.head(1)['avg_gain_err'].values[0]
-                if avg_gain != 0 and agv_gain_err != 0:
+                if avg_gain != 0 and avg_gain_err != 0:
                     hasAvg = True
             if gain_err / gain < 0.05 and gain_err / gain > 0.0001: # in case of fit failure
                 gains.append(gain)
@@ -248,18 +266,57 @@ for position in range(16):
         vols, gains, gain_errors = remove_outliers(vols, gains, gain_errors)
         rob_vols, rob_gains, rob_gain_errors = remove_outliers(rob_vols, rob_gains, rob_gain_errors)
         #slope, x_intercept, x_intercept_err, chi2ndf =  linear_fit(vols,gains,gain_errors)
-        slope, intercept, x_intercept , slope_err, intercept_err, x_intercept_err, chi2ndf =  linear_fit_bootstrap(vols,gains, gain_errors, 500)
-        rob_slope, rob_intercept, rob_x_intercept , rob_slope_err, rob_intercept_err, rob_x_intercept_err, rob_chi2ndf =  linear_fit_bootstrap(vols,gains, gain_errors, 500)
+        slope, intercept, x_intercept , slope_err, intercept_err, x_intercept_err, chi2, ndf =  linear_fit_bootstrap(vols,gains, gain_errors, 500)
+        if chi2 / ndf > 0.1:
+            slope, intercept, x_intercept , slope_err, intercept_err, x_intercept_err, chi2, ndf =  linear_fit_bootstrap(vols[1:],gains[1:], gain_errors[1:], 500)
+        rob_slope, rob_intercept, rob_x_intercept , rob_slope_err, rob_intercept_err, rob_x_intercept_err, rob_chi2, rob_ndf =  linear_fit_bootstrap(rob_vols, rob_gains, rob_gain_errors, 500)
+        if rob_chi2 / rob_ndf > 0.1:
+            rob_slope, rob_intercept, rob_x_intercept , rob_slope_err, rob_intercept_err, rob_x_intercept_err, rob_chi2, rob_ndf =  linear_fit_bootstrap(rob_vols[1:], rob_gains[1:], rob_gain_errors[1:], 500)
+        
+        chi2_list.append(chi2)
+        ndf_list.append(ndf)
         vbd_dict.append(x_intercept)
         vbd_err_dict.append(x_intercept_err)
         rob_vbd_dict.append(rob_x_intercept)
         rob_vbd_err_dict.append(rob_x_intercept_err)
+        if chi2 / ndf > 0.1:
+            vols_plus = deepcopy(vols)
+            vols_plus.insert(0, x_intercept)
+
+            # Set the title of the plot
+            ax.set_title(f"Linear regression of gain (run{run} po{position} ch{channel})")
+            draw_linear_fit(fig, ax, vols,vols_plus ,gains, gain_errors, - x_intercept* slope, slope, x_intercept_err, chi2/ndf) 
+            # Set the y-axis limits
+
+            # Save the plot as a PDF file
+            filename = f'lfit_run{run}_pos{position}_ch{channel}.pdf'
+            
+            plt.savefig(output_dir + "/pdf/" +filename)
+            # Add the generated PDF file to the merger object
+            #pdf_merger.append(output_dir + "/pdf/" +filename)
+            # Clear the axes
+            ax.cla()
+            # Clear the figure
+            fig.clf()
+            plt.clf()
+
         
     df_tmp['vbd'] = vbd_dict
     df_tmp['vbd_err'] = vbd_err_dict
+    df_tmp['linear_chi2'] = chi2_list
+    df_tmp['ndf'] = ndf_list
     df_tmp['rob_vbd'] = rob_vbd_dict
     df_tmp['rob_vbd_err'] = rob_vbd_err_dict
-    df_tmp['position'] = [position for i in range(16)]
-    df_tmp['channel'] = [ch for ch in range(1,17)]
-    df_tmp.to_csv(f"{output_dir}/csv/vbd_tile{position}.csv", index=False)
+    df_tmp['pos'] = [position for i in range(16)]
+    df_tmp['run'] = [run for i in range(16)]
+    df_tmp['ch'] = [ch for ch in range(1,17)]
+    #df_tmp.to_csv(f"{output_dir}/csv/vbd_tile{position}.csv", index=False)
       
+    file_path = f"{output_dir}/csv/get_vbd_run{run}.csv"
+    # Check if file exists and is empty
+    if not os.path.exists(file_path) or os.stat(file_path).st_size == 0:
+        # File doesn't exist or is empty, so write DataFrame with header
+        df_tmp.to_csv(file_path, index=False)
+    else:
+        # File exists and is not empty, so append without header
+        df_tmp.to_csv(file_path, mode='a', header=False, index=False)

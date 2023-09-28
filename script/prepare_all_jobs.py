@@ -58,6 +58,7 @@ elif analysis_type == "main-reff":
     binary_path = os.path.abspath("../light-match/bin/main_match")
 elif analysis_type == "vbd":
     runType = "main"
+    binary_path = os.path.abspath("script/get_vbd_new.py")
 elif analysis_type == "harvest":
     runType = "main"
     
@@ -124,7 +125,7 @@ for aFile in grouped_list:
     elif analysis_type == "mainrun-light-fit":
         subprocess.run(['python', 'script/prepare_mainrun_light_jobs.py', f'{output_dir}/main/{name_short}', f'{output_dir}/{analysis_type}/{name_short}'])
     elif analysis_type == "vbd":
-        subprocess.run(['python', 'script/prepare_vbd_jobs.py', f'{output_dir}/signal-fit/{name_short}', f'{output_dir}/{analysis_type}/{name_short}'])
+        subprocess.run(['python', 'script/prepare_vbd_jobs.py', f'{output_dir}/signal-fit/{name_short}', f'{output_dir}/{analysis_type}/{name_short}', f'{binary_path}'])
     elif analysis_type == "harvest":
         subprocess.run(['python', 'script/prepare_harvest_jobs.py', f'{output_dir}', f'{name_short}', f'{output_dir}/{analysis_type}/{name_short}'])
     elif analysis_type == "main" or analysis_type == "light" or analysis_type == "dcr":
