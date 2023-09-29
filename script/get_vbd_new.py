@@ -13,31 +13,35 @@ from copy import deepcopy
 import statsmodels.api as sm
 
 def remove_outliers(x_list, y_list, y_err_list, threshold=2):
-    # Add a constant (intercept term) to predictors
-    X = sm.add_constant(np.array(x_list))
-    y = np.array(y_list)
+    if len(x_list) >= 4:
+        # Add a constant (intercept term) to predictors
+        X = sm.add_constant(np.array(x_list))
+        y = np.array(y_list)
 
-    # Fit the model
-    model = sm.OLS(y, X)
-    results = model.fit()
+        # Fit the model
+        model = sm.OLS(y, X)
+        results = model.fit()
 
-    # Calculate residuals
-    residuals = results.resid
+        # Calculate residuals
+        residuals = results.resid
 
-    # Standardize residuals
-    standardized_residuals = (residuals - np.mean(residuals)) / np.std(residuals)
+        # Standardize residuals
+        standardized_residuals = (residuals - np.mean(residuals)) / np.std(residuals)
 
-    # Identify outliers
-    outliers = np.abs(standardized_residuals) > threshold
-    #print(np.abs(standardized_residuals))
-    #print("outliers", outliers)
+        # Identify outliers
+        outliers = np.abs(standardized_residuals) > threshold
+        #print(np.abs(standardized_residuals))
+        #print("outliers", outliers)
 
-    # Create new lists without outliers
-    x_list_new = np.array(x_list)[~outliers].tolist()
-    y_list_new = np.array(y_list)[~outliers].tolist()
-    y_err_list_new = np.array(y_err_list)[~outliers].tolist()
+        # Create new lists without outliers
+        x_list_new = np.array(x_list)[~outliers].tolist()
+        y_list_new = np.array(y_list)[~outliers].tolist()
+        y_err_list_new = np.array(y_err_list)[~outliers].tolist()
 
-    return x_list_new, y_list_new, y_err_list_new
+        return x_list_new, y_list_new, y_err_list_new
+    else:
+        print("length of the array is less than 5, skipping the outliers removal")
+        return x_list, y_list, y_err_list
 
 
 def draw_linear_fit(fig, ax, x, x_with_bkv, y, y_err, intercept, slope, x_intercept_err, chi2):
@@ -191,21 +195,25 @@ column_dict = {column: index for index, column in enumerate(df.columns)}
 # Access the desired element
 
 
+# Set up the plot
+fig, ax = plt.subplots()
 #vols = [i for i in range(2,7)]
 for position in range(16):
     df_tmp = pd.DataFrame()
  
     vbd_dict = []
+    fitted_gain = []
+    fitted_gain_err = []
     rob_vbd_dict = []
     vbd_err_dict = []
     rob_vbd_err_dict = []
     chi2_list = []
     ndf_list = []
+    slope_list = []
+    slope_err_list = []
     # Create a PDF merger object
     #pdf_merger = PdfMerger()
     for channel in range(1,17):
-        # Set up the plot
-        fig, ax = plt.subplots()
 
       
         # Create a twin y-axis on the right side
@@ -241,6 +249,7 @@ for position in range(16):
                 avg_gain_err = filtered_df.head(1)['avg_gain_err'].values[0]
                 if avg_gain != 0 and avg_gain_err != 0:
                     hasAvg = True
+            print(position, channel, voltage, gain, gain_err)
             if gain_err / gain < 0.05 and gain_err / gain > 0.0001: # in case of fit failure
                 gains.append(gain)
                 gain_errors.append(gain_err)
@@ -266,50 +275,76 @@ for position in range(16):
         vols, gains, gain_errors = remove_outliers(vols, gains, gain_errors)
         rob_vols, rob_gains, rob_gain_errors = remove_outliers(rob_vols, rob_gains, rob_gain_errors)
         #slope, x_intercept, x_intercept_err, chi2ndf =  linear_fit(vols,gains,gain_errors)
-        slope, intercept, x_intercept , slope_err, intercept_err, x_intercept_err, chi2, ndf =  linear_fit_bootstrap(vols,gains, gain_errors, 500)
-        if chi2 / ndf > 0.1:
-            slope, intercept, x_intercept , slope_err, intercept_err, x_intercept_err, chi2, ndf =  linear_fit_bootstrap(vols[1:],gains[1:], gain_errors[1:], 500)
-        rob_slope, rob_intercept, rob_x_intercept , rob_slope_err, rob_intercept_err, rob_x_intercept_err, rob_chi2, rob_ndf =  linear_fit_bootstrap(rob_vols, rob_gains, rob_gain_errors, 500)
-        if rob_chi2 / rob_ndf > 0.1:
-            rob_slope, rob_intercept, rob_x_intercept , rob_slope_err, rob_intercept_err, rob_x_intercept_err, rob_chi2, rob_ndf =  linear_fit_bootstrap(rob_vols[1:], rob_gains[1:], rob_gain_errors[1:], 500)
-        
-        chi2_list.append(chi2)
-        ndf_list.append(ndf)
-        vbd_dict.append(x_intercept)
-        vbd_err_dict.append(x_intercept_err)
-        rob_vbd_dict.append(rob_x_intercept)
-        rob_vbd_err_dict.append(rob_x_intercept_err)
-        if chi2 / ndf > 0.1:
-            vols_plus = deepcopy(vols)
-            vols_plus.insert(0, x_intercept)
+        if len(gains) >= 2:
+            slope, intercept, x_intercept , slope_err, intercept_err, x_intercept_err, chi2, ndf =  linear_fit_bootstrap(vols,gains, gain_errors, 500)
+        else:
+            slope, intercept, x_intercept , slope_err, intercept_err, x_intercept_err, chi2, ndf = 0.,0.,0.,0.,0.,0.,0.,0
+        if ndf != 0:
+            if chi2 / ndf > 0.1:
+                slope, intercept, x_intercept , slope_err, intercept_err, x_intercept_err, chi2, ndf =  linear_fit_bootstrap(vols[1:],gains[1:], gain_errors[1:], 500)
+        if len(rob_gains) >= 2:
+            rob_slope, rob_intercept, rob_x_intercept , rob_slope_err, rob_intercept_err, rob_x_intercept_err, rob_chi2, rob_ndf =  linear_fit_bootstrap(rob_vols, rob_gains, rob_gain_errors, 500)
+        else:
+            rob_slope, rob_intercept, rob_x_intercept , rob_slope_err, rob_intercept_err, rob_x_intercept_err, rob_chi2, rob_ndf = 0.,0.,0.,0.,0.,0.,0.,0
+        if rob_ndf != 0:
+            if rob_chi2 / rob_ndf > 0.1:
+                rob_slope, rob_intercept, rob_x_intercept , rob_slope_err, rob_intercept_err, rob_x_intercept_err, rob_chi2, rob_ndf =  linear_fit_bootstrap(rob_vols[1:], rob_gains[1:], rob_gain_errors[1:], 500)
+        if ndf != 0:
+            if chi2 / ndf > 0.1:
+                vols_plus = deepcopy(vols)
+                vols_plus.insert(0, x_intercept)
 
-            # Set the title of the plot
-            ax.set_title(f"Linear regression of gain (run{run} po{position} ch{channel})")
-            draw_linear_fit(fig, ax, vols,vols_plus ,gains, gain_errors, - x_intercept* slope, slope, x_intercept_err, chi2/ndf) 
-            # Set the y-axis limits
+                # Set the title of the plot
+                ax.set_title(f"Linear regression of gain (run{run} po{position} ch{channel})")
+                draw_linear_fit(fig, ax, vols,vols_plus ,gains, gain_errors, - x_intercept* slope, slope, x_intercept_err, chi2/ndf) 
+                # Set the y-axis limits
 
-            # Save the plot as a PDF file
-            filename = f'lfit_run{run}_pos{position}_ch{channel}.pdf'
-            
-            plt.savefig(output_dir + "/pdf/" +filename)
-            # Add the generated PDF file to the merger object
-            #pdf_merger.append(output_dir + "/pdf/" +filename)
-            # Clear the axes
-            ax.cla()
-            # Clear the figure
-            fig.clf()
-            plt.clf()
+                # Save the plot as a PDF file
+                filename = f'lfit_run{run}_pos{position}_ch{channel}.pdf'
+                
+                plt.savefig(output_dir + "/pdf/" +filename)
+                # Add the generated PDF file to the merger object
+                #pdf_merger.append(output_dir + "/pdf/" +filename)
+                # Clear the axes
+                ax.cla()
+                # Clear the figure
+                fig.clf()
+                plt.clf()
+        for ov in range(1, 7):
+            if len(gains) >= 2:
+                gain = slope*( ov + 48.0 - x_intercept) 
+                df_dslope = ov + 48.0 - x_intercept
+                # Error propagation formula
+                gain_err = math.sqrt((df_dslope * slope_err)**2 + (slope * x_intercept_err)**2)
+            else:
+                gain = 0.
+                gain_err = 0.
+            fitted_gain.append(gain)
+            fitted_gain_err.append(gain_err)
+            chi2_list.append(chi2)
+            ndf_list.append(ndf)
+            slope_list.append(slope)
+            slope_err_list.append(slope_err)
+            vbd_dict.append(x_intercept)
+            vbd_err_dict.append(x_intercept_err)
+            rob_vbd_dict.append(rob_x_intercept)
+            rob_vbd_err_dict.append(rob_x_intercept_err)
 
         
     df_tmp['vbd'] = vbd_dict
     df_tmp['vbd_err'] = vbd_err_dict
+    df_tmp['fit_gain'] = fitted_gain
+    df_tmp['fit_gain_err'] = fitted_gain_err
+    df_tmp['slope'] = slope_list
+    df_tmp['slope_err'] = slope_err_list
     df_tmp['linear_chi2'] = chi2_list
     df_tmp['ndf'] = ndf_list
     df_tmp['rob_vbd'] = rob_vbd_dict
     df_tmp['rob_vbd_err'] = rob_vbd_err_dict
-    df_tmp['pos'] = [position for i in range(16)]
-    df_tmp['run'] = [run for i in range(16)]
-    df_tmp['ch'] = [ch for ch in range(1,17)]
+    df_tmp['pos'] = [position for i in range(96)]
+    df_tmp['run'] = [run for i in range(96)]
+    df_tmp['ch'] = [ch for ch in range(1,17) for _ in range(6)]
+    df_tmp['vol'] = [ov for _ in range(16) for ov in range(1, 7)]
     #df_tmp.to_csv(f"{output_dir}/csv/vbd_tile{position}.csv", index=False)
       
     file_path = f"{output_dir}/csv/get_vbd_run{run}.csv"
