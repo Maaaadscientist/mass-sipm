@@ -89,10 +89,10 @@ ANALYSIS_TYPE=$3
 # List of allowed analysis types
 # Declare an associative array for analysis type to suffix mapping
 # Add new analysis type to the allowed types and its suffix
-ALLOWED_ANALYSIS_TYPES=("merge-root" "combine-csv" "main-position" "light-position" "signal-parameters")
+ALLOWED_ANALYSIS_TYPES=("merge-root" "combine-csv" "main-position" "light-position" "signal-fit" "vbd")
 
 declare -A ANALYSIS_SUFFIXES
-ANALYSIS_SUFFIXES=(["merge-root"]="main-reff" ["combine-csv"]="main-match" ["main-position"]="main-match" ["light-position"]="light-match" ["signal-parameters"]="signal-fit")
+ANALYSIS_SUFFIXES=(["merge-root"]="main-reff" ["combine-csv"]="main-match" ["main-position"]="main-match" ["light-position"]="light-match" ["signal-fit"]="signal-fit" ["vbd"]="vbd")
 
 # Check if the analysis type is allowed
 if [[ ! " ${ALLOWED_ANALYSIS_TYPES[@]} " =~ " ${ANALYSIS_TYPE} " ]]; then
@@ -101,9 +101,9 @@ if [[ ! " ${ALLOWED_ANALYSIS_TYPES[@]} " =~ " ${ANALYSIS_TYPE} " ]]; then
   exit 1
 fi
 
-# If the analysis type is "signal-parameters", initialize the master CSV
-if [ "$ANALYSIS_TYPE" == "signal-parameters" ]; then
-  MASTER_CSV="$(pwd)/all_merged.csv"
+# If the analysis type is "signal-fit", initialize the master CSV
+if [[ "$ANALYSIS_TYPE" == "signal-fit" || "$ANALYSIS_TYPE" == "vbd" || $ANALYSIS_TYPE == "combine-csv" ]]; then
+  MASTER_CSV="$(pwd)/all_merged_$ANALYSIS_TYPE.csv"
   : > "$MASTER_CSV"  # Initialize the master CSV file
   HEADER_CAPTURED=false
 fi
@@ -111,16 +111,6 @@ fi
 SUFFIX=${ANALYSIS_SUFFIXES["$ANALYSIS_TYPE"]}
 
 DIRECTORY_PATH="$(realpath $2)/$SUFFIX"
-
-if [ $ANALYSIS_TYPE == "combine-csv" ]; then
-  # Output combined CSV file name
-  COMBINED_CSV="$(pwd)/main_combined.csv"
-  
-  # Initialize the combined CSV file with header (will be overwritten later)
-  : > "$COMBINED_CSV"
-fi
-# Flag for header capture
-HEADER_CAPTURED=false
 
 # Check if the given YAML file and directory exist
 if [ ! -f "$CONFIG_FILE" ]; then
@@ -138,12 +128,7 @@ MAIN_RUNS=$(awk '/main_runs:/{flag=1;next}/^[^ ]/{flag=0}flag' $CONFIG_FILE | se
 LIGHT_RUNS=$(awk '/light_runs:/{flag=1;next}/^[^ ]/{flag=0}flag' $CONFIG_FILE | sed 's/ - //g')
 
 total_lines=0
-if [ "$SUFFIX" == "main-match" ]; then
-  # Convert it to an array; assuming the elements are separated by newlines
-  for RUN in $MAIN_RUNS; do
-    ((total_lines++))
-  done
-elif [ "$SUFFIX" == "signal-fit" ]; then
+if [[ "$SUFFIX" == "main-match" || "$SUFFIX" == "signal-fit" || "$SUFFIX" == "vbd" ]]; then
   # Convert it to an array; assuming the elements are separated by newlines
   for RUN in $MAIN_RUNS; do
     ((total_lines++))
@@ -207,7 +192,7 @@ for RUN in $MAIN_RUNS; do
       COMMAND="$PYTHON3 $(dirname $0)/new_coordinates.py $(dirname $0)/test.csv $DIR_NAME/root positions_main_run"
       $PYTHON3 $(dirname $0)/new_coordinates.py $(dirname $0)/test.csv $DIR_NAME/root positions_main_run
     # Handle the new analysis type
-    elif [ "$ANALYSIS_TYPE" == "signal-parameters" ]; then
+    elif [ "$ANALYSIS_TYPE" == "signal-fit" ]; then
       # Construct the CSV directory path
       CSV_DIR="$DIR_NAME/csv"
 
@@ -217,6 +202,33 @@ for RUN in $MAIN_RUNS; do
         NUM_CSV_FILES=$(ls $CSV_DIR/*.csv 2>/dev/null | wc -l)
         if [ "$NUM_CSV_FILES" -ne 96 ]; then
           echo "Expected 96 CSV files in $CSV_DIR but found $NUM_CSV_FILES. for run $RUN Skipping..."
+          #continue
+        fi
+
+        # Merge the CSV files into the master CSV
+        for file in $CSV_DIR/*.csv; do
+          process_csv_file "$file" "$MASTER_CSV" "$HEADER_CAPTURED"
+          if ! $HEADER_CAPTURED; then
+          #  tail -n +2 $file >> $MASTER_CSV
+          #else
+          #  cat $file > $MASTER_CSV
+            HEADER_CAPTURED=true
+          fi
+        done
+      else
+        echo "CSV directory $CSV_DIR not found, skipping..."
+      fi
+    #fi
+    elif [ "$ANALYSIS_TYPE" == "vbd" ]; then
+      # Construct the CSV directory path
+      CSV_DIR="$DIR_NAME/csv"
+
+      # Check if directory exists
+      if [ -d "$CSV_DIR" ]; then
+        # Check if there are 96 CSV files
+        NUM_CSV_FILES=$(ls $CSV_DIR/*.csv 2>/dev/null | wc -l)
+        if [ "$NUM_CSV_FILES" -ne 1 ]; then
+          echo "Expected 1 CSV file in $CSV_DIR but found $NUM_CSV_FILES. for run $RUN Skipping..."
           #continue
         fi
 
