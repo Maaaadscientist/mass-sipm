@@ -89,10 +89,10 @@ ANALYSIS_TYPE=$3
 # List of allowed analysis types
 # Declare an associative array for analysis type to suffix mapping
 # Add new analysis type to the allowed types and its suffix
-ALLOWED_ANALYSIS_TYPES=("merge-root" "combine-csv" "main-position" "light-position" "signal-fit" "vbd")
+ALLOWED_ANALYSIS_TYPES=("merge-root" "combine-csv" "main-position" "light-position" "signal-fit" "vbd" "harvest")
 
 declare -A ANALYSIS_SUFFIXES
-ANALYSIS_SUFFIXES=(["merge-root"]="main-reff" ["combine-csv"]="main-match" ["main-position"]="main-match" ["light-position"]="light-match" ["signal-fit"]="signal-fit" ["vbd"]="vbd")
+ANALYSIS_SUFFIXES=(["merge-root"]="main-reff" ["combine-csv"]="main-match" ["main-position"]="main-match" ["light-position"]="light-match" ["signal-fit"]="signal-fit" ["vbd"]="vbd" ["harvest"]="signal-fit")
 
 # Check if the analysis type is allowed
 if [[ ! " ${ALLOWED_ANALYSIS_TYPES[@]} " =~ " ${ANALYSIS_TYPE} " ]]; then
@@ -111,7 +111,7 @@ fi
 SUFFIX=${ANALYSIS_SUFFIXES["$ANALYSIS_TYPE"]}
 
 DIRECTORY_PATH="$(realpath $2)/$SUFFIX"
-
+BASE_PATH="$(realpath $2)"
 # Check if the given YAML file and directory exist
 if [ ! -f "$CONFIG_FILE" ]; then
   echo "Config file '$CONFIG_FILE' not found."
@@ -164,6 +164,7 @@ for RUN in $MAIN_RUNS; do
   show_progress_bar $counter $total_lines
   # Construct the directory name
   DIR_NAME="${DIRECTORY_PATH}/main_run_${PADDED_RUN}"
+  DIR_NAME_VBD="${BASE_PATH}/vbd/main_run_${PADDED_RUN}"
 
   # Check if the directory exists
   if [ -d "$DIR_NAME" ]; then
@@ -242,6 +243,24 @@ for RUN in $MAIN_RUNS; do
             HEADER_CAPTURED=true
           fi
         done
+      else
+        echo "CSV directory $CSV_DIR not found, skipping..."
+      fi
+    #fi
+    elif [ "$ANALYSIS_TYPE" == "harvest" ]; then
+      # Construct the CSV directory path
+      CSV_DIR="$DIR_NAME/csv"
+      CSV_DIR2="$DIR_NAME_VBD/csv"
+      # Check if directory exists
+      if [ -d "$CSV_DIR" ]; then
+        # Check if there are 96 CSV files
+        NUM_CSV_FILES=$(ls $CSV_DIR/*.csv 2>/dev/null | wc -l)
+        if [ "$NUM_CSV_FILES" -ne 96 ]; then
+          echo "Expected 96 CSV files in $CSV_DIR but found $NUM_CSV_FILES. for run $RUN "
+          #continue
+        fi
+        $PYTHON3 $(dirname $0)/combine_two_csv.py $CSV_DIR $CSV_DIR2 run_${PADDED_RUN}.csv   
+        $PYTHON3 $(dirname $0)/csv2dataframe.py run_${PADDED_RUN}.csv run_${PADDED_RUN}.root
       else
         echo "CSV directory $CSV_DIR not found, skipping..."
       fi
