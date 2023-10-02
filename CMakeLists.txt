@@ -21,13 +21,16 @@ add_library(sipm-massive SHARED
   src/Logger.cc
   src/Options.cc
 )
+# Include the fast-cpp-csv-parser headers
+include_directories(${CMAKE_SOURCE_DIR}/external/rapidcsv/src)
+
 target_include_directories(sipm-massive PRIVATE include)
 target_link_libraries(sipm-massive
   PUBLIC yaml-cpp
   PUBLIC Boost::boost Boost::log Boost::program_options
   PUBLIC Boost::stacktrace_basic -rdynamic
   PUBLIC ROOT::Core ROOT::Hist ROOT::Tree
-  #${ROOT_LIBRARIES}
+  ${ROOT_LIBRARIES}
 )
 add_executable(scan src/scan.cc)
 target_include_directories(scan PRIVATE include)
@@ -48,3 +51,12 @@ target_link_libraries(store-waveform  PRIVATE sipm-massive)
 add_executable(skim-dcr src/dcr.cc)
 target_include_directories(skim-dcr PRIVATE include)
 target_link_libraries(skim-dcr  PRIVATE sipm-massive)
+
+add_executable(skim-ap src/ap.cc)
+target_include_directories(skim-ap PRIVATE include)
+target_link_libraries(skim-ap  PRIVATE sipm-massive)
+
+add_executable(new_dcr src/new_dcr.cc)
+target_include_directories(new_dcr PRIVATE include)
+target_link_libraries(new_dcr  PRIVATE sipm-massive)
+
