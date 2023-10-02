@@ -202,6 +202,7 @@ for position in range(16):
     df_tmp = pd.DataFrame()
  
     vbd_dict = []
+    ov_dict = []
     fitted_gain = []
     fitted_gain_err = []
     rob_vbd_dict = []
@@ -326,12 +327,14 @@ for position in range(16):
             slope_list.append(slope)
             slope_err_list.append(slope_err)
             vbd_dict.append(x_intercept)
+            ov_dict.append(48 + ov - x_intercept)
             vbd_err_dict.append(x_intercept_err)
             rob_vbd_dict.append(rob_x_intercept)
             rob_vbd_err_dict.append(rob_x_intercept_err)
 
         
     df_tmp['vbd'] = vbd_dict
+    df_tmp['ov'] = ov_dict
     df_tmp['vbd_err'] = vbd_err_dict
     df_tmp['fit_gain'] = fitted_gain
     df_tmp['fit_gain_err'] = fitted_gain_err
