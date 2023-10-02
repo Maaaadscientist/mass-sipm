@@ -96,14 +96,22 @@ def iqr(data):
     return iqr_value
 
 def process_args():
-    if len(sys.argv) < 4:
+    if len(sys.argv) < 5:
         print("Usage: python find_gaussian_peaks.py <input_file> <tree_name> <variable_name> <output_path>")
         sys.exit(1)
-    input_file = os.path.abspath(sys.argv[1])
-    tree_name = sys.argv[2]
-    variable_name = sys.argv[3]
-    output_path = sys.argv[4] if len(sys.argv) == 5 else f"results/main_run_{input_file.split('/')[-1].split('_')[2]}"
-    return input_file, tree_name, variable_name, output_path
+    if len(sys.argv) == 5:
+        input_file = os.path.abspath(sys.argv[1])
+        tree_name = sys.argv[2]
+        variable_name = sys.argv[3]
+        output_path = sys.argv[4] 
+        return [input_file, tree_name, variable_name, output_path]
+    elif len(sys.argv) == 6:
+        input_file = os.path.abspath(sys.argv[1])
+        tree_name = sys.argv[2]
+        variable_name = sys.argv[3]
+        output_path = sys.argv[4] 
+        csv_path = sys.argv[5] 
+        return [input_file, tree_name, variable_name, output_path, csv_path]
 
 def create_directories(output_path):
     for sub_dir in ["/csv", "/root"]:
@@ -125,7 +133,21 @@ def fetch_file_info(filename):
         return {}
 
 def main():
-    input_file, tree_name, variable_name, output_path = process_args()
+    if len(process_args()) == 4:
+        input_file, tree_name, variable_name, output_path = process_args()
+    elif len( process_args()) == 5:
+        input_file, tree_name, variable_name, output_path, csv_path = process_args()
+   
+    fix_parameters = False 
+    if len( process_args()) == 5:
+        file_path = csv_path
+        if os.path.isfile(file_path) and file_path.endswith(".csv"):
+            fix_parameters = True
+            print(f"{file_path} csv file exists!")
+        else:
+            print(f"{file_path} csv file does not exist!")
+    if fix_parameters:
+        df_params = pd.read_csv(csv_path)
     file_info = fetch_file_info(input_file.split("/")[-1])
     create_directories(output_path)
 
@@ -139,11 +161,27 @@ def main():
     tree = file1.Get(tree_name)
     n_entry = tree.GetEntries()
     combined_dict = defaultdict(list)
+    if os.path.isfile(f"{output_path}/csv/charge_fit_tile_ch{file_info.get('channel')}_ov{file_info.get('ov')}.csv"):
+        os.system(f"rm {output_path}/csv/charge_fit_tile_ch{file_info.get('channel')}_ov{file_info.get('ov')}.csv")
+    if os.path.isfile(f"{output_path}/root/charge_fit_tile_ch{file_info.get('channel')}_ov{file_info.get('ov')}.root"):
+        os.system(f"rm {output_path}/root/charge_fit_tile_ch{file_info.get('channel')}_ov{file_info.get('ov')}.root")
     output_file = ROOT.TFile(f"{output_path}/root/charge_fit_tile_ch{file_info.get('channel')}_ov{file_info.get('ov')}.root", "recreate") 
     sub_directory = output_file.mkdir(f"charge_fit_run_{run}")
     sub_directory.cd()
     ROOT.TVirtualFitter.SetDefaultFitter("Minuit2")
     for tile in range(16):
+        if fix_parameters:
+            filtered_df_params = df_params[(df_params['run'] == int(run)) & (df_params['pos'] == tile) & (df_params['ch'] == int(channel)) & (df_params['vol'] == int(ov))]
+
+            if len(filtered_df_params['gain'].tolist()) != 0:
+                gain_value = filtered_df_params.head(1)['gain'].values[0]
+                gain_err = filtered_df_params.head(1)['gain_err'].values[0]
+                sigma0_value = filtered_df_params.head(1)['sigma0'].values[0]
+                sigmak_value = filtered_df_params.head(1)['sigmak'].values[0]
+                a_value = filtered_df_params.head(1)['a'].values[0]
+                b_value = filtered_df_params.head(1)['b'].values[0]
+                c_value = filtered_df_params.head(1)['c'].values[0]
+
         tree.Draw(f"baselineQ_ch{tile}>>histogram{tile}")
         histogram = ROOT.gPad.GetPrimitive(f"histogram{tile}")
         baseline = histogram.GetMean()
@@ -234,8 +272,24 @@ def main():
         A = RooRealVar("A", "A", 2,0.01,10)
         B = RooRealVar("B", "B", 2,0.01,10)
         C = RooRealVar("C", "C", 2,0.01,10)
+        #if fix_parameters:
+        #    sigma0.setVal(sigma0_value)
+        #    sigmak.setVal(sigmak_value)
+        #    A.setVal(a_value)
+        #    B.setVal(b_value)
+        #    C.setVal(c_value)
+        #    sigma0.setConstant(ROOT.kTRUE)
+        #    sigmak.setConstant(ROOT.kTRUE)
+        #    A.setConstant(ROOT.kTRUE)
+        #    B.setConstant(ROOT.kTRUE)
+        #    C.setConstant(ROOT.kTRUE)
         ped = RooRealVar("ped", "ped", baseline, baseline - baseline_res *2, baseline + baseline_res * 2)
-        gain = RooRealVar("gain", "gain", distance, distance *0.8, distance *1.2)
+        if not fix_parameters:
+            gain = RooRealVar("gain", "gain", distance, distance *0.8, distance *1.2)
+        else:
+            gain = RooRealVar("gain", "gain", gain_value)
+            gain.setError(gain_err)
+            gain.setConstant(ROOT.kTRUE)
         
         for i in range(1,17):
             #globals()[f'sigma{i}'] = RooRealVar(f"sigma{i}", "sigma{i}", 5,1,10)
