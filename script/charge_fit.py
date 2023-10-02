@@ -186,6 +186,20 @@ def main():
         histogram = ROOT.gPad.GetPrimitive(f"histogram{tile}")
         baseline = histogram.GetMean()
         baseline_res = histogram.GetRMS()
+        
+        bin1 = histogram.GetXaxis().FindBin(- 3 * baseline_res);
+        bin2 = histogram.GetXaxis().FindBin(3 * baseline_res);
+        integral = histogram.Integral(bin1, bin2) / 0.9973;
+    
+        hist = ROOT.TH1F("hist","hist", int(num_bins), baseline - baseline_res * 5, baseline + float(x_max))
+        original_bin_width = (float(x_max) + baseline_res * 5) / num_bins
+        tree.Draw("{}>>hist".format(f'{variable_name}_ch{tile}'))
+        # Print the final result
+        canvas_peaks = ROOT.TCanvas("c1","c1", 800, 600)
+        spectrum = ROOT.TSpectrum()
+        n_peaks = spectrum.Search(hist, 0.2 , "", 0.05)
+        canvas_peaks.SetName(f"peak_finding_tile_{tile}_ch_{channel}_ov_{ov}")
+        canvas_peaks.Write()
         if baseline >= 5000 or baseline <= -5000 or baseline_res == 0 or baseline_res > 300:
             fit_info = {
                 'status': -2,
@@ -215,6 +229,10 @@ def main():
                 'gain_err': 0,  # Changed gain.getError() to gain_error
                 'chi2': 0,
                 'sigma0': 0,
+                'sigma1': 0,
+                'sigma2': 0,
+                'sigma3': 0,
+                'sigma4': 0,
                 'sigmak': 0,
                 'a': 0,
                 'b': 0,
@@ -232,20 +250,6 @@ def main():
             for key, value in fit_info.items():
                 combined_dict[key].append(value)
             continue
-        
-        bin1 = histogram.GetXaxis().FindBin(- 3 * baseline_res);
-        bin2 = histogram.GetXaxis().FindBin(3 * baseline_res);
-        integral = histogram.Integral(bin1, bin2) / 0.9973;
-    
-        hist = ROOT.TH1F("hist","hist", int(num_bins), baseline - baseline_res * 5, baseline + float(x_max))
-        original_bin_width = (float(x_max) + baseline_res * 5) / num_bins
-        tree.Draw("{}>>hist".format(f'{variable_name}_ch{tile}'))
-        # Print the final result
-        #canvas_peaks = ROOT.TCanvas("c1","c1", 1200, 800)
-        spectrum = ROOT.TSpectrum()
-        n_peaks = spectrum.Search(hist, 0.2 , "", 0.05)
-        #canvas_peaks.SetName(f"peak_finding_tile_{tile}_ch_{channel}_ov_{ov}")
-        #canvas_peaks.Write()
         peaks_tspectrum = []
         for i in range(n_peaks):
             peaks_tspectrum.append(float(spectrum.GetPositionX()[i]))
@@ -473,6 +477,10 @@ def main():
             'gain_err': float(gain_error),  # Changed gain.getError() to gain_error
             'chi2': chi2_ndf,
             'sigma0': float(sigma0.getVal()),
+            'sigma1': float(sigma1.getVal()),
+            'sigma2': float(sigma2.getVal()),
+            'sigma3': float(sigma3.getVal()),
+            'sigma4': float(sigma4.getVal()),
             'sigmak': float(sigmak.getVal()),
             'a': float(A.getVal()),
             'b': float(B.getVal()),
