@@ -36,8 +36,10 @@ if name_match:
     channel = int(name_match.group(4))
     sipm_type = name_match.group(5)
 
-if not os.path.isdir(output_path + "/pdf"):
-    os.makedirs(output_path + "/pdf")
+#if not os.path.isdir(output_path + "/pdf"):
+#    os.makedirs(output_path + "/pdf")
+if not os.path.isdir(output_path + "/root"):
+    os.makedirs(output_path + "/root")
 if not os.path.isdir(output_path + "/csv"):
     os.makedirs(output_path + "/csv")
 ##########################################################
@@ -48,12 +50,17 @@ f1 = ROOT.TFile(input_path)
 tree = f1.Get(tree_name)
 dcr_list = []
 dcr_err_list = []
+if os.path.isfile(f"{output_path}/root/dcr_fit_tile_ch{channel}_ov{ov}.root"):
+    os.system(f"rm {output_path}/root/dcr_fit_tile_ch{channel}_ov{ov}.root")
+output_file = ROOT.TFile(f"{output_path}/root/dcr_fit_tile_ch{channel}_ov{ov}", "recreate") 
+sub_directory = output_file.mkdir(f"dcr_fit_run_{run}")
+sub_directory.cd()
 for po in range(16):
-    gain = df.loc[  (df['channel'] == channel) & (df['position'] == po) & (df['voltage'] == ov)].head(1)["gain"].values[0]
-    lambda_ = df.loc[  (df['channel'] == channel) & (df['position'] == po) & (df['voltage'] == ov)].head(1)["lambda"].values[0]
-    events = df.loc[  (df['channel'] == channel) & (df['position'] == po) & (df['voltage'] == ov)].head(1)["events"].values[0]
-    sigma1_value = df.loc[  (df['channel'] == channel) & (df['position'] == po) & (df['voltage'] == ov)].head(1)["sigma1"].values[0]
-    sigma2_value = df.loc[  (df['channel'] == channel) & (df['position'] == po) & (df['voltage'] == ov)].head(1)["sigma2"].values[0]
+    gain = df.loc[  (df['ch'] == channel) & (df['pos'] == po) & (df['vol'] == ov)].head(1)["gain"].values[0]
+    lambda_ = df.loc[  (df['ch'] == channel) & (df['pos'] == po) & (df['vol'] == ov)].head(1)["lambda"].values[0]
+    events = df.loc[  (df['ch'] == channel) & (df['pos'] == po) & (df['vol'] == ov)].head(1)["events"].values[0]
+    sigma1_value = df.loc[  (df['ch'] == channel) & (df['pos'] == po) & (df['vol'] == ov)].head(1)["sigma1"].values[0]
+    sigma2_value = df.loc[  (df['ch'] == channel) & (df['pos'] == po) & (df['vol'] == ov)].head(1)["sigma2"].values[0]
 
     bkgPDF = ROOT.TH1F("bkgPDF","bkgPDF",int(gain * 2 + sigma2_value * 2 + 20), -20, gain * 2 + sigma2_value * 2)#ROOT.gPad.GetPrimitive("bkgPDF") 
     tree.Draw(f"bkgQ_ch{po}>>bkgPDF")
@@ -66,10 +73,10 @@ for po in range(16):
     sigma0 = ROOT.RooRealVar("sigma0", "sigma0", bkgPDF.GetRMS(), 0.1, bkgPDF.GetRMS() * 1.2)
     #pdf = ROOT.RooHistPdf("pdf", "Histogram PDF", ROOT.RooArgSet(sigQ), bkghist)
     pdf = ROOT.RooGaussian("pdf", "pdf", sigQ, mean0, sigma0)
-    mean1 = ROOT.RooRealVar("mean1", "mean1", gain, gain - 2, gain)
-    mean2 = ROOT.RooRealVar("mean2", "mean2", gain * 2, gain * 2 -4, gain * 2 )
-    sigma1 = ROOT.RooRealVar("sigma1", "sigma1", sigma1_value, sigma1_value * 0.8, sigma1_value * 1.1)
-    sigma2 = ROOT.RooRealVar("sigma2", "sigma2", sigma2_value, sigma2_value * 0.8, sigma2_value * 1.1)
+    mean1 = ROOT.RooRealVar("mean1", "mean1", gain)
+    mean2 = ROOT.RooRealVar("mean2", "mean2", gain * 2)
+    sigma1 = ROOT.RooRealVar("sigma1", "sigma1", sigma1_value, sigma1_value * 0.9, sigma1_value * 1.1)
+    sigma2 = ROOT.RooRealVar("sigma2", "sigma2", sigma2_value, sigma2_value * 0.9, sigma2_value * 1.1)
     gauss1 = ROOT.RooGaussian("gauss1", "gauss1", sigQ, mean1, sigma1)
     gauss2 = ROOT.RooGaussian("gauss2", "gauss2", sigQ, mean2, sigma2)
     
@@ -112,8 +119,6 @@ for po in range(16):
     # Create a normalization object for the Gaussian PDF
     # Calculate the total number of events predicted by the signal PDF
     canvas = ROOT.TCanvas("c1","c1", 1200, 800)
-    if po == 0:
-        canvas.Print(f"{output_path}/pdf/dcr_fit_tile_ch{channel}_ov{ov}.pdf[")
     # Divide the canvas into two asymmetric pads
     pad1 =ROOT.TPad("pad1","This is pad1",0.05,0.05,0.72,0.97);
     pad2 = ROOT.TPad("pad2","This is pad2",0.72,0.05,0.98,0.97);
@@ -162,12 +167,14 @@ for po in range(16):
     param_box.AddText(f"#sigma1 = {sigma1.getVal():.3f} #pm {sigma1.getError():.3f}")
     param_box.AddText(f"#sigma2 = {sigma2.getVal():.3f} #pm {sigma2.getError():.3f}")
     param_box.Draw("same")
-    canvas.Print(f"{output_path}/pdf/dcr_fit_tile_ch{channel}_ov{ov}.pdf")
+    #canvas.Print(f"{output_path}/pdf/dcr_fit_tile_ch{channel}_ov{ov}.pdf")
+    canvas.SetName("dcr_fit_pos_{po}_ch_{channel}_ov_{ov}")
+    canvas.Write()
     dcr_list.append((total_entries - fit_entries * coeff1.getVal()) / 144. / (1100 * 8e-9 * events))
     coeff_err = coeff2.getError() * (1 + generalized_poisson(1, 1, lambda_))
-    dcr_err_list.append(fit_entries * coeff_err / 144. / (1100 * 8e-9 * events))
+    dcr_err_list.append(np.sqrt(fit_entries**2 * coeff_err**2 + total_entries - fit_entries * coeff1.getVal()) / 144. / (1100 * 8e-9 * events))
 df['dcr'] = dcr_list
 df['dcr_err'] = dcr_err_list
 df.to_csv(f"{output_path}/csv/dcr_fit_tile_ch{channel}_ov{ov}.csv", index=False)
-canvas.Print(f"{output_path}/pdf/dcr_fit_tile_ch{channel}_ov{ov}.pdf]")
-    
+#canvas.Print(f"{output_path}/pdf/dcr_fit_tile_ch{channel}_ov{ov}.pdf]")
+output_file.Close()    
