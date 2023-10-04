@@ -29,7 +29,7 @@ target_link_libraries(sipm-massive
   PUBLIC yaml-cpp
   PUBLIC Boost::boost Boost::log Boost::program_options
   PUBLIC Boost::stacktrace_basic -rdynamic
-  PUBLIC ROOT::Core ROOT::Hist ROOT::Tree
+  PUBLIC ROOT::Core ROOT::Hist ROOT::Tree ROOT::RooFit ROOT::RooFitCore 
   ${ROOT_LIBRARIES}
 )
 add_executable(scan src/scan.cc)
