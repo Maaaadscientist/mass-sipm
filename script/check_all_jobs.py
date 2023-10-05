@@ -127,6 +127,27 @@ if choice == "Y":
         resubmit = "true"
     else:
         sys.exit("do nothing and exit")
+    if resubmit == "true":
+        choice3 = input("Keep jobs logs? (Y/N)): ").upper()
+        if choice3 == "Y":
+            keep_logs = "true"
+        elif choice3 == "N":
+            keep_logs = "false"
+    else:
+        keep_logs = "false"
+    
+    # Check if the user wants to resubmit jobs
+    if choice2 == "Y":
+        interactive = "true"
+        resubmit = "true"
+    elif choice2 == "A":
+        interactive = "false"
+        resubmit = "false"
+    elif choice2 == "R":
+        interactive = "false"
+        resubmit = "true"
+    else:
+        sys.exit("do nothing and exit")
     failed_jobs = ""
     for aFile in grouped_list:
         name_short = aFile.split("/")[-1].replace(".txt", "")
@@ -142,15 +163,10 @@ if choice == "Y":
             continue
         print(name_short) 
         # Define the command to execute the shell script
-        if analysis_type == "light-match-bootstrap":
-            command = f'./script/check_jobs_multi-thread.sh {threshold} {output_dir}/{analysis_type}/{name_short} {interactive} {file_type} {resubmit}'
-            print("Submitting jobs with multi-threading scripts!")
-        elif analysis_type == "signal-refit":
-            command = f'./script/check_jobs.sh {threshold} {output_dir}/signal-fit/{name_short} {interactive} {file_type} {resubmit}'
-            print("Submitting jobs with multi-threading scripts!")
+        if analysis_type == "signal-refit":
+            command = f'./script/check_jobs.sh {threshold} {output_dir}/signal-fit/{name_short} {interactive} {file_type} {resubmit} {keep_logs}'
         else:
-            command = f'./script/check_jobs.sh {threshold} {output_dir}/{analysis_type}/{name_short} {interactive} {file_type} {resubmit}'
-            print("Submitting jobs without multi-threading scripts!")
+            command = f'./script/check_jobs.sh {threshold} {output_dir}/{analysis_type}/{name_short} {interactive} {file_type} {resubmit} {keep_logs}'
         #print(command)
 
         # Execute the shell script

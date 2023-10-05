@@ -18,6 +18,7 @@ interactive_mode=${3:-true}
 file_type=$4
 
 resubmit_mode=${5:-false}
+keep_logs=${6:-false}
 # Get the list of "*.sh" files in the "jobs" directory
 script_files=$(find $directory/jobs -type f -name "*.sh" -printf "%f\n")
 
@@ -134,9 +135,19 @@ else
       echo "Directory added to PATH."
     fi
     # Loop through the array and resubmit jobs
+    if [[ $keep_logs == true ]]; then
+      # Check if the directory exists
+      if [[ ! -d "$directory/logs" ]]; then
+        mkdir -p "$directory/logs"
+      fi
+    fi
     for script_file in "${scripts_to_resubmit[@]}"; do
       #echo "Resubmitting job: $script_file"
-      hep_sub "$directory/jobs/$script_file" -o /dev/null -e /dev/null
+      if [[ $keep_logs == true ]]; then
+          hep_sub "$directory/jobs/$script_file" -o "$directory/logs" -e "$directory/logs"
+      else
+          hep_sub "$directory/jobs/$script_file" -o /dev/null -e /dev/null
+      fi
     done
   fi
 fi
