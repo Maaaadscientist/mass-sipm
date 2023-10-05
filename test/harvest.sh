@@ -259,8 +259,8 @@ for RUN in $MAIN_RUNS; do
           echo "Expected 96 CSV files in $CSV_DIR but found $NUM_CSV_FILES. for run $RUN "
           #continue
         fi
-        $PYTHON3 $(dirname $0)/combine_two_csv.py $CSV_DIR $CSV_DIR2 run_${PADDED_RUN}.csv   
-        $PYTHON3 $(dirname $0)/csv2dataframe.py run_${PADDED_RUN}.csv run_${PADDED_RUN}.root
+        $PYTHON3 $(dirname $0)/combine_two_csv.py $CSV_DIR $CSV_DIR2 harvests/csv/run_${PADDED_RUN}.csv   
+        $PYTHON3 $(dirname $0)/csv2dataframe.py harvests/csv/run_${PADDED_RUN}.csv harvests/root/run_${PADDED_RUN}.root
       else
         echo "CSV directory $CSV_DIR not found, skipping..."
       fi

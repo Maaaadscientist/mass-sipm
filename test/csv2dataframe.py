@@ -21,10 +21,13 @@ def column_to_list(rdf, column_name):
 def save_dataframe(csv_name, file_name = "dataframe.root", tree_name = "tree"):
     #print("Save to", f"{file_name}:{tree_name}" )
     # Write the dataframe to a ROOT file
-    df = ROOT.RDF.MakeCsvDataFrame(csv_name)
     try:
+        df = ROOT.RDF.MakeCsvDataFrame(csv_name)
         df.Snapshot(tree_name, file_name)
     except Exception as e:
+        harvest_path = "/".join(csv_name.split("/")[:-1])
+        with open(f"{harvest_path}/errors.log", "a+"):
+            file.write(csv_name + "\n")
         print(f"An error occurred while saving to {file_name}. Error: {e}")
 
 def csv_to_root_rdataframe(csv_file):
@@ -61,9 +64,9 @@ if __name__ == '__main__':
     csv_name = os.path.abspath(sys.argv[1])
     root_path =  os.path.abspath(sys.argv[2])
     output_dir = "/".join(root_path.split("/")[:-1])
-    print(output_dir)
+    #print(output_dir)
     if not os.path.isdir(output_dir):
-        print("make dir:", output_dir)
+        #print("make dir:", output_dir)
         os.makedirs(output_dir)
 
     ROOT.EnableImplicitMT() 

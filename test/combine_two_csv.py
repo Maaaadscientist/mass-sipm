@@ -52,9 +52,9 @@ def main():
     modified_csv_str = fill_empty_elements(csv_str)
     
     output_dir = "/".join(output_path.split("/")[:-1])
-    print(output_dir)
+    #print(output_dir)
     if not os.path.isdir(output_dir):
-        print("make dir:", output_dir)
+        # print("make dir:", output_dir)
         os.makedirs(output_dir)
     # Write to the output file
     with open(output_path, 'w') as f:
