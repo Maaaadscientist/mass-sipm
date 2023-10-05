@@ -2,14 +2,15 @@
 import os, sys
 
 if len(sys.argv) < 3:
-    print("Usage: python prepare_dcr_jobs.py <input_dir> <csv_dir> <output_dir>")
+    print("Usage: python prepare_signal_jobs.py <input_dir> <output_dir> <binary_path>")
 else:
    input_tmp = sys.argv[1]
-   csv_tmp = sys.argv[2]
-   output_tmp = sys.argv[3]
+   output_tmp = sys.argv[2]
+   binary_tmp = sys.argv[3]
 input_dir = os.path.abspath(input_tmp)
-csv_dir = os.path.abspath(csv_tmp)
 output_dir = os.path.abspath(output_tmp)
+binary_path = os.path.abspath(binary_tmp)
+parrent_path = "/".join(binary_path.split("/")[0:-2])
 run_info = input_dir.split("/")[-1]
 run_number = int(run_info.split("_")[-1])
 
@@ -30,8 +31,8 @@ for ch in range(1, 17):
         script += 'fi\n'
         script += 'cd $directory\n'
         script += 'sleep 3\n'
-        script += 'cp /workfs2/juno/wanghanwen/sipm-massive/script/dcr_fit.py .\n'
-        script += 'cp /workfs2/juno/wanghanwen/sipm-massive/env_lcg.sh .\n'
+        script += f'cp {parrent_path}/script/charge_fit.py .\n'
+        script += f'cp {parrent_path}/env_lcg.sh .\n'
         script += '. ./env_lcg.sh\n'
         script += 'python=$(which python3)\n'
         script += f'sipmgr={ch}\n'
@@ -40,17 +41,16 @@ for ch in range(1, 17):
         script += f'run_info="{run_info}"\n'
         script += f'run_number="{run_number}"\n'
         script += f'output_file="{output_dir}"\n'
-        script += f'csv_dir="{csv_dir}"\n'
         script += '# Construct the input filename\n'
         script += f'ov={ov}\n'
         script += 'input_file="${file_path}/root/${run_info}_ov_${ov}.00_sipmgr_$(printf "%02d" $sipmgr)_${root_type}.root"\n'
         script += '# Construct and execute the command\n'
-        script += 'charge_fit_command="$python dcr_fit.py ${input_file} dcr dcrQ ${csv_dir}/csv ${output_file}"\n'
+        script += 'charge_fit_command="$python charge_fit.py ${input_file} signal sigQ ${output_file}'+f' {parrent_path}/test/harvests/csv/run_{str(run_number).zfill(4)}.csv"\n'
         script += 'echo "Executing command: ${charge_fit_command}"\n'
         script += '$charge_fit_command\n'
         script += '\n'
         script += 'cd -\n'
-        with open(f'{output_dir}/jobs/dcr_fit_tile_ch{ch}_ov{ov}.sh','w') as file_tmp:
+        with open(f'{output_dir}/jobs/charge_fit_tile_ch{ch}_ov{ov}.sh','w') as file_tmp:
                 file_tmp.write(script)
 
 os.system(f"chmod +x {output_dir}/jobs/*.sh")

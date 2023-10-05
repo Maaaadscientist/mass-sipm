@@ -1,6 +1,7 @@
 import os, sys
 import re
 import pandas as pd
+import numpy as np
 import math
 import ROOT
 
@@ -45,7 +46,7 @@ if not os.path.isdir(output_path + "/csv"):
 ##########################################################
 df = pd.read_csv(f'{csv_path}/charge_fit_tile_ch{channel}_ov{ov}.csv')
 # Sort the DataFrame based on a specific column
-df = df.sort_values(by='position', ascending=True)
+df = df.sort_values(by='pos', ascending=True)
 f1 = ROOT.TFile(input_path)
 tree = f1.Get(tree_name)
 dcr_list = []
@@ -168,11 +169,11 @@ for po in range(16):
     param_box.AddText(f"#sigma2 = {sigma2.getVal():.3f} #pm {sigma2.getError():.3f}")
     param_box.Draw("same")
     #canvas.Print(f"{output_path}/pdf/dcr_fit_tile_ch{channel}_ov{ov}.pdf")
-    canvas.SetName("dcr_fit_pos_{po}_ch_{channel}_ov_{ov}")
+    canvas.SetName(f"dcr_fit_pos_{po}_ch_{channel}_ov_{ov}")
     canvas.Write()
     dcr_list.append((total_entries - fit_entries * coeff1.getVal()) / 144. / (1100 * 8e-9 * events))
     coeff_err = coeff2.getError() * (1 + generalized_poisson(1, 1, lambda_))
-    dcr_err_list.append(np.sqrt(fit_entries**2 * coeff_err**2 + total_entries - fit_entries * coeff1.getVal()) / 144. / (1100 * 8e-9 * events))
+    dcr_err_list.append(np.sqrt(fit_entries**2 * coeff_err**2 + fit_entries * coeff1.getVal()) / 144. / (1100 * 8e-9 * events))
 df['dcr'] = dcr_list
 df['dcr_err'] = dcr_err_list
 df.to_csv(f"{output_path}/csv/dcr_fit_tile_ch{channel}_ov{ov}.csv", index=False)

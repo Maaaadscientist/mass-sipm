@@ -43,7 +43,13 @@ elif analysis_type == "light-match-bootstrap":
 elif analysis_type == "dcr":
     runType = "main"
     binary_path = os.path.abspath("bin/skim-dcr")
+elif analysis_type == "new-dcr":
+    runType = "main"
+    binary_path = os.path.abspath("bin/new_dcr")
 elif analysis_type =="signal-fit":
+    runType = "main"
+    binary_path = os.path.abspath("script/charge_fit.py")
+elif analysis_type =="signal-refit":
     runType = "main"
     binary_path = os.path.abspath("script/charge_fit.py")
 elif analysis_type == "light-fit":
@@ -62,8 +68,11 @@ elif analysis_type == "vbd":
 elif analysis_type == "harvest":
     runType = "main"
     
+print(analysis_type, analysis_type == "signal-refit")
 if not os.path.isdir(f'{output_dir}/{analysis_type}'):
-    os.makedirs(f'{output_dir}/{analysis_type}')
+    if not (analysis_type == "signal-refit"):
+        os.makedirs(f'{output_dir}/{analysis_type}')
+        print("test")
 main_runs = []
 light_runs = []
 
@@ -118,6 +127,8 @@ for aFile in grouped_list:
     #os.system(f"python3 script/prepare_skim_jobs.py datasets/{aFile} {output_dir} {input_table}")
     if analysis_type == "signal-fit":
         subprocess.run(['python', 'script/prepare_signal_jobs.py', f'{output_dir}/main/{name_short}', f'{output_dir}/{analysis_type}/{name_short}', f'{binary_path}'])
+    elif analysis_type == "signal-refit":
+        subprocess.run(['python', 'script/prepare_refit_jobs.py', f'{output_dir}/main/{name_short}', f'{output_dir}/signal-fit/{name_short}', f'{binary_path}'])
     elif analysis_type == "dcr-fit":
         subprocess.run(['python', 'script/prepare_dcr_jobs.py', f'{output_dir}/dcr/{name_short}',f'{output_dir}/signal-fit/{name_short}', f'{output_dir}/{analysis_type}/{name_short}'])
     elif analysis_type == "light-fit":
@@ -130,6 +141,8 @@ for aFile in grouped_list:
         subprocess.run(['python', 'script/prepare_harvest_jobs.py', f'{output_dir}', f'{name_short}', f'{output_dir}/{analysis_type}/{name_short}'])
     elif analysis_type == "main" or analysis_type == "light" or analysis_type == "dcr":
         subprocess.run(['python', 'script/prepare_skim_jobs.py',f'datasets/{aFile}', f'{output_dir}/{analysis_type}', f'{binary_path}'])
+    elif analysis_type == 'new-dcr':
+        subprocess.run(['python', 'script/prepare_new_dcr_jobs.py',f'datasets/{aFile}', f'{output_dir}/{analysis_type}', f'{binary_path}', f'{output_dir}/signal-fit'])
     elif analysis_type == "light-match":
         subprocess.run(['python', 'script/prepare_match_jobs.py',f'datasets/{aFile}', f'{output_dir}/{analysis_type}', f'{binary_path}'])
     elif analysis_type == "main-match":

@@ -174,8 +174,10 @@ def main():
             filtered_df_params = df_params[(df_params['run'] == int(run)) & (df_params['pos'] == tile) & (df_params['ch'] == int(channel)) & (df_params['vol'] == int(ov))]
 
             if len(filtered_df_params['gain'].tolist()) != 0:
-                gain_value = filtered_df_params.head(1)['gain'].values[0]
-                gain_err = filtered_df_params.head(1)['gain_err'].values[0]
+                gain_value = filtered_df_params.head(1)['fit_gain'].values[0]
+                gain_value = filtered_df_params.head(1)['gain'].values[0] if gain_value == 0 else gain_value
+                gain_err = filtered_df_params.head(1)['fit_gain_err'].values[0]
+                gain_err = filtered_df_params.head(1)['gain_err'].values[0] if gain_err == 0 else gain_err
                 sigma0_value = filtered_df_params.head(1)['sigma0'].values[0]
                 sigmak_value = filtered_df_params.head(1)['sigmak'].values[0]
                 a_value = filtered_df_params.head(1)['a'].values[0]

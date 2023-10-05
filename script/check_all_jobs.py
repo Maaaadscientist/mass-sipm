@@ -35,6 +35,9 @@ elif analysis_type == "dcr":
 elif analysis_type =="signal-fit":
     runType = "main"
     file_type = "csv"
+elif analysis_type =="signal-refit":
+    runType = "main"
+    file_type = "csv"
 elif analysis_type =="light-fit":
     runType = "light"
     file_type = "pdf"
@@ -51,6 +54,9 @@ elif analysis_type =="mainrun-light-fit":
     runType = "main"
     file_type = "pdf"
 elif analysis_type == "dcr-fit":
+    runType = "main"
+    file_type = "csv"
+elif analysis_type == "new-dcr":
     runType = "main"
     file_type = "csv"
 elif analysis_type == "vbd":
@@ -138,6 +144,9 @@ if choice == "Y":
         # Define the command to execute the shell script
         if analysis_type == "light-match-bootstrap":
             command = f'./script/check_jobs_multi-thread.sh {threshold} {output_dir}/{analysis_type}/{name_short} {interactive} {file_type} {resubmit}'
+            print("Submitting jobs with multi-threading scripts!")
+        elif analysis_type == "signal-refit":
+            command = f'./script/check_jobs.sh {threshold} {output_dir}/signal-fit/{name_short} {interactive} {file_type} {resubmit}'
             print("Submitting jobs with multi-threading scripts!")
         else:
             command = f'./script/check_jobs.sh {threshold} {output_dir}/{analysis_type}/{name_short} {interactive} {file_type} {resubmit}'
