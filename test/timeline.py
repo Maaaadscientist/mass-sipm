@@ -8,7 +8,8 @@ from sshtunnel import SSHTunnelForwarder
 ssh_host = '202.38.128.236'
 ssh_port = 22
 ssh_user = 'shifter'
-ssh_private_key = "/afs/ihep.ac.cn/users/w/wanghanwen/.ssh/id_rsa"
+#ssh_private_key = "/afs/ihep.ac.cn/users/w/wanghanwen/.ssh/id_rsa"
+ssh_private_key = "/Users/wanghanwen/.ssh/id_rsa"
 
 # MySQL configurations
 mysql_host = '202.38.128.236'
@@ -22,6 +23,8 @@ my_pkey = paramiko.RSAKey(filename=ssh_private_key)
 
 invalid_light_runs = [262, 270]
 invalid_main_runs = []
+special_light_runs = {263: 89, 264: 89}
+special_main_runs = {}  # No special main runs provided, but you can fill this if required.
 # Function to find rows to drop based on ID
 
 def find_rows_to_drop(df, id_column, type_column, invalid_light_runs, invalid_main_runs):
@@ -53,6 +56,14 @@ def find_rows_to_drop(df, id_column, type_column, invalid_light_runs, invalid_ma
             
     return indices_to_drop
 
+# Compute the signal time length
+def compute_signal_time_length(row):
+    if row['type'] == 'light' and row['id'] in special_light_runs:
+        return special_light_runs[row['id']]
+    elif row['type'] == 'main' and row['id'] in special_main_runs:
+        return special_main_runs[row['id']]
+    else:
+        return 64 if row['type'] == 'light' else 192
 
 # Create an SSH tunnel
 with SSHTunnelForwarder(
@@ -102,12 +113,13 @@ with SSHTunnelForwarder(
     #indices_to_drop_light = find_rows_to_drop(df_light, 'lsid')
 
     # Add a column for the signal time length
-    df_combined['signal_time_length'] = df_combined['type'].apply(lambda x: 64 if x == 'light' else 192)
+    #df_combined['signal_time_length'] = df_combined['type'].apply(lambda x: 64 if x == 'light' else 192)
+    df_combined['signal_time_length'] = df_combined.apply(compute_signal_time_length, axis=1)
     
     # Compute a running sum of signal time for all types of runs
     df_combined['total_time'] = df_combined['signal_time_length'].cumsum() - df_combined['signal_time_length']
 
     # Write to CSV file or display
-    df_combined.to_csv('combined_log.csv', index=False)
+    df_combined.to_csv('timeline.csv', index=False)
     print(df_combined)
 
