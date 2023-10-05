@@ -313,7 +313,7 @@ int main(int argc, char **argv) {
         int pass = 13;
         fseek(fp, sizeof(word) *  pass ,SEEK_CUR);
         offset += pass;
-        for (int ch = 0; ch < 5 ; ch ++) {
+        for (int ch = 0; ch < 16 ; ch ++) {
            //if (ch != 0) continue;
            fread(&word,sizeof(word),1,fp);
            //std::cout << std::hex << "0x" << std::setw(8) << std::setfill('0') << word << std::dec << std::endl;
@@ -415,11 +415,11 @@ int main(int argc, char **argv) {
            delete fft;
         }
     }
-    TFile *f_out = new TFile("testDCR.root", "recreate");
+    //TFile *f_out = new TFile("testDCR.root", "recreate");
     TString formula = "(mu * TMath::Power((mu + 1 * lambda), 1-1) * TMath::Exp(-(mu + 1 * lambda)) / 1) * (1/sigma1 * TMath::Exp(- TMath::Power(sigQ - (ped + 1 * gain), 2)/(2 * TMath::Power(sigma1, 2))))+ (mu * TMath::Power((mu + 2 * lambda), 2-1) * TMath::Exp(-(mu + 2 * lambda)) / 2) * (1/sigma2 * TMath::Exp(- TMath::Power(sigQ - (ped + 2 * gain), 2)/(2 * TMath::Power(sigma2, 2))))+ (mu * TMath::Power((mu + 3 * lambda), 3-1) * TMath::Exp(-(mu + 3 * lambda)) / 6) * (1/sigma3 * TMath::Exp(- TMath::Power(sigQ - (ped + 3 * gain), 2)/(2 * TMath::Power(sigma3, 2))))+ (mu * TMath::Power((mu + 4 * lambda), 4-1) * TMath::Exp(-(mu + 4 * lambda)) / 24) * (1/sigma4 * TMath::Exp(- TMath::Power(sigQ - (ped + 4 * gain), 2)/(2 * TMath::Power(sigma4, 2))))"; 
     
-    //else csv_path = outputName + "/Run" + std::to_string(runNumber) + "_Point"+ std::to_string(point) + ".csv";
-    std::string csv_path = "output_test.csv";
+    std::string csv_path = outputName;//+ "/run" + std::to_string(run_vec[0]) + "_ch"+ std::to_string(ch_vec[0]) + ".csv";
+    //std::string csv_path = "output_test.csv";
     // Check if file exists and its size is greater than zero
     bool writeHeader = !(fileExists(csv_path) && std::ifstream(csv_path).peek() != std::ifstream::traits_type::eof());
 
@@ -427,17 +427,17 @@ int main(int argc, char **argv) {
     if(csvFile.is_open()){
         // Write the header
         if (writeHeader) {
-            csvFile << "run,ch,pos,dcr,dcr_err";
+            csvFile << "run,ch,pos,vol,dcr,dcr_err";
             csvFile << "\n";
         }
     
         for (int i = 0; i < numHistograms; ++i) {
-            dcr[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
-            dcr_n[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
-            dcr_bl_up[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
-            dcr_n_bl_up[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
-            dcr_bl_down[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
-            dcr_n_bl_down[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
+            //dcr[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
+            //dcr_n[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
+            //dcr_bl_up[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
+            //dcr_n_bl_up[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
+            //dcr_bl_down[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
+            //dcr_n_bl_down[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
             auto sigQ = RooRealVar("sigQ", "sigQ", 0, gain_vec[i] * 4 + 5 * sigma4_vec[i]);
             sigQ.setRange("integrationRange", gain_vec[i], gain_vec[i] * 4 + 5 * sigma4_vec[i]);
             auto lambda_ = RooRealVar("lambda", "lambda", lambda_vec[i]);
@@ -500,6 +500,10 @@ int main(int argc, char **argv) {
             auto rate_err_bl_up = dcr_events_err_bl_up / 144. / (1155 * 8e-9 * events) / cumulativeProbability;
             auto rate_err_bl_down = dcr_events_err_bl_down / 144. / (1155 * 8e-9 * events) / cumulativeProbability;
             auto rate_err_all = rate * TMath::Sqrt(TMath::Power(rate_err/ rate, 2) + TMath::Power(rel_norm_factor_err, 2));
+            if (rate < 0) {
+                rate = 0;
+                rate_err_all = fabs(rate_err_all);
+            }
             std::cout << "events" <<  events << std::endl;
             std::cout << "CMF" <<  cumulativeProbability << std::endl;
             std::cout << rate << "+-" << rate_err_stat << "\t" << "Hz/mm for pos" << i <<std::endl;
@@ -512,14 +516,15 @@ int main(int argc, char **argv) {
             csvFile << run_vec[i] << ","
                     << ch_vec[i] << ","
                     << pos_vec[i] << ","
+                    << vol_vec[i] << ","
                     << rate << ","
-                    << rate_err_all << ","
+                    << rate_err_all
                     << "\n";
         }
         csvFile.close();
     }
 
-    f_out->Close();
+    //f_out->Close();
     return 0;
 }
 
