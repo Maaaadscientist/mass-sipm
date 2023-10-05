@@ -457,8 +457,10 @@ int main(int argc, char **argv) {
             // Given means and standard deviations for lambda and gain
             double lambda_mean = lambda_vec[i];
             double lambda_std = lambda_err_vec[i];  // Adjust accordingly
+            if abs(lambda_std * 10 > lambda_mean) lambda_std = lambda_mean * 0.1; //maximum 10% uncertainty
             double gain_mean = gain_vec[i]; // Adjust accordingly
-            double gain_std = 0.01 * gain_vec[i]; //gain_err_vec[i];  // Adjust accordingly
+            double gain_std = gain_err_vec[i];  // Adjust accordingly
+            if abs(gain_std * 10 > gain_mean) gain_std == gain_mean * 0.1; //maximum 10% uncertainty
 
             TRandom3 randGen;
             std::vector<double> bootstrap_integral_values;
