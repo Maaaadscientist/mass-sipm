@@ -64,47 +64,51 @@ def ch_to_8x8(ch):
 def combine_uncertainties_in_quadrature(uncertainties):
     return np.sqrt(sum([u**2 for u in uncertainties]))
 
-def predict_for_predefined_points(run_type, run_id, pos):
+def predict_for_predefined_points(run_type, run_id):
     structured_data = loading_structured_data("timeline.csv", "mu_timeline.csv")
-    
-    points = structured_data[run_type][run_id][pos]
-    x_data = np.array([coord[0] for coord in points.keys()])
-    y_data = np.array([coord[1] for coord in points.keys()])
-    z_data = np.array(list(points.values()))
-
     base_coords_indices = get_points_from_yaml("../config/design-parameters2.yaml")
-    base_uncertainties = {}
-    mu_unc_dict = {}
-    for (x_query, y_query), (x_index, y_index) in base_coords_indices:
-        _, z_std = get_kriging_prediction(round(x_query,1), round(y_query,1), x_data, y_data, z_data)
-        base_uncertainties[(x_index, y_index)] = z_std
-        mu_unc = points[(x_query, y_query)]
-        mu_unc_dict[(x_index, y_index)] = mu_unc
-
     query_coords_indices = get_points_from_yaml("../config/design-parameters.yaml")
-    query_uncertainties = {}
-    for (x_query, y_query), (x_index, y_index) in query_coords_indices:
-        z_pred, z_std = get_kriging_prediction(round(x_query,1), round(y_query,1), x_data, y_data, z_data)
-        corrected_std = z_std - base_uncertainties[(x_index, y_index)]
-        
-        query_uncertainties[(x_index, y_index)] = (z_pred, corrected_std)
-        
-    for ch in range(1, 17):  # channels from 1 to 16
-        points_for_ch = ch_to_8x8(ch)
-        z_values = []
-        uncertainties = []
-        for point in points_for_ch:
-            x_index, y_index = point
-            z_pred, corrected_std = query_uncertainties[(x_index, y_index)]
-            mu_std = mu_unc_dict[(x_index, y_index)]
-            z_values.append(z_pred)
-            uncertainties.append(np.sqrt(corrected_std**2 + mu_std[1]**2))
-            #uncertainties.append(corrected_std)
-        
-        avg_z = sum(z_values)
-        combined_uncertainty = combine_uncertainties_in_quadrature(uncertainties) # A simple average for now, can be adjusted if needed
-        
-        print(f"Channel {ch}: Predicted z = {avg_z}, Combined Uncertainty = {combined_uncertainty}")
+    
+    csv_lines = "run,pos,ch,ref_mu,ref_mu_err\n"
+    for pos in range(1,17):
+        points = structured_data[run_type][run_id][pos]
+        x_data = np.array([coord[0] for coord in points.keys()])
+        y_data = np.array([coord[1] for coord in points.keys()])
+        z_data = np.array(list(points.values()))
+
+        base_uncertainties = {}
+        mu_unc_dict = {}
+        for (x_query, y_query), (x_index, y_index) in base_coords_indices:
+            _, z_std = get_kriging_prediction(round(x_query,1), round(y_query,1), x_data, y_data, z_data)
+            base_uncertainties[(x_index, y_index)] = z_std
+            mu_unc = points[(x_query, y_query)]
+            mu_unc_dict[(x_index, y_index)] = mu_unc
+
+        query_uncertainties = {}
+        for (x_query, y_query), (x_index, y_index) in query_coords_indices:
+            z_pred, z_std = get_kriging_prediction(round(x_query,1), round(y_query,1), x_data, y_data, z_data)
+            corrected_std = z_std - base_uncertainties[(x_index, y_index)]
+            
+            query_uncertainties[(x_index, y_index)] = (z_pred, corrected_std)
+            
+        for ch in range(1, 17):  # channels from 1 to 16
+            points_for_ch = ch_to_8x8(ch)
+            z_values = []
+            uncertainties = []
+            for point in points_for_ch:
+                x_index, y_index = point
+                z_pred, corrected_std = query_uncertainties[(x_index, y_index)]
+                mu_std = mu_unc_dict[(x_index, y_index)]
+                z_values.append(z_pred)
+                uncertainties.append(np.sqrt(corrected_std**2 + mu_std[1]**2))
+                #uncertainties.append(corrected_std)
+            
+            avg_z = sum(z_values)
+            combined_uncertainty = combine_uncertainties_in_quadrature(uncertainties) # A simple average for now, can be adjusted if needed
+            csv_lines += f"{run_id},{pos},{ch},{avg_z},{combined_uncertainty}\n"
+            print(f"Channel {ch}: Predicted z = {avg_z}, Combined Uncertainty = {combined_uncertainty}")
+        with open(f"reffmu_{run_type}_run_{run_id}.csv", "w") as csv_file:
+            csv_file.write(csv_lines)
 
 def loading_structured_data(timeline_path, mu_path):
     timeline_data = read_csv(timeline_path)
@@ -214,7 +218,7 @@ def interpolate_and_store(run_type, run_id, method='krige', variogram_model='lin
     #        interpolated_data[run_type][run_id] = {}
     # Initialize the ROOT file for storing TGraph2D objects
 
-    filename = f"preciseMap_runtype_{run_type}_runid_{run_id}.root"
+    filename = f"preciseMap_{run_type}_run_{run_id}.root"
     file_lightmap = ROOT.TFile(filename, "recreate")
     x_grid = np.arange(x_start, x_end + x_step, x_step)
     y_grid = np.arange(y_start, y_end + y_step, y_step)
@@ -280,8 +284,7 @@ if __name__ == "__main__":
     #interpolate_and_store(run_type_input, run_id_input, 'krige', 'linear')
     run_type_input = input("Enter run type (light/main): ")
     run_id_input = input("Enter run id: ")
-    pos_input = int(input("Enter position: "))
-    predict_for_predefined_points(run_type_input, run_id_input, pos_input)
+    predict_for_predefined_points(run_type_input, run_id_input)
     interpolate_and_store(run_type_input, run_id_input, 'krige', 'linear')
 
 
