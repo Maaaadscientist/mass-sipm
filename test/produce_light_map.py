@@ -287,10 +287,10 @@ if __name__ == "__main__":
     output_path = os.path.abspath(sys.argv[2])
     if len(sys.argv) > 3:
         run_type_input = str(sys.argv[3])
-        run_id_input = str(sys.argv[4])
+        run_id_input = str(int(sys.argv[4]))
     else:
-        run_type_input = input("Enter run type (light/main): ")
-        run_id_input = input("Enter run id: ")
+        run_type_input = str(input("Enter run type (light/main): "))
+        run_id_input = str(int(input("Enter run id: ")))
     if not "." in output_path.split("/")[-1]:
         output_path_dir = output_path
     else:

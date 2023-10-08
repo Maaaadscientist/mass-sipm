@@ -89,10 +89,10 @@ ANALYSIS_TYPE=$3
 # List of allowed analysis types
 # Declare an associative array for analysis type to suffix mapping
 # Add new analysis type to the allowed types and its suffix
-ALLOWED_ANALYSIS_TYPES=("merge-root" "combine-csv" "main-position" "light-position" "signal-fit" "vbd" "harvest")
+ALLOWED_ANALYSIS_TYPES=("merge-root" "combine-csv" "main-position" "light-position" "signal-fit" "vbd" "harvest" "produce-map")
 
 declare -A ANALYSIS_SUFFIXES
-ANALYSIS_SUFFIXES=(["merge-root"]="main-reff" ["combine-csv"]="main-match" ["main-position"]="main-match" ["light-position"]="light-match" ["signal-fit"]="signal-fit" ["vbd"]="vbd" ["harvest"]="signal-fit")
+ANALYSIS_SUFFIXES=(["merge-root"]="main-reff" ["combine-csv"]="main-match" ["main-position"]="main-match" ["light-position"]="light-match" ["signal-fit"]="signal-fit" ["vbd"]="vbd" ["harvest"]="signal-fit" ["produce-map"]="produce-map")
 
 # Check if the analysis type is allowed
 if [[ ! " ${ALLOWED_ANALYSIS_TYPES[@]} " =~ " ${ANALYSIS_TYPE} " ]]; then
@@ -118,22 +118,22 @@ if [ ! -f "$CONFIG_FILE" ]; then
   exit 1
 fi
 
-if [ ! -d "$DIRECTORY_PATH" ]; then
-  echo "Directory '$DIRECTORY_PATH' not found."
-  exit 1
-fi
+#if [ ! -d "$DIRECTORY_PATH" ]; then
+#  echo "Directory '$DIRECTORY_PATH' not found."
+#  exit 1
+#fi
 
 # Extract the main_runs array from the YAML file using awk and sed
 MAIN_RUNS=$(awk '/main_runs:/{flag=1;next}/^[^ ]/{flag=0}flag' $CONFIG_FILE | sed 's/ - //g')
 LIGHT_RUNS=$(awk '/light_runs:/{flag=1;next}/^[^ ]/{flag=0}flag' $CONFIG_FILE | sed 's/ - //g')
 
 total_lines=0
-if [[ "$SUFFIX" == "main-match" || "$SUFFIX" == "signal-fit" || "$SUFFIX" == "vbd" ]]; then
+if [[ "$SUFFIX" == "main-match" || "$SUFFIX" == "signal-fit" || "$SUFFIX" == "vbd" || "$ANALYSIS_TYPE" == "produce-map" ]]; then
   # Convert it to an array; assuming the elements are separated by newlines
   for RUN in $MAIN_RUNS; do
     ((total_lines++))
   done
-elif [ "$SUFFIX" == "light-match" ]; then
+elif [ "$SUFFIX" == "light-match" || "$ANALYSIS_TYPE" == "produce-map" ]; then
   for RUN in $LIGHT_RUNS; do
     ((total_lines++))
   done
@@ -167,7 +167,7 @@ for RUN in $MAIN_RUNS; do
   DIR_NAME_VBD="${BASE_PATH}/vbd/main_run_${PADDED_RUN}"
 
   # Check if the directory exists
-  if [ -d "$DIR_NAME" ]; then
+  if [[ -d "$DIR_NAME" || "$ANALYSIS_TYPE" == "produce-map" ]]; then
     # Execute your commands here
     # For demonstration, I'm just printing the directory name
     if [ "$ANALYSIS_TYPE" == "merge-root" ]; then
@@ -264,12 +264,16 @@ for RUN in $MAIN_RUNS; do
       else
         echo "CSV directory $CSV_DIR not found, skipping..."
       fi
+    elif [ "$ANALYSIS_TYPE" == "produce-map" ]; then
+      COMMAND="$PYTHON3 $(dirname $0)/produce_light_map.py $(dirname $0)/../config/produce_light_map.yaml $(dirname $0)/map_outputs main ${RUN}"
+      $PYTHON3 $(dirname $0)/produce_light_map.py $(dirname $0)/../config/produce_light_map.yaml $(dirname $0)/map_outputs main ${RUN}
     fi
     # cd $DIR_NAME
     # Your commands here
   else
     echo "Directory $DIR_NAME not found, skipping..."
   fi
+  
 done
 
 # Initialize the last update time to 0
@@ -293,18 +297,16 @@ for RUN in $LIGHT_RUNS; do
   # Construct the directory name
   DIR_NAME="${DIRECTORY_PATH}/light_run_${PADDED_RUN}"
 
-  # Check if the directory exists
-  if [ -d "$DIR_NAME" ]; then
-    # Execute your commands here
-    # For demonstration, I'm just printing the directory name
-    if [ "$ANALYSIS_TYPE" == "light-position" ]; then
-      COMMAND="$PYTHON3 $(dirname $0)/new_coordinates.py $(dirname $0)/../datasets/lightRunPositions/light_run_${RUN}.csv $DIR_NAME/root positions_light_run"
-      $PYTHON3 $(dirname $0)/new_coordinates.py $(dirname $0)/../datasets/lightRunPositions/light_run_${RUN}.csv $DIR_NAME/root positions_light_run
-    fi
-    # cd $DIR_NAME
-    # Your commands here
-  else
-    echo "Directory $DIR_NAME not found, skipping..."
+  # Execute your commands here
+  # For demonstration, I'm just printing the directory name
+  if [ "$ANALYSIS_TYPE" == "light-position" ]; then
+    COMMAND="$PYTHON3 $(dirname $0)/new_coordinates.py $(dirname $0)/../datasets/lightRunPositions/light_run_${RUN}.csv $DIR_NAME/root positions_light_run"
+    $PYTHON3 $(dirname $0)/new_coordinates.py $(dirname $0)/../datasets/lightRunPositions/light_run_${RUN}.csv $DIR_NAME/root positions_light_run
+  elif [ "$ANALYSIS_TYPE" == "produce-map" ]; then
+    COMMAND="$PYTHON3 $(dirname $0)/produce_light_map.py $(dirname $0)/../config/produce_light_map.yaml $(dirname $0)/map_outputs light ${RUN}"
+    $PYTHON3 $(dirname $0)/produce_light_map.py $(dirname $0)/../config/produce_light_map.yaml $(dirname $0)/map_outputs light ${RUN}
   fi
+  # cd $DIR_NAME
+  # Your commands here
 done
 
