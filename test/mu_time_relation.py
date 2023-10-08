@@ -157,7 +157,7 @@ for x in new_x_grid:
                 plt.text(row['total_time'], row['mu_value'], f"{row['run_id']}, {row['run_type']}", fontsize=8)
             
             # Annotating the plot with regression parameters
-            params_text = f"Slope (m): {slope * 1e4:.2e}\nIntercept (b): {intercept:.2f}\n$\chi^2$: {chi2:.2e}ndof\n: {ndf}"
+            params_text = f"Slope (m): {slope * 1e4:.2e}\nIntercept (b): {intercept:.2f}\n$\chi^2$: {chi2:.2e}\nndof: {ndf}"
             plt.annotate(params_text, xy=(0.03, 0.75), xycoords='axes fraction', bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="aliceblue"))
 
             #print(f"Slope (m): {slope} +- {slope_err}")
@@ -175,15 +175,15 @@ for x in new_x_grid:
             plt.xticks(locs, new_labels)  # Set new tick labels
             
             # Update the x-axis label to reflect the change in units
-            plt.xlabel('Waveforms (in 2.6e8)')
+            plt.xlabel('Events (in 2.6e8)')
             plt.ylabel('Y-axis label')
             plt.legend(loc='lower right')
             plt.savefig(f"outputs/point_x{int(x+1e-8)}_y{int(y)}_index{index}.pdf")
             plt.clf()
-            csv_data.append([x, y, index, slope, intercept, np.sqrt(chi2/ndf)])
+            csv_data.append([x, y, index, slope, intercept, np.sqrt(chi2/ndf), ndf + 2])
 
 # Convert the list to a DataFrame
-csv_df = pd.DataFrame(csv_data, columns=['x', 'y', 'index', 'slope', 'intercept', 'mu_unc'])
+csv_df = pd.DataFrame(csv_data, columns=['x', 'y', 'pos', 'slope', 'intercept', 'mu_unc', 'nPoints'])
 
 # Export the DataFrame to a CSV file
-csv_df.to_csv('new_output.csv', index=False)
+csv_df.to_csv('mu_timeline.csv', index=False)
