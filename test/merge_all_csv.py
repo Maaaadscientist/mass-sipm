@@ -2,7 +2,7 @@ import os
 import pandas as pd
 
 # Read the log file
-log_df = pd.read_csv("combined_log.csv")
+log_df = pd.read_csv("timeline.csv")
 
 # Initialize an empty DataFrame to store the final data
 final_df = pd.DataFrame(columns=['run_type', 'run_id', 'point', 'new_x', 'new_y', 'total_time'])

@@ -307,10 +307,11 @@ if __name__ == "__main__":
         pde_measure_design_file = yaml_config["pde_measure_design_file"]
     # Suppress RuntimeWarnings for invalid values encountered in sqrt
     warnings.simplefilter("ignore")
-    predict_for_predefined_points(run_type_input, run_id_input, 
-                                  mu_csv_file, timeline_file, 
-                                  logic_design_file, pde_measure_design_file, 
-                                  output_path_dir)
+    if run_type_input == "main":
+        predict_for_predefined_points(run_type_input, run_id_input, 
+                                      mu_csv_file, timeline_file, 
+                                      logic_design_file, pde_measure_design_file, 
+                                      output_path_dir)
     interpolate_and_store(run_type_input, run_id_input, 
                           mu_csv_file, timeline_file, 
                           output_path_dir, 'krige', 'linear')

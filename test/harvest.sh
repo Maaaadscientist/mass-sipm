@@ -133,7 +133,8 @@ if [[ "$SUFFIX" == "main-match" || "$SUFFIX" == "signal-fit" || "$SUFFIX" == "vb
   for RUN in $MAIN_RUNS; do
     ((total_lines++))
   done
-elif [ "$SUFFIX" == "light-match" || "$ANALYSIS_TYPE" == "produce-map" ]; then
+fi
+if [[ "$SUFFIX" == "light-match" || "$ANALYSIS_TYPE" == "produce-map" ]]; then
   for RUN in $LIGHT_RUNS; do
     ((total_lines++))
   done
@@ -265,8 +266,8 @@ for RUN in $MAIN_RUNS; do
         echo "CSV directory $CSV_DIR not found, skipping..."
       fi
     elif [ "$ANALYSIS_TYPE" == "produce-map" ]; then
-      COMMAND="$PYTHON3 $(dirname $0)/produce_light_map.py $(dirname $0)/../config/produce_light_map.yaml $(dirname $0)/map_outputs main ${RUN}"
-      $PYTHON3 $(dirname $0)/produce_light_map.py $(dirname $0)/../config/produce_light_map.yaml $(dirname $0)/map_outputs main ${RUN}
+      COMMAND="$PYTHON3 $(dirname $0)/produce_light_map.py $(dirname $0)/../config/produce_light_map.yaml $(dirname $0)/corrected_map_outputs main ${RUN}"
+      $PYTHON3 $(dirname $0)/produce_light_map.py $(dirname $0)/../config/produce_light_map.yaml $(dirname $0)/corrected_map_outputs main ${RUN}
     fi
     # cd $DIR_NAME
     # Your commands here
@@ -277,7 +278,7 @@ for RUN in $MAIN_RUNS; do
 done
 
 # Initialize the last update time to 0
-last_update_time=0
+#last_update_time=0
 for RUN in $LIGHT_RUNS; do
   # Zero-pad the run number to form the directory name
   # PADDED_RUN=$(printf "%04d" $RUN 2>/dev/null)
@@ -303,8 +304,8 @@ for RUN in $LIGHT_RUNS; do
     COMMAND="$PYTHON3 $(dirname $0)/new_coordinates.py $(dirname $0)/../datasets/lightRunPositions/light_run_${RUN}.csv $DIR_NAME/root positions_light_run"
     $PYTHON3 $(dirname $0)/new_coordinates.py $(dirname $0)/../datasets/lightRunPositions/light_run_${RUN}.csv $DIR_NAME/root positions_light_run
   elif [ "$ANALYSIS_TYPE" == "produce-map" ]; then
-    COMMAND="$PYTHON3 $(dirname $0)/produce_light_map.py $(dirname $0)/../config/produce_light_map.yaml $(dirname $0)/map_outputs light ${RUN}"
-    $PYTHON3 $(dirname $0)/produce_light_map.py $(dirname $0)/../config/produce_light_map.yaml $(dirname $0)/map_outputs light ${RUN}
+    COMMAND="$PYTHON3 $(dirname $0)/produce_light_map.py $(dirname $0)/../config/produce_light_map.yaml $(dirname $0)/corrected_map_outputs light ${RUN}"
+    $PYTHON3 $(dirname $0)/produce_light_map.py $(dirname $0)/../config/produce_light_map.yaml $(dirname $0)/corrected_map_outputs light ${RUN}
   fi
   # cd $DIR_NAME
   # Your commands here

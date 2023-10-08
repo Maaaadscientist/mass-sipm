@@ -172,13 +172,16 @@ for index, row in combined_df.iterrows():
         new_y = y
 
     if runType == "light":
-        new_x_grid = [0, 3.07, 9.07, 15.07, 21.07, 27.07, 33.07, 39.07, 45.07, 51.07, 57.07, 63.07, 69.07]
+        new_x_grid = [0, 9.07, 15.07, 21.07, 27.07, 33.07, 39.07, 45.07, 51.07, 57.07, 63.07, 69.07]
         new_y_grid = [0, -6.0, -12.0, -18.0, -24.0, -30.0, -36.0, -42.0, -48.0, -54.0, -60.0, -66.0]
         
         # ... (The rest of your code to calculate new_x and new_y)
         
         # Snap new_x and new_y to the nearest grid values
-        new_x = find_nearest(new_x, new_x_grid)
+        if new_x > 3.07 and new_x < 4.6 and new_y > -3.:
+            new_x = 9.07
+        else:
+            new_x = find_nearest(new_x, new_x_grid)
         new_y = find_nearest(new_y, new_y_grid)
     elif runType == "main":
         if x < 6 and x > 2:
