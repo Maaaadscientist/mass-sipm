@@ -1,6 +1,9 @@
+import os
+import sys
 import csv
 import yaml
 import numpy as np
+import warnings
 from scipy.interpolate import Rbf
 #import matplotlib.pyplot as plt  # If you want to visualize
 import ROOT
@@ -64,10 +67,10 @@ def ch_to_8x8(ch):
 def combine_uncertainties_in_quadrature(uncertainties):
     return np.sqrt(sum([u**2 for u in uncertainties]))
 
-def predict_for_predefined_points(run_type, run_id):
-    structured_data = loading_structured_data("timeline.csv", "mu_timeline.csv")
-    base_coords_indices = get_points_from_yaml("../config/design-parameters2.yaml")
-    query_coords_indices = get_points_from_yaml("../config/design-parameters.yaml")
+def predict_for_predefined_points(run_type, run_id, mu_csv_file, timeline_file, logic_design_file, pde_measure_design_file, output_path_dir):
+    structured_data = loading_structured_data(timeline_file, mu_csv_file)
+    base_coords_indices = get_points_from_yaml(logic_design_file)
+    query_coords_indices = get_points_from_yaml( pde_measure_design_file)
     
     csv_lines = "run,pos,ch,ref_mu,ref_mu_err\n"
     for pos in range(1,17):
@@ -106,8 +109,8 @@ def predict_for_predefined_points(run_type, run_id):
             avg_z = sum(z_values)
             combined_uncertainty = combine_uncertainties_in_quadrature(uncertainties) # A simple average for now, can be adjusted if needed
             csv_lines += f"{run_id},{pos},{ch},{avg_z},{combined_uncertainty}\n"
-            print(f"Channel {ch}: Predicted z = {avg_z}, Combined Uncertainty = {combined_uncertainty}")
-        with open(f"reffmu_{run_type}_run_{run_id}.csv", "w") as csv_file:
+            #print(f"Channel {ch}: Predicted z = {avg_z}, Combined Uncertainty = {combined_uncertainty}")
+        with open(f"{output_path_dir}/csv/reffmu_{run_type}_run_{run_id}.csv", "w") as csv_file:
             csv_file.write(csv_lines)
 
 def loading_structured_data(timeline_path, mu_path):
@@ -198,9 +201,9 @@ def read_csv(filename):
 def compute_light_intensity(total_time, slope, intercept):
     return intercept + slope * total_time
 
-def interpolate_and_store(run_type, run_id, method='krige', variogram_model='linear'):
+def interpolate_and_store(run_type, run_id, mu_csv_file, timeline_file, output_path_dir, method='krige', variogram_model='linear'):
 
-    structured_data = loading_structured_data("timeline.csv", "mu_timeline.csv")
+    structured_data = loading_structured_data(timeline_file, mu_csv_file)
     #return structured_data
     # Generate the finer grid
     #x_fine = np.linspace(-5, 55, 60)  # 500 is an example. You can choose any resolution you want
@@ -218,7 +221,7 @@ def interpolate_and_store(run_type, run_id, method='krige', variogram_model='lin
     #        interpolated_data[run_type][run_id] = {}
     # Initialize the ROOT file for storing TGraph2D objects
 
-    filename = f"preciseMap_{run_type}_run_{run_id}.root"
+    filename = f"{output_path_dir}/root/preciseMap_{run_type}_run_{run_id}.root"
     file_lightmap = ROOT.TFile(filename, "recreate")
     x_grid = np.arange(x_start, x_end + x_step, x_step)
     y_grid = np.arange(y_start, y_end + y_step, y_step)
@@ -279,13 +282,38 @@ def interpolate_and_store(run_type, run_id, method='krige', variogram_model='lin
     file_lightmap.Close()
 
 if __name__ == "__main__":
-    #run_type_input = input("Enter run type (light/main): ")
-    #run_id_input = input("Enter run id: ")
-    #interpolate_and_store(run_type_input, run_id_input, 'krige', 'linear')
-    run_type_input = input("Enter run type (light/main): ")
-    run_id_input = input("Enter run id: ")
-    predict_for_predefined_points(run_type_input, run_id_input)
-    interpolate_and_store(run_type_input, run_id_input, 'krige', 'linear')
+
+    config_path = os.path.abspath(sys.argv[1])
+    output_path = os.path.abspath(sys.argv[2])
+    if len(sys.argv) > 3:
+        run_type_input = str(sys.argv[3])
+        run_id_input = str(sys.argv[4])
+    else:
+        run_type_input = input("Enter run type (light/main): ")
+        run_id_input = input("Enter run id: ")
+    if not "." in output_path.split("/")[-1]:
+        output_path_dir = output_path
+    else:
+        output_path_dir = "/".join(output_path.split("/")[:-2])
+    if not os.path.isdir(output_path_dir + "/csv"):
+        os.makedirs(output_path_dir + "/csv")
+    if not os.path.isdir(output_path_dir + "/root"):
+        os.makedirs(output_path_dir + "/root")
+    with open(config_path, "r") as yaml_file:
+        yaml_config = yaml.safe_load(yaml_file)
+        mu_csv_file = yaml_config["mu_csv_file"]
+        timeline_file = yaml_config["timeline_file"]
+        logic_design_file = yaml_config["logic_design_file"]
+        pde_measure_design_file = yaml_config["pde_measure_design_file"]
+    # Suppress RuntimeWarnings for invalid values encountered in sqrt
+    warnings.simplefilter("ignore")
+    predict_for_predefined_points(run_type_input, run_id_input, 
+                                  mu_csv_file, timeline_file, 
+                                  logic_design_file, pde_measure_design_file, 
+                                  output_path_dir)
+    interpolate_and_store(run_type_input, run_id_input, 
+                          mu_csv_file, timeline_file, 
+                          output_path_dir, 'krige', 'linear')
 
 
 
