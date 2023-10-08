@@ -37,13 +37,13 @@ elif analysis_type =="signal-fit":
     file_type = "csv"
 elif analysis_type =="signal-refit":
     runType = "main"
-    file_type = "csv"
+    file_type = "root"
 elif analysis_type =="light-fit":
     runType = "light"
     file_type = "pdf"
 elif analysis_type =="light-match":
     runType = "light"
-    file_type = "root"
+    file_type = "csv"
 elif analysis_type =="light-match-bootstrap":
     runType = "light"
     file_type = "png"
@@ -70,7 +70,7 @@ elif analysis_type == "main-reff":
     file_type = "root"
 elif analysis_type == "main-match":
     runType = "main"
-    file_type = "root"
+    file_type = "csv"
 main_runs = []
 light_runs = []
 

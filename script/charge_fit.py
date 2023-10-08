@@ -165,9 +165,10 @@ def main():
         os.system(f"rm {output_path}/csv/charge_fit_tile_ch{file_info.get('channel')}_ov{file_info.get('ov')}.csv")
     if os.path.isfile(f"{output_path}/root/charge_fit_tile_ch{file_info.get('channel')}_ov{file_info.get('ov')}.root"):
         os.system(f"rm {output_path}/root/charge_fit_tile_ch{file_info.get('channel')}_ov{file_info.get('ov')}.root")
-    output_file = ROOT.TFile(f"{output_path}/root/charge_fit_tile_ch{file_info.get('channel')}_ov{file_info.get('ov')}.root", "recreate") 
-    sub_directory = output_file.mkdir(f"charge_fit_run_{run}")
-    sub_directory.cd()
+    if fix_parameters:
+        output_file = ROOT.TFile(f"{output_path}/root/charge_fit_tile_ch{file_info.get('channel')}_ov{file_info.get('ov')}.root", "recreate") 
+        sub_directory = output_file.mkdir(f"charge_fit_run_{run}")
+        sub_directory.cd()
     ROOT.TVirtualFitter.SetDefaultFitter("Minuit2")
     for tile in range(16):
         if fix_parameters:
@@ -197,11 +198,13 @@ def main():
         original_bin_width = (float(x_max) + baseline_res * 5) / num_bins
         tree.Draw("{}>>hist".format(f'{variable_name}_ch{tile}'))
         # Print the final result
-        canvas_peaks = ROOT.TCanvas("c1","c1", 800, 600)
+        if fix_parameters:
+            canvas_peaks = ROOT.TCanvas("c1","c1", 800, 600)
         spectrum = ROOT.TSpectrum()
         n_peaks = spectrum.Search(hist, 0.2 , "", 0.05)
-        canvas_peaks.SetName(f"peak_finding_tile_{tile}_ch_{channel}_ov_{ov}")
-        canvas_peaks.Write()
+        if fix_parameters:
+            canvas_peaks.SetName(f"peak_finding_tile_{tile}_ch_{channel}_ov_{ov}")
+            canvas_peaks.Write()
         if baseline >= 5000 or baseline <= -5000 or baseline_res == 0 or baseline_res > 300:
             fit_info = {
                 'status': -2,
@@ -499,59 +502,54 @@ def main():
         fit_info['bl'] = float(baseline / 45)
         for key, value in fit_info.items():
             combined_dict[key].append(value)
-        # Plot the data and the fit
-        canvas = ROOT.TCanvas("c1","c1", 1200, 800)
-        #if tile == 0:
-        #    canvas.Print(f"{output_path}/pdf/charge_fit_tile_ch{channel}_ov{ov}.pdf[")
+        if fix_parameters:
+            # Plot the data and the fit
+            canvas = ROOT.TCanvas("c1","c1", 1200, 800)
+            #if tile == 0:
+            #    canvas.Print(f"{output_path}/pdf/charge_fit_tile_ch{channel}_ov{ov}.pdf[")
     
-        print("FD bin width:", FD_bin_width, " original bin width:", original_bin_width )
-        print("finer fitted gain:", average_gain)
-        # Divide the canvas into two asymmetric pads
-        pad1 =ROOT.TPad("pad1","This is pad1",0.05,0.05,0.72,0.97);
-        pad2 = ROOT.TPad("pad2","This is pad2",0.72,0.05,0.98,0.97);
-        pad1.Draw()
-        pad2.Draw()
-        pad1.cd()
-        frame = sigQ.frame()
-        frame.SetXTitle("Charge")
-        frame.SetYTitle("Events")
-        frame.SetTitle(f"Charge spectrum fit of (run{run} ch{channel} tile{tile} ov{ov}V)")
-        new_data.plotOn(frame)
-        poisson_gen.plotOn(frame)
-        frame.Draw()
-        # Create TLine objects for the legend
-        pad2.cd()
-        # Create a TPaveText to display parameter values and uncertainties
-        param_box = ROOT.TPaveText(0.01, 0.9, 0.9, 0.1, "NDC")
-        param_box.SetFillColor(ROOT.kWhite)
-        param_box.SetBorderSize(1)
-        param_box.SetTextFont(42)
-        param_box.SetTextSize(0.08)
-        param_box.AddText(f"#mu = {mu.getVal():.3f} #pm {mu.getError():.3f}")
-        param_box.AddText(f"#lambda = {lambda_.getVal():.3f} #pm {lambda_.getError():.3f}")
-        param_box.AddText(f"ped = {ped.getVal():.3f} #pm {ped.getError():.3f}")
-        param_box.AddText(f"gain = {gain.getVal():.3f} #pm {gain.getError():.3f}")
-        param_box.AddText(f"#sigma0 = {sigma0.getVal():.3f} ")
-        param_box.AddText(f"#sigma1 = {sigma1.getVal():.3f} ")
-        param_box.AddText(f"#sigma2 = {sigma2.getVal():.3f} ")
-        param_box.AddText(f"#sigma3 = {sigma3.getVal():.3f} ")
-        param_box.AddText(f"#sigma4 = {sigma4.getVal():.3f} ")
-        param_box.AddText(f"#sigma5 = {sigma5.getVal():.3f} ")
-        param_box.AddText(f"#chi2/NDF = {chi2_ndf:.3f}")
-        param_box.Draw("same")
-        #canvas.Print(f"{output_path}/pdf/charge_fit_tile_ch{channel}_ov{ov}.pdf")
-        canvas.SetName(f"charge_spectrum_tile_{tile}_ch_{channel}_ov_{ov}")
-        canvas.Write()
-        for k in range(1, 17):
-            if calculate_GP(k, mu_value, lambda_value) > 0.005:
-                print(k, calculate_GP(k, mu_value, lambda_value))
-                max_peak_to_fit += 1
-            else:
-                break
-        print("max peak:", k)
+            print("FD bin width:", FD_bin_width, " original bin width:", original_bin_width )
+            print("finer fitted gain:", average_gain)
+            # Divide the canvas into two asymmetric pads
+            pad1 =ROOT.TPad("pad1","This is pad1",0.05,0.05,0.72,0.97);
+            pad2 = ROOT.TPad("pad2","This is pad2",0.72,0.05,0.98,0.97);
+            pad1.Draw()
+            pad2.Draw()
+            pad1.cd()
+            frame = sigQ.frame()
+            frame.SetXTitle("Charge")
+            frame.SetYTitle("Events")
+            frame.SetTitle(f"Charge spectrum fit of (run{run} ch{channel} tile{tile} ov{ov}V)")
+            new_data.plotOn(frame)
+            poisson_gen.plotOn(frame)
+            frame.Draw()
+            # Create TLine objects for the legend
+            pad2.cd()
+            # Create a TPaveText to display parameter values and uncertainties
+            param_box = ROOT.TPaveText(0.01, 0.9, 0.9, 0.1, "NDC")
+            param_box.SetFillColor(ROOT.kWhite)
+            param_box.SetBorderSize(1)
+            param_box.SetTextFont(42)
+            param_box.SetTextSize(0.08)
+            param_box.AddText(f"#mu = {mu.getVal():.3f} #pm {mu.getError():.3f}")
+            param_box.AddText(f"#lambda = {lambda_.getVal():.3f} #pm {lambda_.getError():.3f}")
+            param_box.AddText(f"ped = {ped.getVal():.3f} #pm {ped.getError():.3f}")
+            param_box.AddText(f"gain = {gain.getVal():.3f} #pm {gain.getError():.3f}")
+            param_box.AddText(f"#sigma0 = {sigma0.getVal():.3f} ")
+            param_box.AddText(f"#sigma1 = {sigma1.getVal():.3f} ")
+            param_box.AddText(f"#sigma2 = {sigma2.getVal():.3f} ")
+            param_box.AddText(f"#sigma3 = {sigma3.getVal():.3f} ")
+            param_box.AddText(f"#sigma4 = {sigma4.getVal():.3f} ")
+            param_box.AddText(f"#sigma5 = {sigma5.getVal():.3f} ")
+            param_box.AddText(f"#chi2/NDF = {chi2_ndf:.3f}")
+            param_box.Draw("same")
+            #canvas.Print(f"{output_path}/pdf/charge_fit_tile_ch{channel}_ov{ov}.pdf")
+            canvas.SetName(f"charge_spectrum_tile_{tile}_ch_{channel}_ov_{ov}")
+            canvas.Write()
     
     #canvas.Print(f"{output_path}/pdf/charge_fit_tile_ch{channel}_ov{ov}.pdf]")
-    output_file.Close()
+    if fix_parameters:
+        output_file.Close()
 
     df = pd.DataFrame(combined_dict)
     df.to_csv(f"{output_path}/csv/charge_fit_tile_ch{file_info.get('channel')}_ov{file_info.get('ov')}.csv", index=False)
