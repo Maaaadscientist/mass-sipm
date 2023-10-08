@@ -15,15 +15,16 @@ directory=$(realpath "$2")
 # Get the interactive mode option (true or false)
 interactive_mode=${3:-true}
 
-file_type=$4
+check_type=$4
+file_type=$5
 
-resubmit_mode=${5:-false}
-keep_logs=${6:-false}
+resubmit_mode=${6:-false}
+keep_logs=${7:-false}
 # Get the list of "*.sh" files in the "jobs" directory
 script_files=$(find $directory/jobs -type f -name "*.sh" -printf "%f\n")
 
 # Get the list of "*.root" files in the specified directory that pass the size threshold
-root_files=$(find $directory/$file_type -maxdepth 1 -type f -name "*.$file_type"  -printf "%f\n")
+root_files=$(find $directory/$check_type -maxdepth 1 -type f -name "*.$file_type"  -printf "%f\n")
 
 # Array to store script files to be resubmitted
 scripts_to_resubmit=()
@@ -34,11 +35,11 @@ for script_file in $script_files; do
   root_file="${script_file%.sh}.$file_type"
   
   # Check if the corresponding root file exists
-  if [[ -f "$directory/$file_type/$root_file" ]]; then
+  if [[ -f "$directory/$check_type/$root_file" ]]; then
     # File exists, remove it from the list of root files
     root_files=$(echo "$root_files" | grep -v "$root_file")
     #size_kb=$(du -k "$directory/$file_type/$root_file" | awk '{print $1}')
-    size_bytes=$(du -b "$directory/$file_type/$root_file" | awk '{print $1}')
+    size_bytes=$(du -b "$directory/$check_type/$root_file" | awk '{print $1}')
 
     #echo $size_bytes
     # Compare the file size with the threshold

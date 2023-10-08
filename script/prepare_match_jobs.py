@@ -45,6 +45,10 @@ if not os.path.isdir(output_dir + "/jobs"):
 if not os.path.isdir(output_dir + "/csv"):
     os.mkdir(output_dir + "/csv")
 
+if "main" in binary_path.split("/")[-1]:
+    if not os.path.isdir(output_dir + "/root"):
+        os.mkdir(output_dir + "/root")
+ 
 count = 0
 for file_path in files:
     if "path=" in file_path:

@@ -74,14 +74,23 @@ elif analysis_type == "main-match":
 main_runs = []
 light_runs = []
 
+if analysis_type == "main-reff":
+    check_type = "csv"
+    file_type = "root"
+else:
+    check_type = file_type
+
 if file_type == "root":
     threshold = 7000
+    if analysis_type == "main":
+        threshold = 2000000
     if analysis_type == "harvest":
         threshold = 5
     elif analysis_type == "main-reff":
         threshold = 1
     elif analysis_type == "main-match":
         threshold = 4000
+
 elif file_type == "pdf":
     threshold = 1000
 elif file_type == "png":
@@ -149,6 +158,7 @@ if choice == "Y":
     else:
         sys.exit("do nothing and exit")
     failed_jobs = ""
+    failed_logs = ""
     for aFile in grouped_list:
         name_short = aFile.split("/")[-1].replace(".txt", "")
         run = int(name_short.split("_")[-1])
@@ -164,9 +174,9 @@ if choice == "Y":
         print(name_short) 
         # Define the command to execute the shell script
         if analysis_type == "signal-refit":
-            command = f'./script/check_jobs.sh {threshold} {output_dir}/signal-fit/{name_short} {interactive} {file_type} {resubmit} {keep_logs}'
+            command = f'./script/check_jobs.sh {threshold} {output_dir}/signal-fit/{name_short} {interactive} {check_type} {file_type} {resubmit} {keep_logs}'
         else:
-            command = f'./script/check_jobs.sh {threshold} {output_dir}/{analysis_type}/{name_short} {interactive} {file_type} {resubmit} {keep_logs}'
+            command = f'./script/check_jobs.sh {threshold} {output_dir}/{analysis_type}/{name_short} {interactive} {check_type} {file_type} {resubmit} {keep_logs}'
         #print(command)
 
         # Execute the shell script
@@ -181,6 +191,8 @@ if choice == "Y":
             if "failed job path:" in line:
                 failed_jobs += line.split("failed job path:")[1].strip()
                 failed_jobs += "\n"
+        if keep_logs:
+            failed_logs = failed_jobs.replace("jobs", "logs")
         
         # Check the return code of the process
         return_code = process.wait()
@@ -191,6 +203,9 @@ if choice == "Y":
             print(error.decode('utf-8'))
     with open(f"failed_jobs_{analysis_type}.txt", "w") as aFile:
         aFile.write(failed_jobs)
+        aFile.close()
+    with open(f"failed_logs_{analysis_type}.txt", "w") as aFile:
+        aFile.write(failed_logs)
         aFile.close()
 else:
     print("Jobs not resubmitted.")

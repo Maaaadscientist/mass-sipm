@@ -61,7 +61,7 @@ elif analysis_type == "dcr-fit":
     runType = "main"
 elif analysis_type == "main-reff":
     runType = "main"
-    binary_path = os.path.abspath("../light-match/bin/main_match")
+    binary_path = os.path.abspath("../light-match/bin/main_reff")
 elif analysis_type == "vbd":
     runType = "main"
     binary_path = os.path.abspath("script/get_vbd_new.py")
