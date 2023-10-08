@@ -16,6 +16,7 @@ directory = "/tmp/tao-sipmtest"
 input_file = os.path.abspath(input_tmp)
 output_dir = os.path.abspath(output_tmp)
 binary_path = os.path.abspath(binary_tmp)
+map_path = "/workfs2/juno/wanghanwen/sipm-massive/test/map_outputs/root"
 parrent_path = "/".join(binary_path.split("/")[0:-2])
 name_short = input_file.split("/")[-1].replace(".txt", "")
 output_dir += "/" + name_short
@@ -41,8 +42,8 @@ if not os.path.isdir(output_dir):
     os.makedirs(output_dir)
 if not os.path.isdir(output_dir + "/jobs"):
     os.mkdir(output_dir + "/jobs")
-if not os.path.isdir(output_dir + "/root"):
-    os.mkdir(output_dir + "/root")
+if not os.path.isdir(output_dir + "/csv"):
+    os.mkdir(output_dir + "/csv")
 
 count = 0
 for file_path in files:
@@ -63,16 +64,14 @@ for file_path in files:
     script_tmp += f'/usr/bin/eos cp {file_path} $directory\n'
     script_tmp += 'cd $directory\n'
     script_tmp += 'sleep 3\n'
-    script_tmp += f'cp {parrent_path}/*.yaml .\n'
-    if "light" in file_path:
-        script_tmp += f'cp {parrent_path}/data/* .\n'
+    script_tmp += f'cp {parrent_path}/test.yaml .\n'
     script_tmp += f'cp {parrent_path}/env_lcg.sh .\n'
     script_tmp += '. ./env_lcg.sh\n'
     #output_name = "_".join(components[0:-3])
     if "light" in file_path:
-        script_tmp += f'{binary_path} -i {file_name} -c test.yaml -o {output_dir}/root --mt 4\n'
+        script_tmp += f'{binary_path} -i {file_name} -c test.yaml -o {output_dir}/csv --map {map_path}/preciseMap_light_run_{run_number}.root\n'
     elif "main" in file_path:
-        script_tmp += f'{binary_path} -i {file_name} -c test.yaml -o {output_dir}/root\n'
+        script_tmp += f'{binary_path} -i {file_name} -c test.yaml -o {output_dir}/csv --map {map_path}/preciseMap_main_run_{run_number}.root\n'
     script_tmp += 'sleep 5\n'
     script_tmp += f'rm -f {file_name}\n'
     script_tmp += 'cd -\n'

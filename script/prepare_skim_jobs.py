@@ -115,10 +115,10 @@ for file_path in files:
         with open(f'{output_dir}/jobs/Run{run_number}_Point{point_number}.sh','w') as file_tmp:
             file_tmp.write(script_tmp)
 if not isDCR:
-    if "main" in name_short and count != 192:
-        print(f"{name_short} : WARNING, there are only {count} lines and it's less than 192")
+    if "main" in name_short and count != 96:
+        print(f"{name_short} : WARNING, there are only {count} lines and it's less than 96")
         with open(f"incompleteDataInfo-{name_short.split('_')[0]}.log", 'a') as file:
-            line_of_text = f"main run {run_number} {count} 192"
+            line_of_text = f"main run {run_number} {count} 96"
             file.write(line_of_text + '\n')
     elif "light" in name_short and count != 64:
         print(f"{name_short} : WARNING, there are only {count} lines and it's less than 64")
@@ -126,9 +126,9 @@ if not isDCR:
             line_of_text = f"light run {run_number} {count} 64"
             file.write(line_of_text + '\n')
     else:
-        print(f"{name_short} : Success, there are {count} lines in the datasets ({'64 for light' if name_short.split('_')[0] == 'light' else '192 for main'})")
+        print(f"{name_short} : Success, there are {count} lines in the datasets ({'64 for light' if name_short.split('_')[0] == 'light' else '96 for main'})")
         with open(f"completeDataInfo-{name_short.split('_')[0]}.log", 'a') as file:
-            line_of_text = f"{name_short.split('_')[0]} run {run_number} {count} {64 if name_short.split('_')[0] == 'light' else 192}"
+            line_of_text = f"{name_short.split('_')[0]} run {run_number} {count} {64 if name_short.split('_')[0] == 'light' else 96}"
             file.write(line_of_text + '\n')
 else:
     print(f"{name_short} DCR jobs are created")
