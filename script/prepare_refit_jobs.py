@@ -45,7 +45,7 @@ for ch in range(1, 17):
         script += f'ov={ov}\n'
         script += 'input_file="${file_path}/root/${run_info}_ov_${ov}.00_sipmgr_$(printf "%02d" $sipmgr)_${root_type}.root"\n'
         script += '# Construct and execute the command\n'
-        script += 'charge_fit_command="$python charge_fit.py ${input_file} signal sigQ ${output_file}'+f' {parrent_path}/test/harvests/csv/run_{str(run_number).zfill(4)}.csv"\n'
+        script += 'charge_fit_command="$python charge_fit.py ${input_file} signal sigQ ${output_file}'+f' {parrent_path}/test/signal-fit-harvests/csv/run_{str(run_number).zfill(4)}.csv"\n'
         script += 'echo "Executing command: ${charge_fit_command}"\n'
         script += '$charge_fit_command\n'
         script += '\n'
