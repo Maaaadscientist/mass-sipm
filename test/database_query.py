@@ -181,10 +181,14 @@ if __name__ == '__main__':
             query_help += "* \033[1;93mchannel, ch\033[0m      enter the selection to pick a single channel, format: run,pos,ch\n"
             query_help += "* \033[1;93mtile, t\033[0m          enter the selection to pick a single tile, format: run,pos\n"
             query_help += "* \033[1;93mshowallcol\033[0m       show all column names\n"
+            query_help += "* \033[1;93mshowAcol\033[0m         display all unique values of a specified column\n"
+            query_help += "* \033[1;93mshowValues\033[0m       show all column names\n"
+            query_help += "* \033[1;93mruns\033[0m             display all values of the 'run' column\n"
             query_help += "* \033[1;93mcol\033[0m              enter the column names to show in the table\n"
             query_help += "* \033[1;93mdraw\033[0m             draw the results var1 vs var2\n"
             query_help += "* \033[1;93mok\033[0m               configuration finished and show the results\n"
             query_help += "* \033[1;93msave\033[0m             save the data in a root file\n"
+            query_help += "* \033[1;93mhelp\033[0m               display this help message again\n"
             query_help += "* \033[1;93mquit , q\033[0m         quit the query\n"
             query_help += "\033[1;96m(Uppercase and lowercase are not distinguished)\033[0m"
             if re_print_help:
@@ -193,7 +197,7 @@ if __name__ == '__main__':
             else:
                 print(query_help_front)
             query = input().strip()
-            if query.lower() == "select":
+            if query.lower() == "select" or query.lower() == "sel":
                 selections =  input("Enter the selection:\n")
             elif query.lower() == "channel" or  query.lower() == "ch":
                 sel_str =  input("Enter the selection, format: run,pos,ch\n")
@@ -231,6 +235,81 @@ if __name__ == '__main__':
                 if tree_name == "":
                     tree_name = "tree"
                 save_dataframe(csv_name, file_name, tree_name)
+            elif query.lower() == "runs":
+                run_values = column_to_list(df, "run")
+                unique_run_values = list(set(run_values))  # To display unique values
+                print("\033[1;95mAll unique values of the 'run' column:\033[0m")
+                runs_per_line = 10  # adjust this value as needed
+                for i in range(0, len(unique_run_values), runs_per_line):
+                    print(", ".join(map(str, unique_run_values[i:i+runs_per_line])))
+            elif query.lower() == "showacol":
+                col_name = input("\033[1;93mEnter the name of the column you want to display values for:\033[0m ").strip()
+                
+                # Check if the provided column name exists
+                if col_name in columns_origin:
+                    # Ask user if they want to apply a selection
+                    apply_filter = input("\033[1;93mDo you want to apply a selection/filter? (yes/no):\033[0m ").strip().lower()
+                    if apply_filter == "yes":
+                        selection = input("\033[1;93mEnter your selection (e.g. run>5000):\033[0m ").strip()
+                        filtered_df = df.Filter(selection)
+                    else:
+                        filtered_df = df
+                    
+                    col_values = column_to_list(filtered_df, col_name)
+                    unique_col_values = sorted(list(set(col_values)))
+                    
+                    print(f"\033[1;95mAll unique values of the '{col_name}' column:\033[0m")
+                    
+                    values_per_line = 10  # adjust this value as needed
+                    for i in range(0, len(unique_col_values), values_per_line):
+                        print(", ".join(map(str, unique_col_values[i:i+values_per_line])))
+                else:
+                    print(f"\033[1;91mColumn '{col_name}' doesn't exist. Please provide a valid column name.\033[0m")
+            
+            #elif query.lower() == "showacol":
+            #    col_name = input("\033[1;93mEnter the name of the column you want to display values for:\033[0m ").strip()
+            #    
+            #    # Check if the provided column name exists
+            #    if col_name in columns_origin:
+            #        col_values = column_to_list(df, col_name)
+            #        unique_col_values = sorted(list(set(col_values)))
+            #        
+            #        print(f"\033[1;95mAll unique values of the '{col_name}' column:\033[0m")
+            #        
+            #        values_per_line = 10  # adjust this value as needed
+            #        for i in range(0, len(unique_col_values), values_per_line):
+            #            print(", ".join(map(str, unique_col_values[i:i+values_per_line])))
+            #    else:
+            #        print(f"\033[1;91mColumn '{col_name}' doesn't exist. Please provide a valid column name.\033[0m")
+            elif query.lower() == "showvalues":
+                columns_input = input("\033[1;93mEnter the names of the columns separated by commas (e.g. run,pos,ch):\033[0m ").strip()
+                input_columns = [col.strip() for col in columns_input.split(',')]
+                
+                # Check if all provided column names exist
+                if all(col in columns_origin for col in input_columns):
+                    # Ask user if they want to apply a selection
+                    apply_filter = input("\033[1;93mDo you want to apply a selection/filter? (yes/no):\033[0m ").strip().lower()
+                    if apply_filter == "yes":
+                        selection = input("\033[1;93mEnter your selection (e.g. run>5000):\033[0m ").strip()
+                        filtered_df = df.Filter(selection)
+                    else:
+                        filtered_df = df
+                    
+                    # Extract unique combinations of the specified columns
+                    values_combinations = filtered_df.AsNumpy(columns=input_columns)
+                    unique_combinations = set(zip(*[values_combinations[col] for col in input_columns]))
+                    
+                    print(f"\033[1;95mUnique combinations of values for columns {', '.join(input_columns)}:\033[0m")
+                    count_lines = 0 
+                    for combo in sorted(unique_combinations):
+                        print(", ".join(map(str, combo)))
+                        count_lines += 1
+                    # Print the count of the selected rows
+                    print(f"\n\033[1;95mTotal number of shown lines: {count_lines}\033[0m")
+
+                else:
+                    print(f"\033[1;95mOne or more of the columns '{', '.join(input_columns)}' doesn't exist. Please provide valid column names.\033[0m")
+
             elif query.lower() == "draw":
                 variables = input("\033[1;93mEnter the variables to draw, allowed format:\n varY varX \n varY varX varY_err\n varY varX varY_err varX_err\033[0m\n")    
                 variable_components = variables.split(" ")
@@ -253,6 +332,9 @@ if __name__ == '__main__':
                     print("please enter correct formats: var_Y,var_X or var_Y,var_Y_err,var_X")
                     
                 draw_plot = True
+            elif query.lower() == "help":
+                print(query_help_front)
+                print(query_help)
             elif query.lower() == "quit" or query.lower() == "q":
                 ROOT.gSystem.Exit(0)
                 exit()
