@@ -6,7 +6,7 @@ import csv
 # Argument parsing
 parser = argparse.ArgumentParser(description='Execute script on DAQ machine and fetch results.')
 parser.add_argument('-r', '--run', type=int, required=True, help='Run number to execute the script with.')
-parser.add_argument('-o', '--output', type=str, default="output.csv", help='Path to save the output CSV file.')
+parser.add_argument('-o', '--output', type=str, default="tile_sn_output.csv", help='Path to save the output CSV file.')
 args = parser.parse_args()
 
 # SSH connection details

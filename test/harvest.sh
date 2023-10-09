@@ -89,10 +89,10 @@ ANALYSIS_TYPE=$3
 # List of allowed analysis types
 # Declare an associative array for analysis type to suffix mapping
 # Add new analysis type to the allowed types and its suffix
-ALLOWED_ANALYSIS_TYPES=("merge-root" "combine-csv" "main-position" "light-position" "signal-fit" "vbd" "harvest" "produce-map")
+ALLOWED_ANALYSIS_TYPES=("merge-root" "combine-csv" "main-position" "light-position" "signal-fit" "vbd" "harvest" "produce-map" "final-harvest")
 
 declare -A ANALYSIS_SUFFIXES
-ANALYSIS_SUFFIXES=(["merge-root"]="main-reff" ["combine-csv"]="main-match" ["main-position"]="main-match" ["light-position"]="light-match" ["signal-fit"]="signal-fit" ["vbd"]="vbd" ["harvest"]="signal-fit" ["produce-map"]="produce-map")
+ANALYSIS_SUFFIXES=(["merge-root"]="main-reff" ["combine-csv"]="main-match" ["main-position"]="main-match" ["light-position"]="light-match" ["signal-fit"]="signal-fit" ["vbd"]="vbd" ["harvest"]="signal-fit" ["produce-map"]="produce-map" ["final-harvest"]="signal-fit")
 
 # Check if the analysis type is allowed
 if [[ ! " ${ALLOWED_ANALYSIS_TYPES[@]} " =~ " ${ANALYSIS_TYPE} " ]]; then
@@ -128,7 +128,7 @@ MAIN_RUNS=$(awk '/main_runs:/{flag=1;next}/^[^ ]/{flag=0}flag' $CONFIG_FILE | se
 LIGHT_RUNS=$(awk '/light_runs:/{flag=1;next}/^[^ ]/{flag=0}flag' $CONFIG_FILE | sed 's/ - //g')
 
 total_lines=0
-if [[ "$SUFFIX" == "main-match" || "$SUFFIX" == "signal-fit" || "$SUFFIX" == "vbd" || "$ANALYSIS_TYPE" == "produce-map" ]]; then
+if [[ "$SUFFIX" == "main-match" || "$SUFFIX" == "signal-fit" || "$SUFFIX" == "vbd" || "$ANALYSIS_TYPE" == "produce-map" || "$ANALYSIS_TYPE" == "merge-root" ]]; then
   # Convert it to an array; assuming the elements are separated by newlines
   for RUN in $MAIN_RUNS; do
     ((total_lines++))
@@ -166,14 +166,21 @@ for RUN in $MAIN_RUNS; do
   # Construct the directory name
   DIR_NAME="${DIRECTORY_PATH}/main_run_${PADDED_RUN}"
   DIR_NAME_VBD="${BASE_PATH}/vbd/main_run_${PADDED_RUN}"
+  DIR_NAME_DCR="${BASE_PATH}/new-dcr/main_run_${PADDED_RUN}"
+  DIR_NAME_MATCH="${BASE_PATH}/main-match/main_run_${PADDED_RUN}"
 
   # Check if the directory exists
   if [[ -d "$DIR_NAME" || "$ANALYSIS_TYPE" == "produce-map" ]]; then
     # Execute your commands here
     # For demonstration, I'm just printing the directory name
     if [ "$ANALYSIS_TYPE" == "merge-root" ]; then
-      COMMAND=".$hadd $DIR_NAME/root/Run${RUN}_Point0.root $DIR_NAME/root/main_*.root"
-      $hadd "$DIR_NAME/root/Run${RUN}_Point0.root" $DIR_NAME/root/main_*.root
+      if [ ! -d "$DIR_NAME/root" ]; then
+        mkdir -p "$DIR_NAME/root"
+      fi
+      COMMAND=".$hadd $DIR_NAME/root/Run${RUN}_Point0.root $DIR_NAME/csv/main_*.root"
+      $hadd "$DIR_NAME/root/Run${RUN}_Point0.root" $DIR_NAME/csv/main_*.root &> /dev/null
+      sleep 2
+      rm -rf $DIR_NAME/csv/main_*.root
       sleep 2 
     elif [ "$ANALYSIS_TYPE" == "combine-csv" ]; then
       COMMAND=""
@@ -260,14 +267,37 @@ for RUN in $MAIN_RUNS; do
           echo "Expected 96 CSV files in $CSV_DIR but found $NUM_CSV_FILES. for run $RUN "
           #continue
         fi
-        $PYTHON3 $(dirname $0)/combine_two_csv.py $CSV_DIR $CSV_DIR2 harvests/csv/run_${PADDED_RUN}.csv   
-        $PYTHON3 $(dirname $0)/csv2dataframe.py harvests/csv/run_${PADDED_RUN}.csv harvests/root/run_${PADDED_RUN}.root
+        $PYTHON3 $(dirname $0)/combine_two_csv.py $CSV_DIR $CSV_DIR2 signal-fit-harvests/csv/run_${PADDED_RUN}.csv   
+        $PYTHON3 $(dirname $0)/csv2dataframe.py signal-fit-harvests/csv/run_${PADDED_RUN}.csv signal-fit-harvests/root/run_${PADDED_RUN}.root
+      else
+        echo "CSV directory $CSV_DIR not found, skipping..."
+      fi
+    elif [ "$ANALYSIS_TYPE" == "final-harvest" ]; then
+      # Construct the CSV directory path
+      CSV_DIR_SIGNAL="$DIR_NAME/csv"
+      CSV_DIR_VBD="$DIR_NAME_VBD/csv"
+      CSV_DIR_DCR="$DIR_NAME_DCR/csv"
+      CSV_DIR_MATCH="$DIR_NAME_MATCH/root"
+      # Check if directory exists
+      if [ -d "$CSV_DIR_SIGNAL" ]; then
+        # Check if there are 96 CSV files
+        NUM_CSV_FILES=$(ls $CSV_DIR_SIGNAL/*.csv 2>/dev/null | wc -l)
+        if [ "$NUM_CSV_FILES" -ne 96 ]; then
+          echo "Expected 96 CSV files in $CSV_DIR_SIGNAL but found $NUM_CSV_FILES. for run $RUN "
+          #continue
+        fi
+        $PYTHON3 $(dirname $0)/combine_csv_files.py $CSV_DIR_SIGNAL $CSV_DIR_VBD final-harvests/tmp/tmp_1_${PADDED_RUN}.csv
+        $PYTHON3 $(dirname $0)/combine_csv_files.py final-harvests/tmp/tmp_1_${PADDED_RUN}.csv $CSV_DIR_DCR final-harvests/tmp/tmp_2_${PADDED_RUN}.csv
+        $PYTHON3 $(dirname $0)/combine_csv_files.py final-harvests/tmp/tmp_2_${PADDED_RUN}.csv $CSV_DIR_MATCH final-harvests/tmp/tmp_3_${PADDED_RUN}.csv -k run -d chi2,var,point -n x,match_x -n y,match_y -n x_left_error,match_x_err_down -n x_right_error,match_x_err_up -n y_up_error,match_y_err_up -n y_down_error,match_y_err_down
+        $PYTHON3 $(dirname $0)/get_tile_sn.py -r $RUN -o final-harvests/sn/sn_${PADDED_RUN}.csv
+        $PYTHON3 $(dirname $0)/combine_csv_files.py final-harvests/tmp/tmp_3_${PADDED_RUN}.csv final-harvests/sn/sn_${PADDED_RUN}.csv final-harvests/csv/run_${PADDED_RUN}.csv -k run,pos
+        $PYTHON3 $(dirname $0)/csv2dataframe.py final-harvests/csv/run_${PADDED_RUN}.csv final-harvests/root/run_${PADDED_RUN}.root
       else
         echo "CSV directory $CSV_DIR not found, skipping..."
       fi
     elif [ "$ANALYSIS_TYPE" == "produce-map" ]; then
-      COMMAND="$PYTHON3 $(dirname $0)/produce_light_map.py $(dirname $0)/../config/produce_light_map.yaml $(dirname $0)/corrected_map_outputs main ${RUN}"
-      $PYTHON3 $(dirname $0)/produce_light_map.py $(dirname $0)/../config/produce_light_map.yaml $(dirname $0)/corrected_map_outputs main ${RUN}
+      COMMAND="$PYTHON3 $(dirname $0)/produce_light_map.py $(dirname $0)/../config/produce_light_map.yaml $(dirname $0)/map_outputs main ${RUN}"
+      $PYTHON3 $(dirname $0)/produce_light_map.py $(dirname $0)/../config/produce_light_map.yaml $(dirname $0)/map_outputs main ${RUN}
     fi
     # cd $DIR_NAME
     # Your commands here
@@ -302,10 +332,10 @@ for RUN in $LIGHT_RUNS; do
   # For demonstration, I'm just printing the directory name
   if [ "$ANALYSIS_TYPE" == "light-position" ]; then
     COMMAND="$PYTHON3 $(dirname $0)/new_coordinates.py $(dirname $0)/../datasets/lightRunPositions/light_run_${RUN}.csv $DIR_NAME/root positions_light_run"
-    $PYTHON3 $(dirname $0)/new_coordinates.py $(dirname $0)/../datasets/lightRunPositions/light_run_${RUN}.csv $DIR_NAME/root positions_light_run
+    $PYTHON3 $(dirname $0)/new_coordinates.py $(dirname $0)/../datasets/lightRunPositions/light_run_${RUN}.csv $DIR_NAME/csv positions_light_run
   elif [ "$ANALYSIS_TYPE" == "produce-map" ]; then
-    COMMAND="$PYTHON3 $(dirname $0)/produce_light_map.py $(dirname $0)/../config/produce_light_map.yaml $(dirname $0)/corrected_map_outputs light ${RUN}"
-    $PYTHON3 $(dirname $0)/produce_light_map.py $(dirname $0)/../config/produce_light_map.yaml $(dirname $0)/corrected_map_outputs light ${RUN}
+    COMMAND="$PYTHON3 $(dirname $0)/produce_light_map.py $(dirname $0)/../config/produce_light_map.yaml $(dirname $0)/map_outputs light ${RUN}"
+    $PYTHON3 $(dirname $0)/produce_light_map.py $(dirname $0)/../config/produce_light_map.yaml $(dirname $0)/map_outputs light ${RUN}
   fi
   # cd $DIR_NAME
   # Your commands here
