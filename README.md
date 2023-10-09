@@ -126,4 +126,4 @@ source /cvmfs/juno.ihep.ac.cn/sw/anaconda/Anaconda3-2020.11-Linux-x86_64/bin/act
 
 ## 📜 License
 
-This project is licensed under the terms of the MIT License. See [LICENSE](LICENSE) file for details.
+This project is licensed under the terms of the MIT License. See [LICENSE](https://code.ihep.ac.cn/wanghanwen/sipm-massive/-/raw/main/LICENSE) file for details.
