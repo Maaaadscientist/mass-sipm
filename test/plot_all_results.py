@@ -1,13 +1,15 @@
 import ROOT
+import os
+import sys
 import numpy as np
 import pandas as pd
 #from scipy.interpolate import interp1d
 from scipy.interpolate import UnivariateSpline
 from scipy.interpolate import InterpolatedUnivariateSpline
 
-excluded_list_file = "config/exclude.txt"
-amp_factor_file = "config/gain_factors.csv"
-merged_root_path = "final_all.root"
+excluded_list_file = "/workfs2/juno/wanghanwen/sipm-massive/config/exclude.txt"
+amp_factor_file = "/workfs2/juno/wanghanwen/sipm-massive/config/gain_factors.csv"
+merged_root_path = "/junofs/users/wanghanwen/final_all.root"
 
 
 # Certain ov points for the plotting 
@@ -46,6 +48,10 @@ min_ov = 1.0#df.Reduce("std::min(double a, double b)", "ov")
 max_ov = 8.5#df.Reduce("std::max(double a, double b)", "ov")
 #ov_points = np.linspace(min_ov, max_ov, num=int((max_ov - min_ov) / 0.1))
 
+
+# Define a function to filter the duplicates
+def filter_duplicates(array):
+    return np.delete(array, duplicate_indices)
 
 def nearest_index(arr, target):
     if target >= arr[np.argmax(arr)]:
@@ -90,7 +96,8 @@ with open(excluded_list_file, "r") as file1:
 #tree = ROOT.TTree("interpolated_tree", "Interpolated Data")
 amp_gain_df = pd.read_csv(amp_factor_file)
 
-for tsn in unique_tiles:
+if len(sys.argv)==2:
+    tsn = int(sys.argv[1])
     match_tsn = tsn
     if tsn == 13354:
         tsn = 3354
@@ -253,6 +260,9 @@ for tsn in unique_tiles:
             ch_df = run_df.Filter(filter_ch_str)
             ov = ch_df.AsNumpy(["ov"])["ov"]
             vol = ch_df.AsNumpy(["vol"])["vol"]
+            # Identify duplicate indices
+            _, unique_indices = np.unique(vol, return_index=True)
+            duplicate_indices = np.setdiff1d(np.arange(len(vol)), unique_indices)
             ov_err = ch_df.AsNumpy(["vbd_err"])["vbd_err"]
             ref_mu = ch_df.AsNumpy(["ref_mu"])["ref_mu"]
             ref_mu_err = ch_df.AsNumpy(["ref_mu_err"])["ref_mu_err"]
@@ -281,6 +291,29 @@ for tsn in unique_tiles:
                     dcr[i] += 1
             lambda_ = ch_df.AsNumpy(["lambda"])["lambda"]
             lambda_err = ch_df.AsNumpy(["lambda_err"])["lambda_err"]
+            # Filter out the duplicates for all numpy arrays
+            ov = filter_duplicates(ov)
+            vol = filter_duplicates(vol)
+            ov_err = filter_duplicates(ov_err)
+            ref_mu = filter_duplicates(ref_mu)
+            ref_mu_err = filter_duplicates(ref_mu_err)
+            mu = filter_duplicates(mu)
+            mu_err = filter_duplicates(mu_err)
+            ap = filter_duplicates(ap)
+            ap_err = filter_duplicates(ap_err)
+            enf_gp = filter_duplicates(enf_gp)
+            enf_gp_err = filter_duplicates(enf_gp_err)
+            enf_data = filter_duplicates(enf_data)
+            enf_data_err = filter_duplicates(enf_data_err)
+            res_data = filter_duplicates(res_data)
+            res_gp = filter_duplicates(res_gp)
+            res_gp_err = filter_duplicates(res_gp_err)
+            gain = filter_duplicates(gain)
+            gain_err = filter_duplicates(gain_err)
+            dcr = filter_duplicates(dcr)
+            dcr_err = filter_duplicates(dcr_err)
+            lambda_ = filter_duplicates(lambda_)
+            lambda_err = filter_duplicates(lambda_err)
             # Zip the three lists together based on vol
             zipped_lists = zip(vol, ov, mu, mu_err, ap, ap_err, gain, gain_err, dcr, dcr_err,
                                lambda_, lambda_err, enf_gp, enf_gp_err, enf_data, enf_data_err,
