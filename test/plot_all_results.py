@@ -7,9 +7,12 @@ import pandas as pd
 from scipy.interpolate import UnivariateSpline
 from scipy.interpolate import InterpolatedUnivariateSpline
 
-excluded_list_file = "/workfs2/juno/wanghanwen/sipm-massive/config/excluded.txt"
-amp_factor_file = "/workfs2/juno/wanghanwen/sipm-massive/config/gain_factors.csv"
-merged_root_path = "/junofs/users/wanghanwen/final_all.root"
+#excluded_list_file = "/workfs2/juno/wanghanwen/sipm-massive/config/excluded.txt"
+#amp_factor_file = "/workfs2/juno/wanghanwen/sipm-massive/config/gain_factors.csv"
+#merged_root_path = "/junofs/users/wanghanwen/final_all.root"
+excluded_list_file = "config/exclude.txt"
+amp_factor_file = "config/gain_factors.csv"
+merged_root_path = "final_all.root"
 
 
 # Certain ov points for the plotting 
@@ -18,7 +21,12 @@ merged_root_path = "/junofs/users/wanghanwen/final_all.root"
 # 2    :   4.0
 # 3    :   4.5
 # last :   Vop
-ov_points = [3.0,3.5,4.0,4.5]
+ov_points = [3.0,3.5,4.0,4.5,5.0,5.5,6.0,6.5,7.0]
+#metrics = ["max", "max_err", "min", "min_err", "mean", "mean_err"]
+#voltages = ["3v", "3p5v", "4v", "4p5v", "vop"]
+#prefixes = ["pde", "dcr", "pct", "gain", "enf_gp", "enf_data", "eps"]
+
+
 reff_pdes = np.array([
 0.535554960303385,
 0.536019011766821,
@@ -99,44 +107,13 @@ amp_gain_df = pd.read_csv(amp_factor_file)
 tsn_input = sys.argv[1]
 tsn_list = tsn_input.split(",")
 
-header = "tsn,run,"
+header = "tsn,run,batch,box,"
 header += "vbd_diff,vbd_diff_err,vbd_max,vbd_max_err,vbd_min,vbd_min_err,vbd_mean,vbd_mean_err,"
 header += "vop_max,vop_min,vop_mean,"
-header += "pde_3v_max,pde_3v_max_err,pde_3v_min,pde_3v_min_err,pde_3v_mean,pde_3v_mean_err,"
-header += "pde_3p5v_max,pde_3p5v_max_err,pde_3p5v_min,pde_3p5v_min_err,pde_3p5v_mean,pde_3p5v_mean_err,"
-header += "pde_4v_max,pde_4v_max_err,pde_4v_min,pde_4v_min_err,pde_4v_mean,pde_4v_mean_err,"
-header += "pde_4p5v_max,pde_4p5v_max_err,pde_4p5v_min,pde_4p5v_min_err,pde_4p5v_mean,pde_4p5v_mean_err,"
-header += "pde_vop_max,pde_vop_max_err,pde_vop_min,pde_vop_min_err,pde_vop_mean,pde_vop_mean_err,"
-header += "dcr_3v_max,dcr_3v_max_err,dcr_3v_min,dcr_3v_min_err,dcr_3v_mean,dcr_3v_mean_err,"
-header += "dcr_3p5v_max,dcr_3p5v_max_err,dcr_3p5v_min,dcr_3p5v_min_err,dcr_3p5v_mean,dcr_3p5v_mean_err,"
-header += "dcr_4v_max,dcr_4v_max_err,dcr_4v_min,dcr_4v_min_err,dcr_4v_mean,dcr_4v_mean_err,"
-header += "dcr_4p5v_max,dcr_4p5v_max_err,dcr_4p5v_min,dcr_4p5v_min_err,dcr_4p5v_mean,dcr_4p5v_mean_err,"
-header += "dcr_vop_max,dcr_vop_max_err,dcr_vop_min,dcr_vop_min_err,dcr_vop_mean,dcr_vop_mean_err,"
-header += "pct_3v_max,pct_3v_max_err,pct_3v_min,pct_3v_min_err,pct_3v_mean,pct_3v_mean_err,"
-header += "pct_3p5v_max,pct_3p5v_max_err,pct_3p5v_min,pct_3p5v_min_err,pct_3p5v_mean,pct_3p5v_mean_err,"
-header += "pct_4v_max,pct_4v_max_err,pct_4v_min,pct_4v_min_err,pct_4v_mean,pct_4v_mean_err,"
-header += "pct_4p5v_max,pct_4p5v_max_err,pct_4p5v_min,pct_4p5v_min_err,pct_4p5v_mean,pct_4p5v_mean_err,"
-header += "pct_vop_max,pct_vop_max_err,pct_vop_min,pct_vop_min_err,pct_vop_mean,pct_vop_mean_err,"
-header += "gain_3v_max,gain_3v_max_err,gain_3v_min,gain_3v_min_err,gain_3v_mean,gain_3v_mean_err,"
-header += "gain_3p5v_max,gain_3p5v_max_err,gain_3p5v_min,gain_3p5v_min_err,gain_3p5v_mean,gain_3p5v_mean_err,"
-header += "gain_4v_max,gain_4v_max_err,gain_4v_min,gain_4v_min_err,gain_4v_mean,gain_4v_mean_err,"
-header += "gain_4p5v_max,gain_4p5v_max_err,gain_4p5v_min,gain_4p5v_min_err,gain_4p5v_mean,gain_4p5v_mean_err,"
-header += "gain_vop_max,gain_vop_max_err,gain_vop_min,gain_vop_min_err,gain_vop_mean,gain_vop_mean_err,"
-header += "enf_gp_3v_max,enf_gp_3v_max_err,enf_gp_3v_min,enf_gp_3v_min_err,enf_gp_3v_mean,enf_gp_3v_mean_err,"
-header += "enf_gp_3p5v_max,enf_gp_3p5v_max_err,enf_gp_3p5v_min,enf_gp_3p5v_min_err,enf_gp_3p5v_mean,enf_gp_3p5v_mean_err,"
-header += "enf_gp_4v_max,enf_gp_4v_max_err,enf_gp_4v_min,enf_gp_4v_min_err,enf_gp_4v_mean,enf_gp_4v_mean_err,"
-header += "enf_gp_4p5v_max,enf_gp_4p5v_max_err,enf_gp_4p5v_min,enf_gp_4p5v_min_err,enf_gp_4p5v_mean,enf_gp_4p5v_mean_err,"
-header += "enf_gp_vop_max,enf_gp_vop_max_err,enf_gp_vop_min,enf_gp_vop_min_err,enf_gp_vop_mean,enf_gp_vop_mean_err,"
-header += "enf_data_3v_max,enf_data_3v_max_err,enf_data_3v_min,enf_data_3v_min_err,enf_data_3v_mean,enf_data_3v_mean_err,"
-header += "enf_data_3p5v_max,enf_data_3p5v_max_err,enf_data_3p5v_min,enf_data_3p5v_min_err,enf_data_3p5v_mean,enf_data_3p5v_mean_err,"
-header += "enf_data_4v_max,enf_data_4v_max_err,enf_data_4v_min,enf_data_4v_min_err,enf_data_4v_mean,enf_data_4v_mean_err,"
-header += "enf_data_4p5v_max,enf_data_4p5v_max_err,enf_data_4p5v_min,enf_data_4p5v_min_err,enf_data_4p5v_mean,enf_data_4p5v_mean_err,"
-header += "enf_data_vop_max,enf_data_vop_max_err,enf_data_vop_min,enf_data_vop_min_err,enf_data_vop_mean,enf_data_vop_mean_err,"
-header += "eps_3v_max,eps_3v_max_err,eps_3v_min,eps_3v_min_err,eps_3v_mean,eps_3v_mean_err,"
-header += "eps_3p5v_max,eps_3p5v_max_err,eps_3p5v_min,eps_3p5v_min_err,eps_3p5v_mean,eps_3p5v_mean_err,"
-header += "eps_4v_max,eps_4v_max_err,eps_4v_min,eps_4v_min_err,eps_4v_mean,eps_4v_mean_err,"
-header += "eps_4p5v_max,eps_4p5v_max_err,eps_4p5v_min,eps_4p5v_min_err,eps_4p5v_mean,eps_4p5v_mean_err,"
-header += "eps_vop_max,eps_vop_max_err,eps_vop_min,eps_vop_min_err,eps_vop_mean,eps_vop_mean_err"
+metrics = ["max", "max_err", "min", "min_err", "mean", "mean_err"]
+voltages = ["3v", "3p5v", "4v", "4p5v", "5v", "5p5v", "6v", "6p5v", "7v","vop"]
+prefixes = ["pde", "dcr", "pct", "gain", "enf_gp", "enf_data", "eps"]
+header += ",".join(f"{prefix}_{voltage}_{metric}" for prefix in prefixes for voltage in voltages for metric in metrics)
 header += "\n"
 content = ""
 print(header)
@@ -205,6 +182,8 @@ for tsn in tsn_list:
             if run == int(bad_dict[str(match_tsn)]):
                 continue
         run_df = tile_df.Filter(f"run == {run}") 
+        batch = np.unique(run_df.AsNumpy(["batch"])["batch"])[0]
+        box = np.unique(run_df.AsNumpy(["box"])["box"])[0]
         unique_vbd = run_df.AsNumpy(["vbd"])["vbd"]
         pos_val = np.unique(run_df.AsNumpy(["pos"])["pos"])[0]
         unique_vbd_err = run_df.AsNumpy(["vbd_err"])["vbd_err"]
@@ -549,44 +528,18 @@ for tsn in tsn_list:
             tile_res_data_min[i] = np.min(tile_res_data[i])
             tile_res_data_mean[i] = np.mean(tile_res_data[i])
 
-        content+= f"{tsn},{run},"
+        content+= f"{tsn},{run},{batch},{box},"
         content+= f"{difference},{error},{max_vbd},{max_vbd_err},{min_vbd},{min_vbd_err},{mean_vbd},{mean_vbd_err},"
         content+= f"{tile_vop_max},{tile_vop_min},{tile_vop_mean},"
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_pde_max[0],tile_pde_max_err[0],tile_pde_min[0],tile_pde_min_err[0],tile_pde_mean[0],tile_pde_mean_err[0])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_pde_max[1],tile_pde_max_err[1],tile_pde_min[1],tile_pde_min_err[1],tile_pde_mean[1],tile_pde_mean_err[1])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_pde_max[2],tile_pde_max_err[2],tile_pde_min[2],tile_pde_min_err[2],tile_pde_mean[2],tile_pde_mean_err[2])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_pde_max[3],tile_pde_max_err[3],tile_pde_min[3],tile_pde_min_err[3],tile_pde_mean[3],tile_pde_mean_err[3])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_pde_max[4],tile_pde_max_err[4],tile_pde_min[4],tile_pde_min_err[4],tile_pde_mean[4],tile_pde_mean_err[4])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_dcr_max[0],tile_dcr_max_err[0],tile_dcr_min[0],tile_dcr_min_err[0],tile_dcr_mean[0],tile_dcr_mean_err[0])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_dcr_max[1],tile_dcr_max_err[1],tile_dcr_min[1],tile_dcr_min_err[1],tile_dcr_mean[1],tile_dcr_mean_err[1])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_dcr_max[2],tile_dcr_max_err[2],tile_dcr_min[2],tile_dcr_min_err[2],tile_dcr_mean[2],tile_dcr_mean_err[2])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_dcr_max[3],tile_dcr_max_err[3],tile_dcr_min[3],tile_dcr_min_err[3],tile_dcr_mean[3],tile_dcr_mean_err[3])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_dcr_max[4],tile_dcr_max_err[4],tile_dcr_min[4],tile_dcr_min_err[4],tile_dcr_mean[4],tile_dcr_mean_err[4])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_pct_max[0],tile_pct_max_err[0],tile_pct_min[0],tile_pct_min_err[0],tile_pct_mean[0],tile_pct_mean_err[0])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_pct_max[1],tile_pct_max_err[1],tile_pct_min[1],tile_pct_min_err[1],tile_pct_mean[1],tile_pct_mean_err[1])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_pct_max[2],tile_pct_max_err[2],tile_pct_min[2],tile_pct_min_err[2],tile_pct_mean[2],tile_pct_mean_err[2])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_pct_max[3],tile_pct_max_err[3],tile_pct_min[3],tile_pct_min_err[3],tile_pct_mean[3],tile_pct_mean_err[3])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_pct_max[4],tile_pct_max_err[4],tile_pct_min[4],tile_pct_min_err[4],tile_pct_mean[4],tile_pct_mean_err[4])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_gain_max[0],tile_gain_max_err[0],tile_gain_min[0],tile_gain_min_err[0],tile_gain_mean[0],tile_gain_mean_err[0])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_gain_max[1],tile_gain_max_err[1],tile_gain_min[1],tile_gain_min_err[1],tile_gain_mean[1],tile_gain_mean_err[1])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_gain_max[2],tile_gain_max_err[2],tile_gain_min[2],tile_gain_min_err[2],tile_gain_mean[2],tile_gain_mean_err[2])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_gain_max[3],tile_gain_max_err[3],tile_gain_min[3],tile_gain_min_err[3],tile_gain_mean[3],tile_gain_mean_err[3])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_gain_max[4],tile_gain_max_err[4],tile_gain_min[4],tile_gain_min_err[4],tile_gain_mean[4],tile_gain_mean_err[4])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_enf_gp_max[0],tile_enf_gp_max_err[0],tile_enf_gp_min[0],tile_enf_gp_min_err[0],tile_enf_gp_mean[0],tile_enf_gp_mean_err[0])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_enf_gp_max[1],tile_enf_gp_max_err[1],tile_enf_gp_min[1],tile_enf_gp_min_err[1],tile_enf_gp_mean[1],tile_enf_gp_mean_err[1])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_enf_gp_max[2],tile_enf_gp_max_err[2],tile_enf_gp_min[2],tile_enf_gp_min_err[2],tile_enf_gp_mean[2],tile_enf_gp_mean_err[2])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_enf_gp_max[3],tile_enf_gp_max_err[3],tile_enf_gp_min[3],tile_enf_gp_min_err[3],tile_enf_gp_mean[3],tile_enf_gp_mean_err[3])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_enf_gp_max[4],tile_enf_gp_max_err[4],tile_enf_gp_min[4],tile_enf_gp_min_err[4],tile_enf_gp_mean[4],tile_enf_gp_mean_err[4])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_enf_data_max[0],tile_enf_data_max_err[0],tile_enf_data_min[0],tile_enf_data_min_err[0],tile_enf_data_mean[0],tile_enf_data_mean_err[0])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_enf_data_max[1],tile_enf_data_max_err[1],tile_enf_data_min[1],tile_enf_data_min_err[1],tile_enf_data_mean[1],tile_enf_data_mean_err[1])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_enf_data_max[2],tile_enf_data_max_err[2],tile_enf_data_min[2],tile_enf_data_min_err[2],tile_enf_data_mean[2],tile_enf_data_mean_err[2])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_enf_data_max[3],tile_enf_data_max_err[3],tile_enf_data_min[3],tile_enf_data_min_err[3],tile_enf_data_mean[3],tile_enf_data_mean_err[3])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_enf_data_max[4],tile_enf_data_max_err[4],tile_enf_data_min[4],tile_enf_data_min_err[4],tile_enf_data_mean[4],tile_enf_data_mean_err[4])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_eps_max[0],tile_eps_max_err[0],tile_eps_min[0],tile_eps_min_err[0],tile_eps_mean[0],tile_eps_mean_err[0])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_eps_max[1],tile_eps_max_err[1],tile_eps_min[1],tile_eps_min_err[1],tile_eps_mean[1],tile_eps_mean_err[1])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_eps_max[2],tile_eps_max_err[2],tile_eps_min[2],tile_eps_min_err[2],tile_eps_mean[2],tile_eps_mean_err[2])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},".format(tile_eps_max[3],tile_eps_max_err[3],tile_eps_min[3],tile_eps_min_err[3],tile_eps_mean[3],tile_eps_mean_err[3])
-        content+= "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f}".format(tile_eps_max[4],tile_eps_max_err[4],tile_eps_min[4],tile_eps_min_err[4],tile_eps_mean[4],tile_eps_mean_err[4])
+        for prefix in prefixes:
+            for i in range(len(ov_points) + 1):  # plus Vop
+                for metric in metrics:
+                    key = f"tile_{prefix}_{metric}"
+                    value = globals()[key][i]
+                    content += "{:.4f},".format(value)
+        
+        # To remove the trailing comma after the last set of data.
+        content = content.rstrip(",")
         content+= "\n"
         print(content)
         if tsn_err_flag:
