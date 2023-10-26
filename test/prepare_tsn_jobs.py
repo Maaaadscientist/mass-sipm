@@ -23,10 +23,29 @@ job_dir = "/junofs/users/wanghanwen/plot_tiles/jobs"
 if not os.path.isdir(job_dir):
     os.makedirs(job_dir)
 
+count = 0
+tsn_begin = ""
+tsn_list = []
+begin_flag = True
 for aline in lines:
+    count += 1 
     tsn = int(aline.strip())
-    with open(f"{job_dir}/parameter_{tsn}.sh", "w") as file1:
-        job_content = f"$PYTHON /workfs2/juno/wanghanwen/sipm-massive/test/plot_all_results.py {tsn}\n"
-        file1.write(script)
-        file1.write(job_content)
+    tsn_list.append(tsn)
+    if begin_flag:
+        tsn_begin = str(tsn)
+        begin_flag = False
+    if count % 5 == 0 or count == len(lines):
+        with open(f"{job_dir}/parameter_{tsn_begin}to{tsn}.sh", "w") as file1:
+            arg_tile = ""
+            for i,tile in enumerate(tsn_list):
+                if i != len(tsn_list) -1: 
+                    arg_tile += f"{tile},"
+                else:
+                    arg_tile += f"{tile}"
+            
+            job_content = f"$PYTHON /workfs2/juno/wanghanwen/sipm-massive/test/plot_all_results.py {arg_tile}\n"
+            file1.write(script)
+            file1.write(job_content)
+            begin_flag = True
+            tsn_list = []
 os.system("chmod a+x /junofs/users/wanghanwen/plot_tiles/jobs/*.sh")
