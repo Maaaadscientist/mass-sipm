@@ -22,6 +22,10 @@ merged_root_path = "final_all.root"
 # 3    :   4.5
 # last :   Vop
 ov_points = [3.0,3.5,4.0,4.5,5.0,5.5,6.0,6.5,7.0]
+init_vol = 3.0
+end_vol = 7.0
+#ov_points = [init_vol + 0.5 * i for i in range(int(end_vol*10 + 1))]#[3.0,3.5,4.0,4.5,5.0,5.5,6.0,6.5,7.0]
+print(ov_points)
 #metrics = ["max", "max_err", "min", "min_err", "mean", "mean_err"]
 #voltages = ["3v", "3p5v", "4v", "4p5v", "vop"]
 #prefixes = ["pde", "dcr", "pct", "gain", "enf_gp", "enf_data", "eps"]
@@ -57,6 +61,29 @@ max_ov = 8.5#df.Reduce("std::max(double a, double b)", "ov")
 #ov_points = np.linspace(min_ov, max_ov, num=int((max_ov - min_ov) / 0.1))
 
 
+def count_elements(my_array):
+    count_zero = np.count_nonzero(my_array == 0)
+    count_four = np.count_nonzero(my_array == 4)
+    count_minus_one = np.count_nonzero(my_array == -1)
+
+    return count_zero, count_four, count_minus_one
+
+def calculate_value(my_list):
+    contains_zero = 0 in my_list
+    contains_four = 4 in my_list
+    contains_minus_one = -1 in my_list
+
+    if contains_minus_one:
+        return -1
+    elif contains_zero and contains_four:
+        return 4
+    elif contains_zero:
+        return 0
+    elif contains_four:
+        return 4
+    else:
+        # If none of the conditions above are met, return a default value
+        return None
 # Define a function to filter the duplicates
 def filter_duplicates(array):
     return np.delete(array, duplicate_indices)
@@ -107,11 +134,18 @@ amp_gain_df = pd.read_csv(amp_factor_file)
 tsn_input = sys.argv[1]
 tsn_list = tsn_input.split(",")
 
-header = "tsn,run,batch,box,"
+header = "tsn,run,batch,box,match_x,match_y,pos,status,nStatus0,nStatus4,nStatusNeg,"
 header += "vbd_diff,vbd_diff_err,vbd_max,vbd_max_err,vbd_min,vbd_min_err,vbd_mean,vbd_mean_err,"
 header += "vop_max,vop_min,vop_mean,"
 metrics = ["max", "max_err", "min", "min_err", "mean", "mean_err"]
 voltages = ["3v", "3p5v", "4v", "4p5v", "5v", "5p5v", "6v", "6p5v", "7v","vop"]
+#voltages = [""]
+#voltages = [f"{int(point)}v" if point.is_integer() else f"{int(point)}p{int((point % 1) * 10)}v" for point in ov_points]
+#voltages = [f"{int(point)}v" if point.is_integer() else f"{int(point)}p{int((point - int(point)) * 10)}v" for point in ov_points]
+#voltages = [f"{3+ov}v" if ov.is_integer() else f"{3+int(ov)}p{(ov-int(ov))*10}v" for ov in range(0,4.1,0.1) ]
+#voltages = [f"{int(point / 10):.0f}v" if point % 10 == 0 else f"{int(point / 10):.0f}p{point % 10:.0f}v" for point in range(int(init_vol*10), int(end_vol*10+1))]
+print(voltages)
+voltages.append("vop")
 prefixes = ["pde", "dcr", "pct", "gain", "enf_gp", "enf_data", "eps"]
 header += ",".join(f"{prefix}_{voltage}_{metric}" for prefix in prefixes for voltage in voltages for metric in metrics)
 header += "\n"
@@ -184,6 +218,11 @@ for tsn in tsn_list:
         run_df = tile_df.Filter(f"run == {run}") 
         batch = np.unique(run_df.AsNumpy(["batch"])["batch"])[0]
         box = np.unique(run_df.AsNumpy(["box"])["box"])[0]
+        match_x = np.unique(run_df.AsNumpy(["match_x"])["match_x"])[0]
+        match_y = np.unique(run_df.AsNumpy(["match_y"])["match_y"])[0]
+        status_list = run_df.AsNumpy(["status"])["status"]
+        status = calculate_value(status_list)
+        zero_count, four_count, minus_count = count_elements(status_list)
         unique_vbd = run_df.AsNumpy(["vbd"])["vbd"]
         pos_val = np.unique(run_df.AsNumpy(["pos"])["pos"])[0]
         unique_vbd_err = run_df.AsNumpy(["vbd_err"])["vbd_err"]
@@ -528,7 +567,7 @@ for tsn in tsn_list:
             tile_res_data_min[i] = np.min(tile_res_data[i])
             tile_res_data_mean[i] = np.mean(tile_res_data[i])
 
-        content+= f"{tsn},{run},{batch},{box},"
+        content+= f"{tsn},{run},{batch},{box},{match_x},{match_y},{pos_val},{status},{zero_count},{four_count},{minus_count},"
         content+= f"{difference},{error},{max_vbd},{max_vbd_err},{min_vbd},{min_vbd_err},{mean_vbd},{mean_vbd_err},"
         content+= f"{tile_vop_max},{tile_vop_min},{tile_vop_mean},"
         for prefix in prefixes:
