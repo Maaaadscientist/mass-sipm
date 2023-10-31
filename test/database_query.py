@@ -52,6 +52,64 @@ def csv_to_root_rdataframe(csv_file):
     # By default return the dataframe
     return df
 
+def plot_variables_ch(df, selection, var1_name, var2_name, var1_error_name="", var2_error_name=""):
+    plt.figure(figsize=(10, 6))
+    for i in range(1,17):
+        selections = selection + f" and ch=={i}"
+        print(selections)
+        # Apply the selection filter
+        filtered_data = df.Filter(selections)
+        
+        # Parse var2_name if it's provided as a list in string format
+        if var2_name.startswith("[") and var2_name.endswith("]"):
+            var2_names = var2_name[1:-1].split(",")
+            var2_names = [name.strip() for name in var2_names]
+        else:
+            var2_names = [var2_name]
+        
+        if var2_error_name.startswith("[") and var2_error_name.endswith("]"):
+            var2_error_names = var2_error_name[1:-1].split(",")
+            var2_error_names = [name.strip() for name in var2_error_names]
+        else:
+            var2_error_names = [var2_error_name] if var2_error_name else []
+
+        # Extract data for variable1 and optionally for errors
+        columns_to_extract = [var1_name] + var2_names
+        if var1_error_name:
+            columns_to_extract.append(var1_error_name)
+        columns_to_extract += var2_error_names
+
+        result = filtered_data.AsNumpy(columns=columns_to_extract)
+        var1_data = np.array(result[var1_name])
+        var1_error_data = np.array(result[var1_error_name]) if var1_error_name else None
+        # Sort data by var1_data
+        sort_indices = np.argsort(var1_data)
+        var1_data = var1_data[sort_indices]
+        if var1_error_data is not None:
+            var1_error_data = var1_error_data[sort_indices]
+
+        
+        # Plot data for each variable in var2_names
+        for idx, v in enumerate(var2_names):
+            var2_data = np.array(result[v])[sort_indices]
+            if var2_error_names:
+                var2_error_data = np.array(result[var2_error_names[idx]])[sort_indices]
+                plt.errorbar(var1_data, var2_data, xerr=var1_error_data, yerr=var2_error_data, fmt='-o', alpha=0.7, capsize=5, markersize=3, label=f"ch {i}")
+            else:
+                plt.plot(var1_data, var2_data, '-o', alpha=0.5, markersize=3, label=f"ch {i}")
+
+    plt.xlabel(var1_name)
+    plt.ylabel("Value")
+    plt.legend()
+    plt.title(f"{var1_name} vs Variables with selection: {selection}")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show(block=False)  # This will not block the program execution
+
+    # Ask for user input to close the plot
+    user_input = input("Type 'q' or 'quit' to close the plot: ").strip().lower()
+    if user_input.lower() == "q" or user_input.lower() == "quit":
+        plt.close()
 
 def plot_variables_vs(df, selection, var1_name, var2_name, var1_error_name="", var2_error_name=""):
     # Apply the selection filter
@@ -92,9 +150,9 @@ def plot_variables_vs(df, selection, var1_name, var2_name, var1_error_name="", v
         var2_data = np.array(result[v])[sort_indices]
         if var2_error_names:
             var2_error_data = np.array(result[var2_error_names[idx]])[sort_indices]
-            plt.errorbar(var1_data, var2_data, xerr=var1_error_data, yerr=var2_error_data, label=v, fmt='o-', alpha=0.7, capsize=5, markersize=2)
+            plt.errorbar(var1_data, var2_data, xerr=var1_error_data, yerr=var2_error_data, label=v, fmt='o', alpha=0.7, capsize=5, markersize=2)
         else:
-            plt.plot(var1_data, var2_data, 'o-', label=v, alpha=0.5, markersize=5)
+            plt.plot(var1_data, var2_data, 'o', label=v, alpha=0.5, markersize=2)
 
     plt.xlabel(var1_name)
     plt.ylabel("Value")
@@ -166,6 +224,7 @@ if __name__ == '__main__':
     print(columns)
     re_print_help = True
     draw_plot = False
+    draw_ch = False
     # print("\033[1;91mBold Red Text\033[0m")
     # print("\033[1;92mBold Green Text\033[0m")
     # print("\033[1;93mBold Yellow Text\033[0m")
@@ -332,6 +391,29 @@ if __name__ == '__main__':
                     print("please enter correct formats: var_Y,var_X or var_Y,var_Y_err,var_X")
                     
                 draw_plot = True
+            elif query.lower() == "drawch":
+                variables = input("\033[1;93mEnter the variables to draw, allowed format:\n varY varX \n varY varX varY_err\n varY varX varY_err varX_err\033[0m\n")    
+                variable_components = variables.split(" ")
+                if len(variable_components) == 2:
+                    varY = variables.split(" ")[0]
+                    varX = variables.split(" ")[1]
+                    varY_err = "" #variables.split(",")[1]
+                    varX_err = "" #variables.split(",")[1]
+                elif len(variable_components) == 3:
+                    varY = variables.split(" ")[0]
+                    varX = variables.split(" ")[1]
+                    varY_err = variables.split(" ")[2]
+                    varX_err = "" #variables.split(",")[1]
+                elif len(variable_components) == 4:
+                    varY = variables.split(" ")[0]
+                    varX = variables.split(" ")[1]
+                    varY_err = variables.split(" ")[2]
+                    varX_err = variables.split(" ")[3]
+                else:
+                    print("please enter correct formats: var_Y,var_X or var_Y,var_Y_err,var_X")
+                    
+                draw_plot = True
+                draw_ch = True
             elif query.lower() == "help":
                 print(query_help_front)
                 print(query_help)
@@ -344,7 +426,9 @@ if __name__ == '__main__':
                 print("\033[91mplease enter the correct keyword for the search\033[0m\n")
                 print(query_help)
             re_print_help = False
-        if draw_plot:
+        if draw_plot and draw_ch:
+            plot_variables_ch(df, selections, varX, varY, varX_err, varY_err)
+        elif draw_plot:
             plot_variables_vs(df, selections, varX, varY, varX_err, varY_err)
         else:
             filtered_df = print_filtered_data(df, selections, columns)
