@@ -44,19 +44,15 @@ There are two major scripts for the job manipulation,
 `script/prepare_all_jobs.py` and `script/check_all_jobs.py`.  
 Allowed analysis types:   
 - [🔳main] Convert the binary data files from EOS to root tree files at target path
-- [💡light] Convert the binary data files from EOS to root tree files at target path
 - [🔳signal-fit] Run after `main` analysis, perform the charge spectrum fit
-- [🔳dcr] Run after `signal-fit` analysis, convert the binary data files from EOS to root tree files at target path
-- [🔳dcr-fit] Run after `dcr` analysis, perform the charge spectrum fit of DCR events
-- [💡light-fit] Extract the reference mu from the root trees of light runs (outdated, replaced by `light-match`)
-- [🔳mainrun-light-fit] Extract the reference mu from the root trees of main runs (outdated, replaced by `main-reff` and `main-match`)
 - [🔳vbd] Run after `signal-fit` analysis, perform the linear regression of the charge gains to derive the breakdown voltages
+- [🔳signal-refit] Run after `signal-fit` and `vbd` analysis, perform the charge spectrum re-fit
+- [🔳new-dcr] Run after `signal-refit` analysis, convert the binary data files from EOS to root tree files at target path
 - [🔳harvest] Run after all of the analyses above being finished, generate plots and tarball everything into ROOT format
 - [💡light-match] Standalone analysis for extracting reference mu values and match them to the light map
 - [💡light-match-bootstrap] Uncertainty analysis for `light-match`
 - [🔳main-reff] Convert the binary data files from EOS directly to reference mu values
 - [🔳main-match] Perform the position matching of the reference mu in main runs to the light map
-- [💡decoder] Extract decoder logs from EOS (outdated, replaced by `test/getLightLogs.py`)
 
 🔳: should use the main run list  
 💡: should use the light run list  
