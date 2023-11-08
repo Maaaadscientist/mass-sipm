@@ -96,9 +96,9 @@ tail -n +2 "$input_csv" | while read -r line; do
   done
   # Decide the root file directory based on run_type
   if [ "$run_type" == "light" ]; then
-    root_file_dir="/junofs/users/wanghanwen/match_light_field/light-match/light_run_${PADDED_RUN}/root/"
+    root_file_dir="/junofs/users/wanghanwen/main-runs/light-match/light_run_${PADDED_RUN}/csv/"
   elif [ "$run_type" == "main" ]; then
-    root_file_dir="/junofs/users/wanghanwen/match_light_field/main-match/main_run_${PADDED_RUN}/root/"
+    root_file_dir="/junofs/users/wanghanwen/main-runs/main-match/main_run_${PADDED_RUN}/csv/"
   else
     echo "Unknown run_type: $run_type. Skipping..."
     continue
