@@ -12,6 +12,7 @@ from copy import deepcopy
 
 import statsmodels.api as sm
 
+special_runs = {425:48, 426:48, 427:48, 428:48, 429:50, 430:48, 431:48, 432:49, 433:49, 435:50}
 def remove_outliers(x_list, y_list, y_err_list, threshold=2):
     if len(x_list) >= 4:
         # Add a constant (intercept term) to predictors
@@ -158,6 +159,11 @@ output_dir = os.path.abspath(output_tmp)
 name_short = output_dir.split("/")[-1]
 components = name_short.split("_")
 run = int(components[-1])
+if run in special_runs.keys():
+    init_vol = special_runs[run]
+else:
+    init_vol = 48
+
 # Find a certain element based on other column values
 
 if not os.path.isdir(output_dir + "/csv"):
@@ -254,22 +260,22 @@ for position in range(16):
             if gain_err / gain < 0.05 and gain_err / gain > 0.0001: # in case of fit failure
                 gains.append(gain)
                 gain_errors.append(gain_err)
-                vols.append(voltage + 48)
+                vols.append(voltage + init_vol)
             elif hasAvg:
                 gains.append(avg_gain)
                 gain_errors.append(avg_gain_err)
-                vols.append(voltage + 48)
+                vols.append(voltage + init_vol)
             else:
                 hasNormGain = False
             
             if rob_gain_err / rob_gain < 0.05 and  rob_gain_err / rob_gain > 0.0001: # in case of fit failure:
                 rob_gains.append(rob_gain)
                 rob_gain_errors.append(rob_gain_err)
-                rob_vols.append(voltage + 48)
+                rob_vols.append(voltage + init_vol)
             elif hasAvg:
                 rob_gains.append(avg_gain)
                 rob_gain_errors.append(avg_gain_err)
-                rob_vols.append(voltage + 48)
+                rob_vols.append(voltage + init_vol)
             else:
                 hasRobGain = False
 
@@ -313,8 +319,8 @@ for position in range(16):
                 plt.clf()
         for ov in range(1, 7):
             if len(gains) >= 2:
-                gain = slope*( ov + 48.0 - x_intercept) 
-                df_dslope = ov + 48.0 - x_intercept
+                gain = slope*( ov + init_vol - x_intercept) 
+                df_dslope = ov + init_vol - x_intercept
                 # Error propagation formula
                 gain_err = math.sqrt((df_dslope * slope_err)**2 + (slope * x_intercept_err)**2)
             else:
@@ -327,7 +333,7 @@ for position in range(16):
             slope_list.append(slope)
             slope_err_list.append(slope_err)
             vbd_dict.append(x_intercept)
-            ov_dict.append(48 + ov - x_intercept)
+            ov_dict.append(init_vol + ov - x_intercept)
             vbd_err_dict.append(x_intercept_err)
             rob_vbd_dict.append(rob_x_intercept)
             rob_vbd_err_dict.append(rob_x_intercept_err)
