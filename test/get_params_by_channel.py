@@ -198,9 +198,9 @@ for tsn in tsn_list:
         else:
             if run != runs[-1]:
                 continue
-        if str(match_tsn) in bad_dict.keys():
-            if run == int(bad_dict[str(match_tsn)]):
-                continue
+        #if str(match_tsn) in bad_dict.keys():
+        #    if run == int(bad_dict[str(match_tsn)]):
+        #        continue
         run_df = tile_df.Filter(f"run == {run}") 
         batch = np.unique(run_df.AsNumpy(["batch"])["batch"])[0]
         box = np.unique(run_df.AsNumpy(["box"])["box"])[0]
