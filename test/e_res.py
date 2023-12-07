@@ -14,15 +14,15 @@ CHANNELS_PER_TILE = 16  # Number of channels per SiPM tile
 #ov = 3.0
 PHOTONS_PER_TEST = 9846  # Number of photons simulated in each test
 
-single_pe_resolution = 0#0.15
+single_pe_resolution = 0.15
 # Example parameters
 #dcr = 50.
-PTE = 0.9  # Probability of photon hitting SiPM active area 815074 / 975251
+PTE = 0.836  # Probability of photon hitting SiPM active area 815074 / 975251
 keys = [round(2.5 + 0.1 * i, 1) for i in range(46)]
 
 p_ap_list = [0., 0., 0., 0.0023121856076775654, 0.0018802001816537676, 0.004592260188738675, 0.005603494363346231, 0.0066575250176804214, 0.007667411782256014, 0.008433497021108608, 0.00843078391998287, 0.008385036021587812, 0.007904183469901863, 0.008850636694014601, 0.008713131143955609, 0.008717673859595676, 0.007030457136347763, 0.004947314444334691, 0.0057115686477610976, 0.007579198898779196, 0.009598977237236433, 0.010580060518829364, 0.012581271931600347, 0.013350082161514336, 0.014199856115907178, 0.015615447989311698, 0.016500705177208246, 0.0169721013382356, 0.017793987388636398, 0.018500698254727343, 0.01892180184767479, 0.019482180748078306, 0.0207172660202462, 0.02106353453046995, 0.021925275947001836, 0.023004779571738715, 0.023665011882735572, 0.024921758712276504, 0.026189829123050276, 0.027538547025168413, 0.028165703300553683, 0.028201262809919716, 0.030093832832628876, 0.031007762004127252, 0.03217048726827821, 0.03363866384548797]
 # Pairing the keys with values from p_ap_list
-pap_dict = dict(zip(keys, p_ap_list))
+pap_ov_dict = dict(zip(keys, p_ap_list))
 #optical_crosstalk_param = 0.2  # Parameter for generalized Poisson distribution
 pde_dict = {"max": 0.44, "typical":0.47}
 pct_dict = {"max": 0.15, "typical":0.12}
@@ -34,21 +34,20 @@ gain_dict = {"max": 1e6, "typical":4e6}
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Photon Simulation Parameters')
     parser.add_argument('--N', type=int, default=20, help='Number of tests')
+    parser.add_argument('--energy', type=float, default=1.0, help='deposit energy (MeV)')
     parser.add_argument('--ov', type=float, default=3.0, help='Overvoltage, for HPK test: -1: max, -2: typical')
     parser.add_argument('--level', type=int, required=True, help='Random level: 1: whole detector, 2: by tile, 3: by channel, 4: by channel and different ov ')
     parser.add_argument('--input', type=str, required=True, help='Input CSV file path')
     parser.add_argument('--output', type=str, default='all_hist.root', help='Output ROOT file path')
     parser.add_argument('--seed', type=int,default=123456, help='Random seed for simulation', required=False)
     args = parser.parse_args()
-    return args.N, args.ov, args.level, args.input, args.output, args.seed
+    return args.N, args.energy, args.ov, args.level, args.input, args.output, args.seed
 
 # Parse command line arguments
-N, ov, level, input_file, output_file, seed = parse_arguments()
-
+N, energy, ov, level, input_file, output_file, seed = parse_arguments()
 # Initialize random seed
 if seed is not None:
     np.random.seed(seed)
-
 
 # Load the CSV file
 df = pd.read_csv(input_file)
@@ -164,12 +163,12 @@ def simulate_photon(ov, level=3):
     if pct >= 1:
         pct = 0.5
     elif pct <= 0:
-        pct = 0
+        pct = 0.01
     lambda_ = np.log(1 / (1 - pct))
     electrons = 1 + generate_random_borel(lambda_)
 
     # Simulate afterpulsing
-    p_ap = pap_dict[round(ov,1)]
+    p_ap = pap_ov_dict[round(ov,1)]
     afterpulses = np.sum(np.random.rand(electrons) < p_ap)
     
     if level == 2:
@@ -179,8 +178,11 @@ def simulate_photon(ov, level=3):
     elif level == 4:
         gain = get_value_by_tsn_ch(df, reference_dict, tile, channel, f"gain_{ch_ov:.1f}") / 1e6
 
+    if gain <= 0:
+        gain = average_value_from_csv(df, "gain", {"tsn":tile}) / 1e6
+    gain = 1.
     gain += np.random.normal(0, gain*single_pe_resolution)
-    return 1, 1, electrons, electrons + afterpulses, gain * (electrons + afterpulses)
+    return 1, 1, electrons * (1-lambda_), electrons * (1-lambda_) + afterpulses - electrons * p_ap, gain * ( electrons * (1-lambda_) + afterpulses - electrons * p_ap)
 
 def simulate_dcr(ov):
     ov_str = str(round(ov,1))
@@ -201,10 +203,12 @@ def simulate_dcr(ov):
         dcr = average_value_from_csv(df, dcr_name)
         gain = average_value_from_csv(df, gain_name)/1e6
         pct = average_value_from_csv(df, pct_name)
+    gain = 1
     init_pe = dcr * 10 * 1e6 * 300 * 1e-9
-    pe_ct = 0
+    pe = np.random.poisson(init_pe)
+    pe_ct = pe
     lambda_ = np.log(1 / (1 - pct))
-    for _ in range(int(init_pe)):
+    for _ in range(int(pe)):
         pe_ct += generate_random_borel(lambda_)
 
     # Simulate afterpulsing
@@ -214,23 +218,31 @@ def simulate_dcr(ov):
     elif ov == -2:
         p_ap = pap_dict["typical"]
     else:
-        p_ap = pap_dict[round(ov,1)]
+        p_ap = pap_ov_dict[round(ov,1)]
     pe_ap = np.sum(np.random.rand(pe_ct) < p_ap)
     gain += np.random.normal(0, gain*single_pe_resolution)
-    return pe_ct + pe_ap, (pe_ct + pe_ap) * gain
+    return init_pe, pe, pe_ct * (1-lambda_), pe_ct* (1-lambda_) + pe_ap - pe_ct * p_ap, ( pe_ct* (1-lambda_) + pe_ap - pe_ct * p_ap) * gain, gain
         
 def main():
+    init_photons = int(PHOTONS_PER_TEST * energy)
+    Nbins = init_photons*2
     # Data collection arrays
-    h_init = ROOT.TH1F("hist_init", "hist_init", 20000,0,20000)
-    h_LS = ROOT.TH1F("hist_LS", "hist_LS", 20000,0,20000)
-    h_pte = ROOT.TH1F("hist_PTE", "hist_PTE", 20000,0,20000)
-    h_pde = ROOT.TH1F("hist_PDE", "hist_PDE", 20000,0,20000)
-    h_ct = ROOT.TH1F("hist_ct", "hist_ct", 20000,0,20000)
-    h_ap = ROOT.TH1F("hist_ap", "hist_ap", 20000,0,20000)
-    h_dcr = ROOT.TH1F("hist_dcr", "hist_dcr", 20000,0,20000)
-    h_charge = ROOT.TH1F("hist_charge", "hist_charge", 200000,0,200000)
+    h_init = ROOT.TH1F("hist_init", "hist_init", Nbins,0,Nbins)
+    h_LS = ROOT.TH1F("hist_LS", "hist_LS", Nbins,0,Nbins)
+    h_pte = ROOT.TH1F("hist_PTE", "hist_PTE", Nbins,0,Nbins)
+    h_pde = ROOT.TH1F("hist_PDE", "hist_PDE", Nbins,0,Nbins)
+    h_ct = ROOT.TH1F("hist_ct", "hist_ct", Nbins,0,Nbins)
+    h_ap = ROOT.TH1F("hist_ap", "hist_ap", Nbins,0,Nbins)
+    h_dcr = ROOT.TH1F("hist_dcr", "hist_dcr", Nbins,0,Nbins)
+    h_charge = ROOT.TH1F("hist_charge", "hist_charge", Nbins,0,Nbins)
+    hist_dcr_init = ROOT.TH1F("dcr_init", "dcr_init", 2000,0,2000)
+    hist_dcr_poisson = ROOT.TH1F("dcr_poisson", "dcr_poisson", 2000,0,2000)
+    hist_dcr_ct = ROOT.TH1F("dcr_ct", "dcr_ct", 2000,0,2000)
+    hist_dcr_ap = ROOT.TH1F("dcr_ap", "dcr_ap", 2000,0,2000)
     if ov == -1 or ov == -2:
-        level = 1
+        random_level = 1
+    else:
+        random_level = level
     start_time = time.time()
     for i in range(N):
         
@@ -250,15 +262,37 @@ def main():
             print(f"Estimated Time Remaining: {estimated_remaining_time:.2f} seconds")
             time.sleep(0.1)  # Small delay to ensure the screen refresh is noticeable
 
-        LS_photons = np.random.poisson(PHOTONS_PER_TEST)
-        if level == 2 or level == 3 or level ==4:
-            test_results = [simulate_photon(ov, level) for _ in range(LS_photons)]
+        LS_photons = np.random.poisson(init_photons)
+        dcr_results = simulate_dcr(ov) 
+        dcr_init = dcr_results[0]
+        dcr_poisson_pe = dcr_results[1]
+        dcr_pe_ct  =dcr_results[2] 
+        dcr_pe_ctap= dcr_results[3]
+        dcr_charge=dcr_results[4]
+        dcr_gain=dcr_results[5]
+        hist_dcr_init.Fill(dcr_init)
+        hist_dcr_poisson.Fill(dcr_poisson_pe)
+        hist_dcr_ct.Fill(dcr_pe_ct)
+        hist_dcr_ap.Fill(dcr_pe_ctap)
+        if random_level == 2 or random_level == 3 or random_level ==4:
+            test_results = [simulate_photon(ov, random_level) for _ in range(LS_photons)]
             hit_photons = sum(r[0] for r in test_results)
             detected_photons = sum(r[1] for r in test_results)
             detected_electrons = sum(r[2] for r in test_results)
             total_electrons = sum(r[3] for r in test_results)
-            total_charge = sum(r[4] for r in test_results)
-        elif level == 1:
+            signal_charge = sum(r[4] for r in test_results)
+            dcr_pe = detected_photons + dcr_poisson_pe - dcr_init
+            ct_pe = detected_electrons + dcr_pe_ct - dcr_init 
+            ap_pe = total_electrons + dcr_pe_ctap - dcr_init
+            total_charge = signal_charge + dcr_charge - dcr_init*dcr_gain
+            h_LS.Fill(LS_photons)
+            h_pte.Fill(hit_photons)
+            h_pde.Fill(detected_photons)
+            h_dcr.Fill(dcr_pe)
+            h_ct.Fill(ct_pe)
+            h_ap.Fill(ap_pe)
+            h_charge.Fill(total_charge)
+        elif random_level == 1:
             hit_photons = np.random.binomial(LS_photons, PTE) 
             if ov == -1:
                 PDE = pde_dict["max"]
@@ -274,37 +308,42 @@ def main():
             else:
                 PCT = average_value_from_csv(df, f"pct_{ov:.1f}") 
             lambda_ = np.log(1 / (1 - PCT))
-            detected_electrons = detected_photons
-            for i in range(detected_photons):
-                detected_electrons += generate_random_borel(lambda_)
-            total_electrons = detected_electrons
+            dcr_pe = detected_photons + dcr_poisson_pe - dcr_init
+            ct_pe = dcr_pe
+            for i in range(int(dcr_pe)):
+                extra_pe = generate_random_borel(lambda_)
+                ct_pe += extra_pe
+            ct_pe *= 1 - lambda_
+            ap_pe = ct_pe
             if ov == -1:
                 p_ap = pap_dict["max"]
             elif ov == -2:
                 p_ap = pap_dict["typical"]
             else:
-                p_ap = pap_dict[round(ov,1)]
-            total_electrons += np.random.binomial(detected_electrons, p_ap)
+                p_ap = pap_ov_dict[round(ov,1)]
+            ap_pe += np.random.binomial(ct_pe, p_ap)
+            ap_pe -= ct_pe * p_ap
             if ov == -1:
-                GAIN = gain_dict["max"]/1e6
+                GAIN =  gain_dict["max"]/1e6
             elif ov == -2:
                 GAIN = gain_dict["typical"]/1e6
             else:
                 GAIN = average_value_from_csv(df, f"gain_{ov:.1f}") / 1e6
-            GAIN += np.random.normal(0, GAIN*single_pe_resolution)
-            total_charge = total_electrons * GAIN
+            GAIN = 1.
+            total_charge = 0
+            for _ in range(int(ap_pe)):
+                single_GAIN = GAIN + np.random.normal(0, GAIN*single_pe_resolution)
+                total_charge += single_GAIN
             
-        dcr_electrons = simulate_dcr(ov)[0]
-        dcr_charge = simulate_dcr(ov)[1]
         
-        h_init.Fill(PHOTONS_PER_TEST)
+        h_init.Fill(PHOTONS_PER_TEST * energy)
         h_LS.Fill(LS_photons)
         h_pte.Fill(hit_photons)
         h_pde.Fill(detected_photons)
-        h_ct.Fill(detected_electrons)
-        h_ap.Fill(total_electrons)
-        h_dcr.Fill(total_electrons + dcr_electrons)
-        h_charge.Fill(total_charge + dcr_charge)
+        h_dcr.Fill(dcr_pe)
+        h_ct.Fill(ct_pe)
+        h_ap.Fill(ap_pe)
+        h_charge.Fill(total_charge)
     
     # At the end, where the ROOT file is saved
     f1 = ROOT.TFile(output_file, "recreate")
@@ -312,46 +351,15 @@ def main():
     h_LS.Write()
     h_pte.Write()
     h_pde.Write()
+    h_dcr.Write()
     h_ct.Write()
     h_ap.Write()
-    h_dcr.Write()
     h_charge.Write()
+    hist_dcr_init.Write()
+    hist_dcr_poisson.Write()
+    hist_dcr_ct.Write()
+    hist_dcr_ap.Write()
     f1.Close()
 
 if __name__ == "__main__":
     main()
-## Plotting histograms
-#plt.figure(figsize=(20, 5))
-#
-#plt.subplot(1, 5, 1)
-#plt.hist(initial_photons_list, bins=50, color='blue', alpha=0.7)
-#plt.title('Initial Photons Detected')
-#plt.xlabel('Number of Photons')
-#plt.ylabel('Frequency')
-#
-#plt.subplot(1, 5, 2)
-#plt.hist(detected_photons_list, bins=50, color='orange', alpha=0.7)
-#plt.title('Detected Photons')
-#plt.xlabel('Number of Photons')
-#plt.ylabel('Frequency')
-#
-#plt.subplot(1, 5, 3)
-#plt.hist(detected_electrons_list, bins=50, color='green', alpha=0.7)
-#plt.title('Detected Electrons After Crosstalk')
-#plt.xlabel('Number of Electrons')
-#plt.ylabel('Frequency')
-#
-#plt.subplot(1, 5, 4)
-#plt.hist(total_electrons_list, bins=50, color='red', alpha=0.7)
-#plt.title('Total Electrons Including Afterpulsing')
-#plt.xlabel('Number of Electrons')
-#plt.ylabel('Frequency')
-#
-#plt.subplot(1, 5, 5)
-#plt.hist(dcr_added_electrons_list, bins=50, color='deepskyblue', alpha=0.7)
-#plt.title('Total Electrons Including DCR')
-#plt.xlabel('Number of Electrons')
-#plt.ylabel('Frequency')
-#plt.tight_layout()
-#plt.show()
-#
