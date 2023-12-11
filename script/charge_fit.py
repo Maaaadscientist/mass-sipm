@@ -441,7 +441,9 @@ def main():
         f_val = mu_val * (1 - lambda_val)
         delta_f = np.sqrt((1 - lambda_val)**2 * mu_err**2 + (-mu_val * lambda_err)**2)
         res_GP_err = abs(-0.5 / f_val**(1.5) * delta_f)
-        ap = (enf_data - enf_GP) / mu_val
+        f_corr = 1 - sigma0.getVal() **2 / stderr_sig ** 2
+        ap = (mu_val != 0 ) ? (enf_data * f_corr - enf_GP) / mu_val : 0
+        ap = (ap > 0) ? ap : 0
         rob_gain = float(stderr_sig ** 2 / mean_sig / enf_data / enf_GP)
         rob_gain_err = np.sqrt(
     (-stderr_sig**2 * enf_data_err / (mean_sig * enf_data**2 * enf_GP))**2 +
@@ -449,11 +451,12 @@ def main():
 )
         
         ap_err = np.sqrt(
-            (1 / mu_val * enf_data_err)**2 +
+            (1 / mu_val * enf_data_err * f_corr)**2 +
             (-1 / mu_val * enf_GP_err)**2 +
-            (-1 * (enf_data - enf_GP) / mu_val**2 * mu_err)**2
+            (-1 * (enf_data * f_corr - enf_GP) / mu_val**2 * mu_err)**2
         )
         
+        ap_err = (ap_err > 0) ? ap_err : 0
         fit_info = {
             'status': int(fit_status),
             'mu': float(mu_val - mean_bkg),
