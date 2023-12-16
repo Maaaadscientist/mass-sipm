@@ -12,7 +12,9 @@
 #include <cstdio>
 #include <iomanip>
 #include <TFile.h>
-
+#include <TH1.h>
+#include <TH2.h>
+#include <TVirtualFFT.h>
 #include <TTree.h>
 
 
@@ -81,6 +83,11 @@ double chargeIntegral(const std::vector<double> &SiPMWave, int signalStart, int 
 }
 
 
+double butterworthLowpassFilter(double input, double cutoffFreq, int order) {
+    
+    double output = 1 / sqrt(1 + pow((input / cutoffFreq), 2 * order)) ;
+    return output;
+}
 int main(int argc, char **argv) {
    Options options(argc, argv);
    YAML::Node const config = options.GetConfig();
@@ -104,11 +111,34 @@ int main(int argc, char **argv) {
    double signalCharge[numBranches];
    double baselineCharge[numBranches];
    double signalAmplitude[numBranches];
+   double baselineAmplitude[numBranches];
 
    for (int i = 0; i < numBranches; i++) {
       tree->Branch(Form("sigQ_ch%d", i), &signalCharge[i], Form("sigQ_ch%d/D", i));
       tree->Branch(Form("sigAmp_ch%d", i), &signalAmplitude[i], Form("sigAmp_ch%d/D", i));
       tree->Branch(Form("baselineQ_ch%d", i), &baselineCharge[i], Form("baselineQ_ch%d/D", i));
+      tree->Branch(Form("baselineAmp_ch%d", i), &baselineAmplitude[i], Form("baselineAmp_ch%d/D", i));
+   }
+   TH2F* hists[numHistograms]; // Array of TH2F pointers
+    
+   
+   TH2F* hists_filtered[numHistograms];
+   TH2F* hists_bkgfreq_real[numHistograms];
+   TH2F* hists_bkgfreq_imag[numHistograms];
+   TH2F* hists_bkgfreq_amp[numHistograms];
+   TH2F* hists_sigfreq_real[numHistograms];
+   TH2F* hists_sigfreq_imag[numHistograms];
+   TH2F* hists_sigfreq_amp[numHistograms];
+   for (int i = 0; i < numHistograms; ++i) {
+      // Create a new TH2F object and assign it to the array
+      hists[i] = new TH2F(Form("waveform_ch%d", i), "Title", 2010, 0, 2010, 2000, -200, 200);
+      hists_bkgfreq_real[i] = new TH2F(Form("freqRealfiltered_ch%d", i), "frequency amp real", N/2, 0, N/2, N, -N/2, N/2);
+      hists_bkgfreq_imag[i] = new TH2F(Form("freqImagfiltered_ch%d", i), "frequency amp imag", N/2, 0, N/2, N, -N/2, N/2);
+      hists_bkgfreq_amp[i] = new TH2F(Form("freqAmpfiltered_ch%d", i), "frequency amp amplitude", N/2, 0, N/2, N, -N/2, N/2);
+      hists_filtered[i] = new TH2F(Form("waveformfiltered_ch%d", i), "Title", 2010, 0, 2010, 2000, -200, 200);
+      hists_sigfreq_real[i] = new TH2F(Form("freqReal_ch%d", i), "frequency amp real", N/2, 0, N/2, N, -N/2, N/2);
+      hists_sigfreq_imag[i] = new TH2F(Form("freqImag_ch%d", i), "frequency amp imag", N/2, 0, N/2, N, -N/2, N/2);
+      hists_sigfreq_amp[i] = new TH2F(Form("freqAmp_ch%d", i), "frequency amp amplitude", N/2, 0, N/2, N, -N/2, N/2);
    }
    
    //input file name
@@ -172,6 +202,11 @@ int main(int argc, char **argv) {
    }
    auto scanningStartTime = std::chrono::steady_clock::now();
    std::cout<< "Begin to skim: "<< num_events << " events"<<std::endl;
+   double lowpass[N];
+   for (int i = 0 ; i < N; i++) {
+      //std::cout << i << "\t: "<< butterworthLowpassFilter(i*1.0,200, 5) << std::endl;
+      lowpass[i] = butterworthLowpassFilter(i*1.0, 200, 5);
+   }
    for (int nev = skipEvents ; nev < std::min(num_events, maxEvents + skipEvents)  ; ++nev) {
       if ((nev % 200 == 0 and nev > 0 ) or nev == std::min(num_events, maxEvents + skipEvents) - 1) {
          if (nev == std::min(num_events, maxEvents + skipEvents) - 1) {
@@ -203,28 +238,98 @@ int main(int argc, char **argv) {
          int count = 0;
          std::vector<double> waveforms;
          std::vector<double> waveforms_filtered;
+         TH1F *wf_hist = new TH1F("wave", "wave", 2010, 0, 2010);
          while (BS != 0) {
             fread(&vol, sizeof(vol), 1 ,fp);
             double amp = 0;
             amp = vol * TQDC_BITS_TO_PC;
             waveforms.push_back(amp);
+            wf_hist->SetBinContent(count + 1, amp);
+            hists[ch]->Fill(count, amp);
             BS --;
             count ++;
          }
+         //Compute the transform and look at the magnitude of the output
+         TH1 *hm =0;
+         TVirtualFFT::SetTransform(0);
+         hm = wf_hist->FFT(hm, "MAG R2C M"); 
+         //That's the way to get the current transform object:
+         TVirtualFFT *fft = TVirtualFFT::GetCurrentTransform();
+         //Use the following method to get the full output:
+         Double_t *re_full = new Double_t[N];
+         Double_t *im_full = new Double_t[N];
       
+         fft->GetPointsComplex(re_full,im_full);
+         for (int i = 0 ; i < N; i++) {
+            //std::cout << i << "\t: "<< butterworthLowpassFilter(i*1.0,200, 5) << std::endl;
+            hists_sigfreq_real[ch]->Fill(i, re_full[i]);
+            hists_sigfreq_imag[ch]->Fill(i, im_full[i]);
+            hists_sigfreq_amp[ch]->Fill(i, sqrt(re_full[i] * re_full[i] + im_full[i] * im_full[i]));
+            re_full[i] *= lowpass[i];
+            im_full[i] *= lowpass[i];
+            hists_bkgfreq_real[ch]->Fill(i, re_full[i]);
+            hists_bkgfreq_imag[ch]->Fill(i, im_full[i]);
+            hists_bkgfreq_amp[ch]->Fill(i, sqrt(re_full[i] * re_full[i] + im_full[i] * im_full[i]));
+         }
+         int numberFreq = N;
+         //Now let's make a backward transform:
+         TVirtualFFT *fft_back = TVirtualFFT::FFT(1, &numberFreq, "C2R M K");
+         fft_back->SetPointsComplex(re_full,im_full);
+         fft_back->Transform();
+         TH1 *hb = 0;
+         //Let's look at the output
+         hb = TH1::TransformHisto(fft_back,hb,"Re");
+      
+         for (int i = 0; i < N; i++) {
+            float amp_backward = hb->GetBinContent(i + 1) / N;
+            waveforms_filtered.push_back(amp_backward);
+            hists_filtered[ch]->Fill(i, amp_backward);
+         }
          auto sigQ = chargeIntegral(waveforms, signalStart, signalEnd); 
          auto baselineQ = chargeIntegral(waveforms, baselineStart, baselineEnd); 
-         auto signalAmpTmp = calculateSigAmp(waveforms, signalStart, signalEnd);
+         auto signalAmpTmp = calculateSigAmp(waveforms_filtered, signalStart, signalEnd);
+         auto baselineAmpTmp = calculateSigAmp(waveforms_filtered, baselineStart, baselineEnd);
          signalAmplitude[ch] = signalAmpTmp;
+         baselineAmplitude[ch] = baselineAmpTmp;
          signalCharge[ch] = sigQ;
          baselineCharge[ch] = baselineQ;
          offset += chsize /4;
          waveforms.clear();
+         waveforms_filtered.clear();
+         delete hm;
+         delete hb;
+         delete [] re_full;
+         delete [] im_full;
+         delete fft_back;
+         delete fft;
+         delete wf_hist;
       }
       tree->Fill();
    }
    tree->Write();
    // Write the histograms to the file
+   for (int i = 0; i < numHistograms; ++i) {
+      hists[i]->Write();
+      hists_filtered[i]->Write();
+      hists_bkgfreq_real[i]->Write();
+      hists_bkgfreq_imag[i]->Write();
+      hists_bkgfreq_amp[i]->Write();
+      hists_sigfreq_real[i]->Write();
+      hists_sigfreq_imag[i]->Write();
+      hists_sigfreq_amp[i]->Write();
+   }
+       
+   // Cleanup: Delete the histograms and free memory
+   for (int i = 0; i < numHistograms; ++i) {
+      delete hists[i];
+      delete hists_filtered[i];
+      delete hists_bkgfreq_real[i];
+      delete hists_bkgfreq_imag[i];
+      delete hists_bkgfreq_amp[i];
+      delete hists_sigfreq_real[i];
+      delete hists_sigfreq_imag[i];
+      delete hists_sigfreq_amp[i];
+   }
        
    file1->Close();
    // Close the file
