@@ -122,6 +122,7 @@ if not channel_data.empty:
 
     vbd = channel_data['vbd'].iloc[0]
     vbd_err = channel_data['vbd_err'].iloc[0]
+    over_vol = channel_data['ov'].iloc[0]
 
 else:
     print(f"No data found for Channel {selected_channel}")
@@ -141,6 +142,7 @@ param_text = (f"SN: {batch}-{box}-{int(tsn)}-{channel}\n"
               "Recognised Peaks :"+f" {n_peaks}\n"
               "\n"
               "$\\mathrm{V}_\\mathrm{bd}$ :"+f" {vbd:.2f}"+" $\\pm$ "+f"{vbd_err:.3f} (V)\n"
+              "$\\mathrm{V}_\\mathrm{bias}$ :"+f" {over_vol:.2f}"+" $\\pm$ "+f"{vbd_err:.3f} (V)\n"
               "$\\mu$ :"+f" {mu:.3f}"+" $\\pm$ "+f"{mu_err:.3f}\n"
               "$\\mu_\\mathrm{ref.}$ :"+f" {ref_mu:.3f}"+" $\\pm$ "+f"{ref_mu_err:.3f}\n"
               "$\\lambda$ :"+f" {lambda_:.3f}"+" $\\pm$ "+f"{lambda_err:.3f}\n"
