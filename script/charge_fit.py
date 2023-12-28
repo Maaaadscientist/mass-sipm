@@ -2,6 +2,7 @@ import os
 import sys
 import re
 import math
+import time
 import numpy as np
 import pandas as pd
 from collections import defaultdict
@@ -94,6 +95,33 @@ def iqr(data):
     iqr_value = q3 - q1
     
     return iqr_value
+def map_to_nearest_smaller_ap(lambda_input, enf_residual_input):
+    if lambda_input < 0.002 or lambda_input > 0.998:
+        return 0.
+    if enf_residual_input < 0.0001:
+        return 0.
+    # Load the data
+    data = pd.read_csv("/junofs/users/wanghanwen/ap_table.csv")
+    
+    # Find the closest lambda value in the data
+    lambda_closest = data['lambda'].iloc[(data['lambda'] - lambda_input).abs().argsort()[:1]].values[0]
+    
+    # Filter the data for the closest lambda
+    data_lambda_filtered = data[data['lambda'] == lambda_closest]
+    
+    # If the given enf_residual exceeds the range, use the row with the maximum 'enf_residual'
+    if enf_residual_input > data_lambda_filtered['enf_residual'].max():
+        ap_value = data_lambda_filtered.loc[data_lambda_filtered['enf_residual'].idxmax(), 'ap']
+    else:
+        # Find the two closest enf_residual values in the filtered data
+        closest_indices = data_lambda_filtered['enf_residual'].sub(enf_residual_input).abs().nsmallest(4).index
+        closest_data = data_lambda_filtered.loc[closest_indices]
+        
+        # Get the 'ap' value corresponding to the smaller of the two closest 'enf_residual' values
+        ap_value = closest_data['ap'].min()
+    
+    return ap_value
+
 
 def process_args():
     if len(sys.argv) < 5:
@@ -165,25 +193,8 @@ def main():
         os.system(f"rm {output_path}/csv/charge_fit_tile_ch{file_info.get('channel')}_ov{file_info.get('ov')}.csv")
     if os.path.isfile(f"{output_path}/root/charge_fit_tile_ch{file_info.get('channel')}_ov{file_info.get('ov')}.root"):
         os.system(f"rm {output_path}/root/charge_fit_tile_ch{file_info.get('channel')}_ov{file_info.get('ov')}.root")
-    if fix_parameters:
-        output_file = ROOT.TFile(f"{output_path}/root/charge_fit_tile_ch{file_info.get('channel')}_ov{file_info.get('ov')}.root", "recreate") 
-        sub_directory = output_file.mkdir(f"charge_fit_run_{run}")
-        sub_directory.cd()
     ROOT.TVirtualFitter.SetDefaultFitter("Minuit2")
     for tile in range(16):
-        if fix_parameters:
-            filtered_df_params = df_params[(df_params['run'] == int(run)) & (df_params['pos'] == tile) & (df_params['ch'] == int(channel)) & (df_params['vol'] == int(ov))]
-
-            if len(filtered_df_params['gain'].tolist()) != 0:
-                gain_value = filtered_df_params.head(1)['fit_gain'].values[0]
-                gain_value = filtered_df_params.head(1)['gain'].values[0] if gain_value == 0 else gain_value
-                gain_err = filtered_df_params.head(1)['fit_gain_err'].values[0]
-                gain_err = filtered_df_params.head(1)['gain_err'].values[0] if gain_err == 0 else gain_err
-                sigma0_value = filtered_df_params.head(1)['sigma0'].values[0]
-                sigmak_value = filtered_df_params.head(1)['sigmak'].values[0]
-                a_value = filtered_df_params.head(1)['a'].values[0]
-                b_value = filtered_df_params.head(1)['b'].values[0]
-                c_value = filtered_df_params.head(1)['c'].values[0]
 
         tree.Draw(f"baselineQ_ch{tile}>>histogram{tile}")
         histogram = ROOT.gPad.GetPrimitive(f"histogram{tile}")
@@ -198,13 +209,8 @@ def main():
         original_bin_width = (float(x_max) + baseline_res * 5) / num_bins
         tree.Draw("{}>>hist".format(f'{variable_name}_ch{tile}'))
         # Print the final result
-        if fix_parameters:
-            canvas_peaks = ROOT.TCanvas("c1","c1", 800, 600)
         spectrum = ROOT.TSpectrum()
         n_peaks = spectrum.Search(hist, 0.2 , "", 0.05)
-        if fix_parameters:
-            canvas_peaks.SetName(f"peak_finding_tile_{tile}_ch_{channel}_ov_{ov}")
-            canvas_peaks.Write()
         if baseline >= 5000 or baseline <= -5000 or baseline_res == 0 or baseline_res > 300:
             fit_info = {
                 'status': -2,
@@ -233,12 +239,26 @@ def main():
                 'avg_gain_err': 0,
                 'gain_err': 0,  # Changed gain.getError() to gain_error
                 'chi2': 0,
+                'n_peaks_tofit': 0, 
+                'lower_edge': 0,
+                'upper_edge': 0,
+                'nbins': 0,
+                'fd_bin_width': 0,
+                'bin_width': 0,
+                'charge_fit_ndf': 0,
                 'sigma0': 0,
                 'sigma1': 0,
                 'sigma2': 0,
                 'sigma3': 0,
                 'sigma4': 0,
+                'sigma5': 0,
+                'sigma6': 0,
+                'sigma7': 0,
+                'sigma8': 0,
+                'sigma9': 0,
                 'sigmak': 0,
+                'sigma0_err': 0,#float(sigma0.getError()),
+                'sigmak_err': 0,#float(sigma0.getError()),
                 'a': 0,
                 'b': 0,
                 'c': 0,
@@ -278,35 +298,35 @@ def main():
         mu = RooRealVar("mu", "mu", 2, 0.1, 5)
         sigma0 = RooRealVar("sigma0", "sigma0", 5,1,10)
         sigmak = RooRealVar("sigmak", "sigmak", 2,0.01,10)
-        A = RooRealVar("A", "A", 2,0.01,10)
-        B = RooRealVar("B", "B", 2,0.01,10)
-        C = RooRealVar("C", "C", 2,0.01,10)
-        #if fix_parameters:
-        #    sigma0.setVal(sigma0_value)
-        #    sigmak.setVal(sigmak_value)
-        #    A.setVal(a_value)
-        #    B.setVal(b_value)
-        #    C.setVal(c_value)
-        #    sigma0.setConstant(ROOT.kTRUE)
-        #    sigmak.setConstant(ROOT.kTRUE)
-        #    A.setConstant(ROOT.kTRUE)
-        #    B.setConstant(ROOT.kTRUE)
-        #    C.setConstant(ROOT.kTRUE)
+        A = RooRealVar("A", "A", 0,-10,10)
+        B = RooRealVar("B", "B", 0,-10,10)
+        C = RooRealVar("C", "C", 0,-10,10)
         ped = RooRealVar("ped", "ped", baseline, baseline - baseline_res *2, baseline + baseline_res * 2)
-        if not fix_parameters:
-            gain = RooRealVar("gain", "gain", distance, distance *0.8, distance *1.2)
-        else:
+        if fix_parameters and n_peaks < 3:
+            filtered_df_params = df_params[(df_params['run'] == int(run)) & (df_params['pos'] == tile) & (df_params['ch'] == int(channel)) & (df_params['vol'] == int(ov))]
+
+            if len(filtered_df_params['gain'].tolist()) != 0:
+                gain_value = filtered_df_params.head(1)['fit_gain'].values[0]
+                gain_value = filtered_df_params.head(1)['prefit_gain'].values[0] if gain_value == 0 else gain_value
+                gain_value = filtered_df_params.head(1)['rob_gain'].values[0] if gain_value == 0 else gain_value
+                gain_err = filtered_df_params.head(1)['fit_gain_err'].values[0]
+                gain_err = filtered_df_params.head(1)['prefit_gain_err'].values[0] if gain_err == 0 else gain_err
+                gain_err = filtered_df_params.head(1)['rob_gain_err'].values[0] if gain_err == 0 else gain_err
             gain = RooRealVar("gain", "gain", gain_value)
             gain.setError(gain_err)
             gain.setConstant(ROOT.kTRUE)
+        else:
+            gain = RooRealVar("gain", "gain", distance, distance *0.8, distance *1.2)
         
-        for i in range(1,17):
-            #globals()[f'sigma{i}'] = RooRealVar(f"sigma{i}", "sigma{i}", 5,1,10)
+        for i in range(1,16):
+            #globals()[f'sigma{i}'] = RooRealVar(f"sigma{i}", "sigma{i}", 5,1,15)
             #globals()[f'sigma{i}'] = RooFormulaVar(f"sigma{i}", f"TMath::Sqrt( pow(sigma0, 2) + pow({i}, 2) * pow(sigmak, 2))", RooArgList(sigma0,sigmak))
-            globals()[f'sigma{i}'] = RooFormulaVar(f"sigma{i}", f"TMath::Sqrt( pow(sigma0, 2) + (A + B * {i} + C * {i} * {i}) * pow(sigmak, 2))", RooArgList(sigma0,sigmak, A, B, C))
+            #globals()[f'sigma{i}'] = RooFormulaVar(f"sigma{i}", f"TMath::Sqrt( pow(sigma0, 2) + (A + B * {i} + C * {i} * {i}) * pow(sigmak, 2))", RooArgList(sigma0,sigmak, A, B, C))
+            globals()[f'sigma{i}'] = RooFormulaVar(f"sigma{i}", f"TMath::Sqrt( pow(sigma0, 2) +  {i} * pow(sigmak, 2))", RooArgList(sigma0,sigmak))
+            #globals()[f'sigma{i}'] = RooFormulaVar(f"sigma{i}", f"TMath::Sqrt( pow(sigma0, 2) +  ({i}+A*{i}*{i}) * pow(sigmak, 2))", RooArgList(sigma0,sigmak,A))
         # Define the Gaussian PDF
         
-        n_param = 9 # mu, lambda_, gain, ped, sigma0, sigmak, A, B, C
+        n_param = 6 # mu, lambda_, gain, ped, sigma0, sigmak
         argList = RooArgList(lambda_, mu, sigQ, ped, gain, sigma0)
         for i in range(1, ov_peaks[ov] + 1):
             argList.add(globals()[f"sigma{i}"])
@@ -319,19 +339,23 @@ def main():
         
         # Perform the fit
         #result = minimizer.fit("")
+        start_time = time.time()
         poisson_gen.fitTo(data, ROOT.RooFit.PrintLevel(-1), ROOT.RooFit.Save())
+        end_time = time.time()
+        prefit_time = end_time - start_time
+        initialParams = poisson_gen.getParameters(data).snapshot()
         #poisson_gen.fitTo(data, ROOT.RooFit.SumW2Error(ROOT.kTRUE),ROOT.RooFit.PrintLevel(-1), ROOT.RooFit.Save(), ROOT.RooFit.Strategy(2), ROOT.RooFit.InitialHesse(ROOT.kTRUE))
         mu_value = mu.getVal()
         lambda_value = lambda_.getVal()
         max_peak_to_fit = 0
-        for k in range(1, 17):
+        for k in range(1, 16):
             if calculate_GP(k, mu_value, lambda_value) > 0.002:
                 max_peak_to_fit += 1
             else:
                 break
         min_peak_to_fit = 0
-        for k in range(1, 17):
-            if calculate_GP(k, mu_value, lambda_value) > 0.05:
+        for k in range(1, 16):
+            if calculate_GP(k, mu_value, lambda_value) > 0.005:
                 min_peak_to_fit += 1
             else:
                 break
@@ -369,7 +393,7 @@ def main():
             average_gain = 0.
             average_gain_err = 0.
         new_x_min = ped.getVal() - sigma0.getVal() * 5
-        new_x_max = ped.getVal() + globals()[f'sigma{max_peak_to_fit}'].getVal() * 3 + max_peak_to_fit * gain.getVal()
+        new_x_max = ped.getVal() + globals()[f'sigma{max_peak_to_fit}'].getVal() * 5 + max_peak_to_fit * gain.getVal()
         new_Nbins = (new_x_max - new_x_min) / FD_bin_width
         
         new_hist = ROOT.TH1F("new_hist","new_hist", int(new_Nbins) + 1, new_x_min, new_x_max)
@@ -379,16 +403,59 @@ def main():
         # Specify the optimization algorithm
         #new_minimizer = ROOT.RooMinimizer(poisson_gen.createNLL(new_data))
         #new_minimizer.setMinimizerType("Minuit2")  # Choose Minuit2 as the optimizer
-        result2 = poisson_gen.fitTo(new_data,ROOT.RooFit.SumW2Error(ROOT.kTRUE),ROOT.RooFit.PrintLevel(-1), ROOT.RooFit.Save(), ROOT.RooFit.Strategy(2), ROOT.RooFit.InitialHesse(ROOT.kTRUE))
+        params = poisson_gen.getParameters(data)
+        params.assignValueOnly(initialParams)
+        #chi2_list = []
+        #time_list = []
+        #start_time = time.time()
+        result2 = poisson_gen.fitTo(new_data,ROOT.RooFit.SumW2Error(ROOT.kTRUE),ROOT.RooFit.PrintLevel(-1), ROOT.RooFit.Save(), ROOT.RooFit.Strategy(2))
+        #end_time = time.time()
+        chi2 = ROOT.RooChi2Var("chi2", "chi2", poisson_gen, new_data)
+        ## Get the chi-squared value
+        initial_chi2_val = chi2.getVal()
+        #chi2_list.append(chi2_val)
+        #time_list.append(end_time-start_time)
+        #for precision in [1,0.1,0.01,0.001,0.0001]:
+        #    
+        #    params = poisson_gen.getParameters(data)
+        #    params.assignValueOnly(initialParams)
+        #    start_time = time.time()
+        #    result2 = poisson_gen.fitTo(new_data,ROOT.RooFit.SumW2Error(ROOT.kTRUE),ROOT.RooFit.PrintLevel(-1), ROOT.RooFit.Save(), ROOT.RooFit.Strategy(2), ROOT.RooFit.IntegrateBins(precision))
+        #    end_time = time.time()
+        #    chi2 = ROOT.RooChi2Var("chi2", "chi2", poisson_gen, new_data)
+        #    # Get the chi-squared value
+        #    chi2_val = chi2.getVal()
+        #    chi2_list.append(chi2_val)
+        #    time_list.append(end_time-start_time)
+        #print(chi2_list)
+        #print(time_list)
         #poisson_gen.fitTo(data,ROOT.RooFit.PrintLevel(-1), ROOT.RooFit.SumW2Error(kTRUE), ROOT.RooFit.Save() )
         # Perform the fit
         #new_minimizer.fit("")
         #result = new_minimizer.save()
         fit_status = result2.status()
         initial_FD_bin_width = FD_bin_width
-        while fit_status != 0 and FD_bin_width > 0.5 * initial_FD_bin_width:
-            FD_bin_width -= 0.1
+        best_bin_width = FD_bin_width
+        best_chi2 = initial_chi2_val
+        while FD_bin_width > 0.2 * initial_FD_bin_width:
+            FD_bin_width -= 0.01 * initial_FD_bin_width
             new_Nbins = (new_x_max - new_x_min) / FD_bin_width
+            
+            new_hist = ROOT.TH1F("new_hist","new_hist", int(new_Nbins) + 1, new_x_min, new_x_max)
+            tree.Draw("{}>>new_hist".format(f'{variable_name}_ch{tile}'))
+            new_data = ROOT.RooDataHist("new_data", "new_data", ROOT.RooArgSet(sigQ), new_hist)
+            result2 = poisson_gen.fitTo(new_data, ROOT.RooFit.PrintLevel(-1), ROOT.RooFit.Save(), ROOT.RooFit.Strategy(2))
+            chi2 = ROOT.RooChi2Var("chi2", "chi2", poisson_gen, new_data)
+            ## Get the chi-squared value
+            tmp_chi2_val = chi2.getVal()
+            if tmp_chi2_val < initial_chi2_val:
+                best_bin_width = FD_bin_width
+                best_chi2 = tmp_chi2_val
+            fit_status = result2.status()
+        print(best_bin_width, initial_FD_bin_width, best_chi2, initial_chi2_val)
+        final_fit = True
+        if final_fit:
+            new_Nbins = (new_x_max - new_x_min) / best_bin_width
             
             new_hist = ROOT.TH1F("new_hist","new_hist", int(new_Nbins) + 1, new_x_min, new_x_max)
             tree.Draw("{}>>new_hist".format(f'{variable_name}_ch{tile}'))
@@ -402,7 +469,8 @@ def main():
         # Get the chi-squared value
         chi2_val = chi2.getVal()
         # Get number of degrees of freedom
-        ndf = new_data.numEntries() - n_param #result.floatParsFinal().getSize()
+        #ndf = new_data.numEntries() - n_param #result.floatParsFinal().getSize()
+        ndf = int(new_Nbins) - result2.floatParsFinal().getSize()
         # Calculate chi-squared per degree of freedom
         chi2_ndf = chi2_val / ndf
         
@@ -442,21 +510,16 @@ def main():
         delta_f = np.sqrt((1 - lambda_val)**2 * mu_err**2 + (-mu_val * lambda_err)**2)
         res_GP_err = abs(-0.5 / f_val**(1.5) * delta_f)
         f_corr = 1 - sigma0.getVal() **2 / stderr_sig ** 2
-        ap = (mu_val != 0 ) ? (enf_data * f_corr - enf_GP) / mu_val : 0
-        ap = (ap > 0) ? ap : 0
+        #ap = (mu_val != 0 ) ? (enf_data * f_corr - enf_GP) / mu_val : 0
+        #ap = (ap > 0) ? ap : 0
+        ap = map_to_nearest_smaller_ap(lambda_val, enf_data * f_corr - enf_GP)
+        ap_err = 0.
         rob_gain = float(stderr_sig ** 2 / mean_sig / enf_data / enf_GP)
         rob_gain_err = np.sqrt(
     (-stderr_sig**2 * enf_data_err / (mean_sig * enf_data**2 * enf_GP))**2 +
     (-stderr_sig**2 * enf_GP_err / (mean_sig * enf_data * enf_GP**2))**2
 )
         
-        ap_err = np.sqrt(
-            (1 / mu_val * enf_data_err * f_corr)**2 +
-            (-1 / mu_val * enf_GP_err)**2 +
-            (-1 * (enf_data * f_corr - enf_GP) / mu_val**2 * mu_err)**2
-        )
-        
-        ap_err = (ap_err > 0) ? ap_err : 0
         fit_info = {
             'status': int(fit_status),
             'mu': float(mu_val - mean_bkg),
@@ -484,12 +547,26 @@ def main():
             'avg_gain_err': float(average_gain_err),
             'gain_err': float(gain_error),  # Changed gain.getError() to gain_error
             'chi2': chi2_ndf,
+            'charge_fit_ndf': float(ndf),
+            'n_peaks_tofit': float(max_peak_to_fit),
+            'lower_edge': float(new_x_min),
+            'upper_edge': float(new_x_max),
+            'nbins': float(new_Nbins),
+            'fd_bin_width': float(initial_FD_bin_width),
+            'bin_width': float(FD_bin_width),
             'sigma0': float(sigma0.getVal()),
             'sigma1': float(sigma1.getVal()),
             'sigma2': float(sigma2.getVal()),
             'sigma3': float(sigma3.getVal()),
             'sigma4': float(sigma4.getVal()),
+            'sigma5': float(sigma5.getVal()),
+            'sigma6': float(sigma6.getVal()),
+            'sigma7': float(sigma7.getVal()),
+            'sigma8': float(sigma8.getVal()),
+            'sigma9': float(sigma9.getVal()),
             'sigmak': float(sigmak.getVal()),
+            'sigma0_err': float(sigma0.getError()),
+            'sigmak_err': float(sigma0.getError()),
             'a': float(A.getVal()),
             'b': float(B.getVal()),
             'c': float(C.getVal()),
@@ -505,54 +582,6 @@ def main():
         fit_info['bl'] = float(baseline / 45)
         for key, value in fit_info.items():
             combined_dict[key].append(value)
-        if fix_parameters:
-            # Plot the data and the fit
-            canvas = ROOT.TCanvas("c1","c1", 1200, 800)
-            #if tile == 0:
-            #    canvas.Print(f"{output_path}/pdf/charge_fit_tile_ch{channel}_ov{ov}.pdf[")
-    
-            print("FD bin width:", FD_bin_width, " original bin width:", original_bin_width )
-            print("finer fitted gain:", average_gain)
-            # Divide the canvas into two asymmetric pads
-            pad1 =ROOT.TPad("pad1","This is pad1",0.05,0.05,0.72,0.97);
-            pad2 = ROOT.TPad("pad2","This is pad2",0.72,0.05,0.98,0.97);
-            pad1.Draw()
-            pad2.Draw()
-            pad1.cd()
-            frame = sigQ.frame()
-            frame.SetXTitle("Charge")
-            frame.SetYTitle("Events")
-            frame.SetTitle(f"Charge spectrum fit of (run{run} ch{channel} tile{tile} ov{ov}V)")
-            new_data.plotOn(frame)
-            poisson_gen.plotOn(frame)
-            frame.Draw()
-            # Create TLine objects for the legend
-            pad2.cd()
-            # Create a TPaveText to display parameter values and uncertainties
-            param_box = ROOT.TPaveText(0.01, 0.9, 0.9, 0.1, "NDC")
-            param_box.SetFillColor(ROOT.kWhite)
-            param_box.SetBorderSize(1)
-            param_box.SetTextFont(42)
-            param_box.SetTextSize(0.08)
-            param_box.AddText(f"#mu = {mu.getVal():.3f} #pm {mu.getError():.3f}")
-            param_box.AddText(f"#lambda = {lambda_.getVal():.3f} #pm {lambda_.getError():.3f}")
-            param_box.AddText(f"ped = {ped.getVal():.3f} #pm {ped.getError():.3f}")
-            param_box.AddText(f"gain = {gain.getVal():.3f} #pm {gain.getError():.3f}")
-            param_box.AddText(f"#sigma0 = {sigma0.getVal():.3f} ")
-            param_box.AddText(f"#sigma1 = {sigma1.getVal():.3f} ")
-            param_box.AddText(f"#sigma2 = {sigma2.getVal():.3f} ")
-            param_box.AddText(f"#sigma3 = {sigma3.getVal():.3f} ")
-            param_box.AddText(f"#sigma4 = {sigma4.getVal():.3f} ")
-            param_box.AddText(f"#sigma5 = {sigma5.getVal():.3f} ")
-            param_box.AddText(f"#chi2/NDF = {chi2_ndf:.3f}")
-            param_box.Draw("same")
-            #canvas.Print(f"{output_path}/pdf/charge_fit_tile_ch{channel}_ov{ov}.pdf")
-            canvas.SetName(f"charge_spectrum_tile_{tile}_ch_{channel}_ov_{ov}")
-            canvas.Write()
-    
-    #canvas.Print(f"{output_path}/pdf/charge_fit_tile_ch{channel}_ov{ov}.pdf]")
-    if fix_parameters:
-        output_file.Close()
 
     df = pd.DataFrame(combined_dict)
     df.to_csv(f"{output_path}/csv/charge_fit_tile_ch{file_info.get('channel')}_ov{file_info.get('ov')}.csv", index=False)
