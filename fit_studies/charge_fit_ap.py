@@ -195,8 +195,8 @@ def main():
     if os.path.isfile(f"{output_path}/root/charge_fit_tile_ch{file_info.get('channel')}_ov{file_info.get('ov')}.root"):
         os.system(f"rm {output_path}/root/charge_fit_tile_ch{file_info.get('channel')}_ov{file_info.get('ov')}.root")
     ROOT.TVirtualFitter.SetDefaultFitter("Minuit2")
-    #for tile in range(16):
-    for tile in range(1):
+    for tile in range(16):
+    #for tile in range(6,7):
 
         tree.Draw(f"baselineQ_ch{tile}>>histogram{tile}")
         histogram = ROOT.gPad.GetPrimitive(f"histogram{tile}")
@@ -306,14 +306,14 @@ def main():
         
         # Create the RooFormulaVar
         #beta = RooFormulaVar("beta", "Beta Formula", beta_formula, RooArgList(tau_ap, t_gate_var, tau_R_var))
-        sigmaAp = RooRealVar("sigmaAp", "sigmaAp",1, 0.0001, 10)# beta_formula, RooArgList(tau_ap, t_gate_var, tau_R_var))
+        sigmaAp = RooRealVar("sigmaAp", "sigmaAp",0)# beta_formula, RooArgList(tau_ap, t_gate_var, tau_R_var))
 
         #beta = RooRealVar("beta", "beta", 0.01,0.0001,10)
         alpha = RooRealVar("alpha", "alpha", 0.1, 0.001, 0.3)
         A = RooRealVar("A", "A", 0,-10,10)
         B = RooRealVar("B", "B", 0,-10,10)
         C = RooRealVar("C", "C", 0,-10,10)
-        shift = RooRealVar("shift", "shift", 0, 0, float(ov+2)*5)
+        shift = RooRealVar("shift", "shift", 0, 0, float(ov+1)*3.5)
 
         if fix_parameters and n_peaks < 3:
             filtered_df_params = df_params[(df_params['run'] == int(run)) & (df_params['pos'] == tile) & (df_params['ch'] == int(channel)) & (df_params['vol'] == int(ov))]
@@ -331,7 +331,7 @@ def main():
         else:
             gain = RooRealVar("gain", "gain", distance, distance *0.5, distance *1.5)
 
-        for n in range(1,16):
+        for n in range(1,18):
             for i in range(0,n+1):
             #globals()[f'sigma{i}'] = RooRealVar(f"sigma{i}", "sigma{i}", 5,1,15)
             #globals()[f'sigma{i}'] = RooFormulaVar(f"sigma{i}", f"TMath::Sqrt( pow(sigma0, 2) + pow({i}, 2) * pow(sigmak, 2))", RooArgList(sigma0,sigmak))
@@ -343,7 +343,7 @@ def main():
         # Define the Gaussian PDF
         n_param = 6 # mu, lambda_, gain, ped, sigma0, sigmak
         argList = RooArgList(lambda_, mu, sigQ, ped, gain,shift,alpha,sigma0, sigmak, sigmaAp)
-        for n in range(1, 16):
+        for n in range(1, 18):
             for i in range(0,n + 1):
                 argList.add(globals()[f"sigma_{n}_{i}"])
           
@@ -449,11 +449,15 @@ def main():
             tree.Draw("{}>>new_hist".format(f'{variable_name}_ch{tile}'))
             new_data = ROOT.RooDataHist("new_data", "new_data", ROOT.RooArgSet(sigQ), new_hist)
             result2 = poisson_gen.fitTo(new_data, ROOT.RooFit.PrintLevel(-1), ROOT.RooFit.Save(), ROOT.RooFit.Strategy(2))
+            shift_max = shift.getMax()
+            shift_min = shift.getMin()
+            threshold = 0.01 * (shift_max - shift_min)
+            good_ap_fit = shift.getVal() - shift_min > threshold or shift_max - shift.getVal() > threshold 
             chi2 = ROOT.RooChi2Var("chi2", "chi2", poisson_gen, new_data)
             ## Get the chi-squared value
             tmp_chi2_val = chi2.getVal()
             fit_status = result2.status()
-            if tmp_chi2_val < initial_chi2_val and fit_status != 4:
+            if tmp_chi2_val < initial_chi2_val and fit_status != 4 and good_ap_fit:
                 best_bin_width = FD_bin_width
                 best_chi2 = tmp_chi2_val
         print(best_bin_width, initial_FD_bin_width, best_chi2, initial_chi2_val)
@@ -482,7 +486,6 @@ def main():
         tree.Draw("{}>>hists".format(f'{variable_name}_ch{tile} - {baseline}'))
         mean_sig = hist_sig.GetMean()
         stderr_sig = hist_sig.GetRMS()
-        print(mean_sig, mean_bkg)
         def error_for_ap(mean, lambda_, gain, mu, lambda_error, gain_error, mu_error):
             partial_lambda = -mean / (gain * mu)
             partial_gain = -mean * (1 - lambda_) / (gain**2 * mu)

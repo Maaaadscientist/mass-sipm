@@ -111,7 +111,7 @@ x_0 = peak_pos(0, "ped", "gain")
 Gauss0 = gauss("sigQ", x_0, "sigma0")
 formula2 += f"{GP0} * {Gauss0}"
 
-for k in range(1, 15):
+for k in range(1, 18):
     GPk = generalized_poisson(k, "mu", "lambda")
     x_k_0 = peak_pos_ap(k, 0, "ped", "gain", "shift")
     sigma_n_0 = f"sigma_{k}_0"
@@ -120,8 +120,8 @@ for k in range(1, 15):
     formula2 += f" + ( {GPk} * ({bino_0} * {Gaussk_0}"
     if k >= 1:
         for i in range(1, k+1):
-            if i > 2: 
-                continue
+            #if i > 2: 
+            #    continue
             bino_i = binominalI(k, i, "alpha")
             x_k_i = peak_pos_ap(k, i, "ped", "gain", "shift")
             sigma_n_i = f"sigma_{k}_{i}"
