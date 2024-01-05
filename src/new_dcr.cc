@@ -190,10 +190,7 @@ int main(int argc, char **argv) {
     std::vector<float> bl_vec = doc.GetColumn<float>("bl");
     std::vector<float> blrms_vec = doc.GetColumn<float>("bl_rms");
     std::vector<float> sigma0_vec = doc.GetColumn<float>("sigma0");
-    std::vector<float> sigma1_vec = doc.GetColumn<float>("sigma1");
-    std::vector<float> sigma2_vec = doc.GetColumn<float>("sigma2");
-		std::vector<float> sigma3_vec = doc.GetColumn<float>("sigma3");
-    std::vector<float> sigma4_vec = doc.GetColumn<float>("sigma4");
+    std::vector<float> sigmak_vec = doc.GetColumn<float>("sigmak");
     // Ensure pos size is 16
     if (pos_vec.size() != 16) {
         std::cerr << "The pos vector should have 16 elements!";
@@ -229,11 +226,11 @@ int main(int argc, char **argv) {
     rearrange(bl_vec);
     rearrange(blrms_vec);
     rearrange(sigma0_vec);
-    rearrange(sigma1_vec);
-    rearrange(sigma2_vec);
-    rearrange(sigma3_vec);
-    rearrange(sigma4_vec);
+    rearrange(sigmak_vec);
 
+    std::vector<double> robust_gain_vec = {15.259, 21.254, 27.663, 33.582, 39.673, 45.442};
+    std::vector<double> robust_gain_err_vec = {3.487, 3.680, 4.115, 4.499, 4.991, 5.926}; 
+    std::vector<double> cmf_vec = {0.7257, 0.7382, 0.7496, 0.7575, 0.7649, 0.7705}; 
     
     //input file name
     std::string filename;
@@ -251,15 +248,29 @@ int main(int argc, char **argv) {
     TH1F* dcr_n_bl_up[numHistograms];
     TH1F* dcr_bl_down[numHistograms];
     TH1F* dcr_n_bl_down[numHistograms];
+    TH1F* robust_dcr[numHistograms];
+    TH1F* robust_dcr_n[numHistograms];
+    TH1F* robust_dcr_up[numHistograms];
+    TH1F* robust_dcr_n_up[numHistograms];
+    TH1F* robust_dcr_down[numHistograms];
+    TH1F* robust_dcr_n_down[numHistograms];
     for (int i = 0; i < numHistograms; ++i) {
        float gap = gain_vec[i] / 45;
+       float sigma3 = sqrt(pow(sigma0_vec[i], 2) + 3 * pow(sigmak_vec[i], 2));
+       float robust_gap = robust_gain_vec[vol_vec[0]-1] / 45;
        if (gain_vec[i] < 5) gap = 5./45.;
-       dcr[i] = new TH1F(Form("dcrQ_ch%d", i), "DCR", 800 , 0, 4 * gap + 5 * sigma3_vec[i] / 45);
-       dcr_bl_up[i] = new TH1F(Form("dcrQ_bl_up_ch%d", i), "DCR", 800 , 0, 4 * gap + 5 * sigma3_vec[i] / 45);
-       dcr_bl_down[i] = new TH1F(Form("dcrQ_bl_down_ch%d", i), "DCR", 800 , 0, 4 * gap + 5 * sigma3_vec[i] / 45);
-       dcr_n[i] = new TH1F(Form("dcrQ_neg_ch%d", i), "DCR", 800 , 0, 4 * gap + 5 * sigma3_vec[i] / 45);
-       dcr_n_bl_up[i] = new TH1F(Form("dcrQ_bl_up_neg_ch%d", i), "DCR", 800 , 0, 4 * gap + 5 * sigma3_vec[i] / 45);
-       dcr_n_bl_down[i] = new TH1F(Form("dcrQ_neg_bl_down_ch%d", i), "DCR", 800 , 0, 4 * gap + 5 * sigma3_vec[i] / 45);
+       dcr[i] = new TH1F(Form("dcrQ_ch%d", i), "DCR", 800 , 0, 4 * gap + 5 * sigma3 / 45);
+       dcr_bl_up[i] = new TH1F(Form("dcrQ_bl_up_ch%d", i), "DCR", 800 , 0, 4 * gap + 5 * sigma3 / 45);
+       dcr_bl_down[i] = new TH1F(Form("dcrQ_bl_down_ch%d", i), "DCR", 800 , 0, 4 * gap + 5 * sigma3 / 45);
+       dcr_n[i] = new TH1F(Form("dcrQ_neg_ch%d", i), "DCR", 800 , 0, 4 * gap + 5 * sigma3 / 45);
+       dcr_n_bl_up[i] = new TH1F(Form("dcrQ_bl_up_neg_ch%d", i), "DCR", 800 , 0, 4 * gap + 5 * sigma3 / 45);
+       dcr_n_bl_down[i] = new TH1F(Form("dcrQ_neg_bl_down_ch%d", i), "DCR", 800 , 0, 4 * gap + 5 * sigma3 / 45);
+       robust_dcr[i] = new TH1F(Form("dcrQ_ch%d", i), "DCR", 800 , 0, 4 * robust_gap + 5 * 6.18 / 45);
+       robust_dcr_up[i] = new TH1F(Form("dcrQ_bl_up_ch%d", i), "DCR", 800 , 0, 4 * robust_gap + 5 * 6.18 / 45);
+       robust_dcr_down[i] = new TH1F(Form("dcrQ_bl_down_ch%d", i), "DCR", 800 , 0, 4 * robust_gap + 5 * 6.18 / 45);
+       robust_dcr_n[i] = new TH1F(Form("dcrQ_neg_ch%d", i), "DCR", 800 , 0, 4 * robust_gap + 5 * 6.18 / 45);
+       robust_dcr_n_up[i] = new TH1F(Form("dcrQ_bl_up_neg_ch%d", i), "DCR", 800 , 0, 4 * robust_gap + 5 * 6.18 / 45);
+       robust_dcr_n_down[i] = new TH1F(Form("dcrQ_neg_bl_down_ch%d", i), "DCR", 800 , 0, 4 * robust_gap + 5 * 6.18 / 45);
     }
     FILE *fp;
     std::uint32_t uiEVENT_HEADER[3] = {0,0,0};
@@ -388,6 +399,13 @@ int main(int argc, char **argv) {
            auto dcr_negative_charges = findNegativeMaxAfterThreshold(charge_wf, 0, 1155, baseline - gain_vec[ch] / 45); 
            auto dcr_negative_charges_bl_up = findNegativeMaxAfterThreshold(charge_wf, 0, 1155, baseline_up - gain_vec[ch] / 45); 
            auto dcr_negative_charges_bl_down = findNegativeMaxAfterThreshold(charge_wf, 0, 1155, baseline_down - gain_vec[ch] / 45); 
+           // treat the DCR in a robust manner
+           auto robust_dcr_charges = findMaxAfterThreshold(charge_wf, 0, 1155, baseline + robust_gain_vec[vol_vec[ch]-1] / 45); 
+           auto robust_dcr_charges_up = findMaxAfterThreshold(charge_wf, 0, 1155, baseline + (robust_gain_vec[vol_vec[ch]-1] - robust_gain_err_vec[vol_vec[ch]-1]) / 45); 
+           auto robust_dcr_charges_down = findMaxAfterThreshold(charge_wf, 0, 1155, baseline + (robust_gain_vec[vol_vec[ch]-1] + robust_gain_err_vec[vol_vec[ch]-1]) / 45); 
+           auto robust_dcr_negative_charges = findNegativeMaxAfterThreshold(charge_wf, 0, 1155, baseline - robust_gain_vec[vol_vec[ch]-1] / 45); 
+           auto robust_dcr_negative_charges_up = findNegativeMaxAfterThreshold(charge_wf, 0, 1155, baseline - (robust_gain_vec[vol_vec[ch]-1] - robust_gain_err_vec[vol_vec[ch]-1]) / 45); 
+           auto robust_dcr_negative_charges_down = findNegativeMaxAfterThreshold(charge_wf, 0, 1155, baseline - (robust_gain_vec[vol_vec[ch]-1] + robust_gain_err_vec[vol_vec[ch]-1]) / 45); 
            for (auto dcrQ: dcr_charges) {
               dcr[ch]->Fill(dcrQ - baseline);
            }
@@ -405,6 +423,24 @@ int main(int argc, char **argv) {
            }
            for (auto dcrQ: dcr_negative_charges_bl_down) {
               dcr_n_bl_down[ch]->Fill(baseline_down - dcrQ);
+           }
+           for (auto dcrQ: robust_dcr_charges) {
+              robust_dcr[ch]->Fill(dcrQ - baseline);
+           }
+           for (auto dcrQ: robust_dcr_negative_charges) {
+              robust_dcr_n[ch]->Fill(dcrQ - baseline);
+           }
+           for (auto dcrQ: robust_dcr_charges_up) {
+              robust_dcr_up[ch]->Fill(dcrQ - baseline);
+           }
+           for (auto dcrQ: robust_dcr_negative_charges_up) {
+              robust_dcr_n_up[ch]->Fill(dcrQ - baseline);
+           }
+           for (auto dcrQ: robust_dcr_charges_down) {
+              robust_dcr_down[ch]->Fill(dcrQ - baseline);
+           }
+           for (auto dcrQ: robust_dcr_negative_charges_down) {
+              robust_dcr_n_down[ch]->Fill(dcrQ - baseline);
            }
            //for (auto wf: aligned_wf) {
            //    std::cout << wf << " ";
@@ -431,27 +467,31 @@ int main(int argc, char **argv) {
     if(csvFile.is_open()){
         // Write the header
         if (writeHeader) {
-            csvFile << "run,ch,pos,vol,rate,dcr,dcr_err,dcr_cmf,dcr_norm_factor";
+            csvFile << "run,ch,pos,vol,rate,dcr,dcr_err,dcr_cmf,dcr_norm_factor,robust_dcr,robust_dcr_err";
             csvFile << "\n";
         }
     
         for (int i = 0; i < numHistograms; ++i) {
+            float sigma1_val = sqrt(pow(sigma0_vec[i], 2) + 1 * pow(sigmak_vec[i], 2));
+            float sigma2_val = sqrt(pow(sigma0_vec[i], 2) + 2 * pow(sigmak_vec[i], 2));
+            float sigma3_val = sqrt(pow(sigma0_vec[i], 2) + 3 * pow(sigmak_vec[i], 2));
+            float sigma4_val = sqrt(pow(sigma0_vec[i], 2) + 4 * pow(sigmak_vec[i], 2));
             dcr[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
             dcr_n[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
             //dcr_bl_up[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
             //dcr_n_bl_up[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
             //dcr_bl_down[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
             //dcr_n_bl_down[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
-            auto sigQ = RooRealVar("sigQ", "sigQ", 0, gain_vec[i] * 4 + 5 * sigma4_vec[i]);
-            sigQ.setRange("integrationRange", gain_vec[i], gain_vec[i] * 4 + 5 * sigma4_vec[i]);
+            auto sigQ = RooRealVar("sigQ", "sigQ", 0, gain_vec[i] * 4 + 5 * sigma4_val);
+            sigQ.setRange("integrationRange", gain_vec[i], gain_vec[i] * 4 + 5 * sigma4_val);
             auto lambda_ = RooRealVar("lambda", "lambda", lambda_vec[i]);
             auto mu = RooRealVar("mu", "mu", 1);
             auto ped = RooRealVar("ped", "ped", 0);
             auto gain = RooRealVar("gain", "gain", gain_vec[i]);
-            auto sigma1 = RooRealVar("sigma1", "sigma1", sigma1_vec[i]);
-            auto sigma2 = RooRealVar("sigma2", "sigma2", sigma2_vec[i]);
-            auto sigma3 = RooRealVar("sigma3", "sigma3", sigma3_vec[i]);
-            auto sigma4 = RooRealVar("sigma4", "sigma4", sigma4_vec[i]);
+            auto sigma1 = RooRealVar("sigma1", "sigma1", sigma1_val);
+            auto sigma2 = RooRealVar("sigma2", "sigma2", sigma2_val);
+            auto sigma3 = RooRealVar("sigma3", "sigma3", sigma3_val);
+            auto sigma4 = RooRealVar("sigma4", "sigma4", sigma4_val);
             auto argList = RooArgList(lambda_, mu, sigQ, ped, gain, sigma1, sigma2, sigma3, sigma4);
             RooGenericPdf GP("genPdf", formula, argList);
             double integral_value_central = GP.createIntegral(sigQ, RooFit::NormSet(sigQ), RooFit::Range("integrationRange"))->getVal();
@@ -489,6 +529,11 @@ int main(int argc, char **argv) {
             norm_factor_err /= 2.;
             auto rel_norm_factor_err = norm_factor_err / norm_factor;
             auto dcr_events = dcr[i]->Integral() - dcr_n[i]->Integral();
+            auto robust_dcr_events = robust_dcr[i]->Integral() - robust_dcr_n[i]->Integral();
+            auto robust_dcr_events_stat = TMath::Sqrt(robust_dcr[i]->Integral() + robust_dcr_n[i]->Integral()); 
+            auto robust_dcr_events_up = robust_dcr_up[i]->Integral() - robust_dcr_n_up[i]->Integral();
+            auto robust_dcr_events_down = robust_dcr_down[i]->Integral() - robust_dcr_n_down[i]->Integral();
+            auto robust_dcr_events_err = TMath::Sqrt(TMath::Power(robust_dcr_events_up - robust_dcr_events, 2) + TMath::Power(robust_dcr_events - robust_dcr_events_down , 2) + TMath::Power(  robust_dcr_events_stat, 2));
             auto dcr_events_err_stat = TMath::Sqrt(dcr[i]->Integral() + dcr_n[i]->Integral());
             
             auto dcr_events_up = dcr_bl_up[i]->Integral() - dcr_n_bl_up[i]->Integral();
@@ -503,7 +548,9 @@ int main(int argc, char **argv) {
 
             auto original_rate = dcr_events / 144. / (1155 * 8e-9 * events);
             auto rate = dcr_events / 144. / (1155 * 8e-9 * events) / cumulativeProbability;
+            auto robust_rate = robust_dcr_events / 144. / (1155 * 8e-9 * events) / cmf_vec[vol_vec[i]-1];
             auto rate_err = dcr_events_err / 144. / (1155 * 8e-9 * events) / cumulativeProbability;
+            auto robust_rate_err = robust_dcr_events_err / 144. / (1155 * 8e-9 * events) / cmf_vec[vol_vec[i]-1];
             auto rate_err_stat = dcr_events_err_stat / 144. / (1155 * 8e-9 * events) / cumulativeProbability;
             auto rate_err_bl_up = dcr_events_err_bl_up / 144. / (1155 * 8e-9 * events) / cumulativeProbability;
             auto rate_err_bl_down = dcr_events_err_bl_down / 144. / (1155 * 8e-9 * events) / cumulativeProbability;
@@ -529,7 +576,9 @@ int main(int argc, char **argv) {
                     << rate << ","
                     << rate_err_all << ","
                     << cumulativeProbability << ","
-                    << norm_factor
+                    << norm_factor << ","
+                    << robust_rate << ","
+                    << robust_rate_err 
                     << "\n";
         }
         csvFile.close();
