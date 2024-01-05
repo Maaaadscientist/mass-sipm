@@ -12,7 +12,7 @@ from copy import deepcopy
 
 import statsmodels.api as sm
 
-special_runs = {425:48, 426:48, 427:48, 428:48, 429:50, 430:48, 431:48, 432:49, 433:49, 435:50}
+special_runs = {425:48, 426:48, 427:48, 428:48, 429:50, 430:48, 431:48, 432:49, 433:49, 435:50, 436:47,}
 def remove_outliers(x_list, y_list, y_err_list, threshold=2):
     if len(x_list) >= 4:
         # Add a constant (intercept term) to predictors
@@ -209,6 +209,8 @@ for position in range(16):
  
     vbd_dict = []
     ov_dict = []
+    prefit_gain = []
+    prefit_gain_err = []
     fitted_gain = []
     fitted_gain_err = []
     rob_vbd_dict = []
@@ -239,8 +241,12 @@ for position in range(16):
             if len(filtered_df['status'].tolist()) != 0:
                 status = filtered_df.head(1)['status'].values[0]
                 if status != 0:
+                    prefit_gain.append(0)
+                    prefit_gain_err.append(0)
                     continue
             else:
+                prefit_gain.append(0)
+                prefit_gain_err.append(0)
                 continue
             hasAvg = False
             hasNormGain = True
@@ -251,6 +257,11 @@ for position in range(16):
             if len(filtered_df['gain'].tolist()) != 0:
                 gain = filtered_df.head(1)['gain'].values[0]
                 gain_err = filtered_df.head(1)['gain_err'].values[0]
+                prefit_gain.append(gain)
+                prefit_gain_err.append(gain_err)
+            else:
+                prefit_gain.append(0)
+                prefit_gain_err.append(0)
             if len(filtered_df['avg_gain'].tolist()) != 0:
                 avg_gain = filtered_df.head(1)['avg_gain'].values[0]
                 avg_gain_err = filtered_df.head(1)['avg_gain_err'].values[0]
@@ -344,6 +355,8 @@ for position in range(16):
     df_tmp['vbd_err'] = vbd_err_dict
     df_tmp['fit_gain'] = fitted_gain
     df_tmp['fit_gain_err'] = fitted_gain_err
+    df_tmp['prefit_gain'] = prefit_gain
+    df_tmp['prefit_gain_err'] = prefit_gain_err
     df_tmp['slope'] = slope_list
     df_tmp['slope_err'] = slope_err_list
     df_tmp['linear_chi2'] = chi2_list
