@@ -16,6 +16,8 @@ run_number = int(run_info.split("_")[-1])
 
 if not os.path.isdir(output_dir + "/jobs"):
     os.makedirs(output_dir + "/jobs")
+if not os.path.isdir(output_dir + "/logs/cpuInfo"):
+    os.makedirs(output_dir + "/logs/cpuInfo")
 
 for ch in range(1, 17):
     for ov in range(1, 7):
@@ -31,7 +33,9 @@ for ch in range(1, 17):
         script += 'fi\n'
         script += 'cd $directory\n'
         script += 'sleep 3\n'
-        script += f'cp {parrent_path}/script/charge_fit.py .\n'
+        #script += f'cp {parrent_path}/script/charge_fit.py .\n'
+        script += f'cp {parrent_path}/fit_studies/charge_fit_ap.py .\n'
+        script += f'cp {parrent_path}/fit_studies/compound_pdf.py .\n'
         script += f'cp {parrent_path}/env_lcg.sh .\n'
         script += '. ./env_lcg.sh\n'
         script += 'python=$(which python3)\n'
@@ -41,11 +45,12 @@ for ch in range(1, 17):
         script += f'run_info="{run_info}"\n'
         script += f'run_number="{run_number}"\n'
         script += f'output_file="{output_dir}"\n'
+        script += f'cat /proc/cpuinfo > {output_dir}/logs/cpuInfo/charge_fit_tile_ch{ch}_ov{ov}.log\n'
         script += '# Construct the input filename\n'
         script += f'ov={ov}\n'
         script += 'input_file="${file_path}/root/${run_info}_ov_${ov}.00_sipmgr_$(printf "%02d" $sipmgr)_${root_type}.root"\n'
         script += '# Construct and execute the command\n'
-        script += 'charge_fit_command="$python charge_fit.py ${input_file} signal sigQ ${output_file}"\n'
+        script += 'charge_fit_command="$python charge_fit_ap.py ${input_file} signal sigQ ${output_file}"\n'
         script += 'echo "Executing command: ${charge_fit_command}"\n'
         script += '$charge_fit_command\n'
         script += '\n'
@@ -53,4 +58,28 @@ for ch in range(1, 17):
         with open(f'{output_dir}/jobs/charge_fit_tile_ch{ch}_ov{ov}.sh','w') as file_tmp:
                 file_tmp.write(script)
 
+batch_script = '''
+#!/bin/bash
+
+# get procid from command line
+procid=$1
+
+# There are 6 ov values per channel, and 16 channels in total.
+channel=$(( procid / 6 + 1 ))
+override=$(( procid % 6 + 1 ))
+
+# format override to have leading zeros if necessary
+formatted_override=$(printf "%01d" $override)
+
+# construct the script name based on the channel and override
+'''
+batch_script += "\n"
+batch_script += 'script_name="'+f'{output_dir}/jobs/'+'charge_fit_tile_ch${channel}_ov${formatted_override}.sh"\n'
+
+# run the real job script by the formatted file name
+batch_script += 'bash "$script_name"\n'
+
+with open(f'{output_dir}/big-submission.sh','w') as file_tmp:
+        file_tmp.write(batch_script)
 os.system(f"chmod +x {output_dir}/jobs/*.sh")
+os.system(f"chmod +x {output_dir}/*.sh")
