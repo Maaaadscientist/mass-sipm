@@ -215,6 +215,7 @@ def main():
         n_peaks = spectrum.Search(hist, 0.2 , "", 0.05)
         if baseline >= 5000 or baseline <= -5000 or baseline_res == 0 or baseline_res > 300:
             fit_info = {
+                #'prefit_status': -2,
                 'status': -2,
                 'mu': 0.,
                 'mu_err': 0.,
@@ -263,8 +264,8 @@ def main():
             fit_info['vol'] = ov
             fit_info['ch'] = channel
             fit_info['pos'] = tile
-            fit_info['bl_rms'] = float(baseline_res / 45)
-            fit_info['bl'] = float(baseline / 45)
+            fit_info['bl_rms'] = float(baseline_res)
+            fit_info['bl'] = float(baseline)
             for key, value in fit_info.items():
                 combined_dict[key].append(value)
             continue
@@ -293,6 +294,8 @@ def main():
         ped = RooRealVar("ped", "ped", baseline, baseline - baseline_res *2, baseline + baseline_res * 2)
         gauss_baseline = RooGaussian("gauss_bl","gauss_bl", sigQ, ped, sigma0)
         gauss_baseline.fitTo(data_baseline)
+        bl_sigma = sigma0.getVal()
+        bl_mean = ped.getVal()
         #sigma0.setConstant(ROOT.kTRUE)
         #ped.setConstant(ROOT.kTRUE)
         # Define the parameters of the distribution
@@ -309,7 +312,7 @@ def main():
         sigmaAp = RooRealVar("sigmaAp", "sigmaAp",0)# beta_formula, RooArgList(tau_ap, t_gate_var, tau_R_var))
 
         #beta = RooRealVar("beta", "beta", 0.01,0.0001,10)
-        alpha = RooRealVar("alpha", "alpha", 0.1, 0.001, 0.3)
+        alpha = RooRealVar("alpha", "alpha", 0.01, 0.00001, 0.3)
         A = RooRealVar("A", "A", 0,-10,10)
         B = RooRealVar("B", "B", 0,-10,10)
         C = RooRealVar("C", "C", 0,-10,10)
@@ -358,9 +361,10 @@ def main():
         start_time = time.time()
         alpha.setVal(0)
         alpha.setConstant(ROOT.kTRUE)
-        poisson_gen.fitTo(data, ROOT.RooFit.PrintLevel(-1), ROOT.RooFit.Save())
-        baseline_events = hist.Integral(hist.FindFixBin(3680), hist.FindFixBin(3725))
-        calculated_mu = - np.log(baseline_events / hist.Integral())
+        result1 = poisson_gen.fitTo(data, ROOT.RooFit.PrintLevel(-1), ROOT.RooFit.Save())
+        prefit_status =  result1.status() 
+        #baseline_events = hist.Integral(hist.FindFixBin(3680), hist.FindFixBin(3725))
+        #calculated_mu = - np.log(baseline_events / hist.Integral())
         #mu.setVal(calculated_mu)
         mu.setConstant(ROOT.kTRUE)
         alpha.setConstant(ROOT.kFALSE)
@@ -483,7 +487,7 @@ def main():
         chi2_ndf = chi2_val / ndf
         
         hist_sig = ROOT.TH1F("hists","hists", 10000, - baseline_res * 5,  10000)
-        tree.Draw("{}>>hists".format(f'{variable_name}_ch{tile} - {baseline}'))
+        tree.Draw("{}>>hists".format(f'{variable_name}_ch{tile} - {bl_mean}'))
         mean_sig = hist_sig.GetMean()
         stderr_sig = hist_sig.GetRMS()
         def error_for_ap(mean, lambda_, gain, mu, lambda_error, gain_error, mu_error):
@@ -518,13 +522,14 @@ def main():
         res_GP_err = abs(-0.5 / f_val**(1.5) * delta_f)
         f_corr = 1 - sigma0.getVal() **2 / stderr_sig ** 2
         enf_res = (enf_data * f_corr - enf_GP) / mu_val 
-        rob_gain = float(stderr_sig ** 2 / mean_sig / enf_data / enf_GP)
-        rob_gain_err = np.sqrt(
-    (-stderr_sig**2 * enf_data_err / (mean_sig * enf_data**2 * enf_GP))**2 +
-    (-stderr_sig**2 * enf_GP_err / (mean_sig * enf_data * enf_GP**2))**2
-)
-        
+        rob_gain = float(mean_sig / (mu_val/(1-lambda_val)))
+        #rob_gain_err = np.sqrt(
+    #(-stderr_sig**2 * enf_data_err / (mean_sig * enf_data**2 * enf_GP))**2 +
+    #(-stderr_sig**2 * enf_GP_err / (mean_sig * enf_data * enf_GP**2))**2
+        rob_gain_err = math.sqrt((mean_sig**2 * mu_err**2 * (1 - lambda_val)**2) / (mu_val**4) + 
+                         (mean_sig**2 * lambda_err**2) / (mu_val**2))
         fit_info = {
+            #'prefit_status': int(prefit_status),
             'status': int(fit_status),
             'mu': float(mu_val),
             'mu_err': mu_err,
@@ -573,8 +578,8 @@ def main():
         fit_info['vol'] = ov
         fit_info['ch'] = channel
         fit_info['pos'] = tile
-        fit_info['bl_rms'] = float(baseline_res / 45)
-        fit_info['bl'] = float(baseline / 45)
+        fit_info['bl_rms'] = float(bl_sigma)
+        fit_info['bl'] = float(bl_mean)
         for key, value in fit_info.items():
             combined_dict[key].append(value)
 
