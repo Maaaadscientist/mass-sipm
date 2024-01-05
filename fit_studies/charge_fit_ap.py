@@ -2,7 +2,7 @@ import os
 import sys
 import re
 import math
-import time
+from time import time
 import numpy as np
 import pandas as pd
 from compound_pdf import compound_pdf_str
@@ -11,6 +11,9 @@ import ROOT
 from ROOT import (TMath, RooRealVar, RooGenericPdf, RooArgSet, RooDataHist, 
                   RooFit, TCanvas, TH1F, TRandom3, RooFormulaVar, RooGaussian,
                   RooArgList)
+import multiprocessing
+
+cpu_count = multiprocessing.cpu_count()
 
 ov_peaks = {1: 6, 2: 9, 3: 8, 4: 10, 5: 12, 6: 14}
 ov_ranges = {1: 100, 2: 200, 3: 250, 4: 320, 5: 420, 6: 600}
@@ -215,8 +218,16 @@ def main():
         n_peaks = spectrum.Search(hist, 0.2 , "", 0.05)
         if baseline >= 5000 or baseline <= -5000 or baseline_res == 0 or baseline_res > 300:
             fit_info = {
-                #'prefit_status': -2,
-                'status': -2,
+                'cpu_num' : int(cpu_count),
+                'prefit_status':   -2, 
+                'prefit_cpuTime':  0, 
+                'mufit_status':     0,
+                'mufit_cpuTime':    0,
+                'finalfit_status':  0,
+                'finalfit_cpuTime': 0,
+                'iterfit_cpuTime':  0,
+                'iterfit_num':      0,
+                'iterfit_num_success': 0,
                 'mu': 0.,
                 'mu_err': 0.,
                 'lambda': 0.,
@@ -240,8 +251,6 @@ def main():
                 'ap_gain_err': 0,  # Changed gain.getError() to gain_error
                 'rob_gain': 0,
                 'rob_gain_err': 0,
-                'avg_gain': 0,
-                'avg_gain_err': 0,
                 'chi2': 0,
                 'n_peaks_tofit': 0, 
                 'lower_edge': 0,
@@ -260,7 +269,7 @@ def main():
             }
 
             fit_info['events'] = n_entry
-            fit_info['run'] = run
+            fit_info['run'] = int(run)
             fit_info['vol'] = ov
             fit_info['ch'] = channel
             fit_info['pos'] = tile
@@ -312,7 +321,7 @@ def main():
         sigmaAp = RooRealVar("sigmaAp", "sigmaAp",0)# beta_formula, RooArgList(tau_ap, t_gate_var, tau_R_var))
 
         #beta = RooRealVar("beta", "beta", 0.01,0.0001,10)
-        alpha = RooRealVar("alpha", "alpha", 0.01, 0.00001, 0.3)
+        alpha = RooRealVar("alpha", "alpha", 0.01, 0.0, 0.3)
         A = RooRealVar("A", "A", 0,-10,10)
         B = RooRealVar("B", "B", 0,-10,10)
         C = RooRealVar("C", "C", 0,-10,10)
@@ -342,9 +351,7 @@ def main():
                 #globals()[f'sigma_{n}_{i}'] = RooFormulaVar(f"sigma_{n}_{i}", f"TMath::Sqrt( pow(sigma0, 2) +  {n} * pow(sigmak, 2) + {i} * pow(sigmaAp, 2))", RooArgList(sigma0,sigmak, sigmaAp))
                 #globals()[f'sigma_{n}_{i}'] = RooFormulaVar(f"sigma_{n}_{i}", f"TMath::Sqrt( pow(sigma0, 2) + (A + B * {i} + C * {i} * {i}) * pow(sigmak, 2))", RooArgList(sigma0,sigmak, A, B, C))
                 globals()[f'sigma_{n}_{i}'] = RooFormulaVar(f"sigma_{n}_{i}", f"TMath::Sqrt( pow(sigma0, 2) + {n} * pow(sigmak, 2) + {i} * pow(sigmaAp, 2) )", RooArgList(sigma0,sigmak, sigmaAp))
-            #globals()[f'sigma{i}'] = RooFormulaVar(f"sigma{i}", f"TMath::Sqrt( pow(sigma0, 2) +  ({i}+A*{i}*{i}) * pow(sigmak, 2))", RooArgList(sigma0,sigmak,A))
         # Define the Gaussian PDF
-        n_param = 6 # mu, lambda_, gain, ped, sigma0, sigmak
         argList = RooArgList(lambda_, mu, sigQ, ped, gain,shift,alpha,sigma0, sigmak, sigmaAp)
         for n in range(1, 18):
             for i in range(0,n + 1):
@@ -358,18 +365,16 @@ def main():
         
         # Perform the fit
         #result = minimizer.fit("")
-        start_time = time.time()
         alpha.setVal(0)
         alpha.setConstant(ROOT.kTRUE)
-        result1 = poisson_gen.fitTo(data, ROOT.RooFit.PrintLevel(-1), ROOT.RooFit.Save())
+        start_time1 = time()
+        result1 = poisson_gen.fitTo(data, ROOT.RooFit.PrintLevel(-1), ROOT.RooFit.Save(), ROOT.RooFit.NumCPU(cpu_count, 0))
+        end_time1 = time()
+        prefit_cpuTime = end_time1 - start_time1
         prefit_status =  result1.status() 
         #baseline_events = hist.Integral(hist.FindFixBin(3680), hist.FindFixBin(3725))
         #calculated_mu = - np.log(baseline_events / hist.Integral())
         #mu.setVal(calculated_mu)
-        mu.setConstant(ROOT.kTRUE)
-        alpha.setConstant(ROOT.kFALSE)
-        end_time = time.time()
-        prefit_time = end_time - start_time
         initialParams = poisson_gen.getParameters(data).snapshot()
         #poisson_gen.fitTo(data, ROOT.RooFit.SumW2Error(ROOT.kTRUE),ROOT.RooFit.PrintLevel(-1), ROOT.RooFit.Save(), ROOT.RooFit.Strategy(2), ROOT.RooFit.InitialHesse(ROOT.kTRUE))
         mu_value = mu.getVal()
@@ -380,45 +385,6 @@ def main():
                 max_peak_to_fit += 1
             else:
                 break
-        min_peak_to_fit = 0
-        for k in range(1, 16):
-            if calculate_GP(k, mu_value, lambda_value) > 0.002:
-                min_peak_to_fit += 1
-            else:
-                break
-        min_peak_to_fit = min(min_peak_to_fit, n_peaks)
-        centers = []
-        fit_err_square = 0.
-        for k in range(min_peak_to_fit):
-            if k == 0:
-                sigmak_value = sigma0.getVal()
-            else:
-                sigmak_value = globals()[f'sigma_{k}_0'].getVal()
-            # Define the range for the fit
-            lower_bound = ped.getVal() + k * gain.getVal() - 3 * sigmak_value
-            upper_bound = ped.getVal() + k * gain.getVal() + 3 * sigmak_value
-            # Define the variables for the fit
-            mean_tmp = RooRealVar("mean_tmp", "mean_tmp", ped.getVal() + k * gain.getVal(), lower_bound, upper_bound)
-            sigma_tmp = RooRealVar("sigma_tmp", "sigma_tmp", sigmak_value, sigmak_value * 0.5, sigmak_value * 1.5 )
-            
-            # Define the Gaussian PDF
-            gaussian = RooGaussian("gaussian", "gaussian", sigQ, mean_tmp, sigma_tmp)
-            
-            # Fit the histogram in the specified range
-            gaussian.fitTo(data, ROOT.RooFit.Range(lower_bound, upper_bound))#,ROOT.RooFit.SumW2Error(ROOT.kTRUE),ROOT.RooFit.PrintLevel(-1), ROOT.RooFit.Save(), ROOT.RooFit.Strategy(2), ROOT.RooFit.InitialHesse(ROOT.kTRUE))
-            
-            # 3. Extract the mean (center) of each Gaussian
-            centers.append(mean_tmp.getVal())
-            if k == 0 or k == min_peak_to_fit:
-                fit_err_square += mean_tmp.getError() ** 2
-        gains = [centers[i+1] - centers[i] for i in range(len(centers)-1)]
-        if len(gains) >= 2:
-            average_gain = sum(gains) / len(gains)
-            average_gain_err = 0. #standard_error_of_average_gain(gains)
-            average_gain_err = np.sqrt(average_gain_err**2 + fit_err_square/len(gains)**2)
-        else:
-            average_gain = 0.
-            average_gain_err = 0.
         new_x_min = ped.getVal() - sigma0.getVal() * 5
         new_x_max = ped.getVal() + globals()[f'sigma_{max_peak_to_fit}_0'].getVal() * 5 + max_peak_to_fit * gain.getVal()
         new_Nbins = (new_x_max - new_x_min) / (FD_bin_width )
@@ -432,19 +398,18 @@ def main():
         #new_minimizer.setMinimizerType("Minuit2")  # Choose Minuit2 as the optimizer
         params = poisson_gen.getParameters(data)
         params.assignValueOnly(initialParams)
-        #chi2_list = []
-        #time_list = []
-        #start_time = time.time()
-        result2 = poisson_gen.fitTo(new_data,ROOT.RooFit.SumW2Error(ROOT.kTRUE),ROOT.RooFit.PrintLevel(-1), ROOT.RooFit.Save(), ROOT.RooFit.Strategy(2))
-        #end_time = time.time()
-        chi2 = ROOT.RooChi2Var("chi2", "chi2", poisson_gen, new_data)
-        ## Get the chi-squared value
-        initial_chi2_val = chi2.getVal()
-        #chi2_list.append(chi2_val)
-        fit_status = result2.status()
+        start_time2 = time()
+        result2 = poisson_gen.fitTo(new_data,ROOT.RooFit.SumW2Error(ROOT.kTRUE),ROOT.RooFit.PrintLevel(-1), ROOT.RooFit.Save(), ROOT.RooFit.Strategy(2), ROOT.RooFit.NumCPU(cpu_count, 0))
+        end_time2 = time()
+        mufit_cpuTime = end_time2 - start_time2
+        mufit_status =  result2.status() 
+        mu.setConstant(ROOT.kTRUE)
+        alpha.setConstant(ROOT.kFALSE)
         initial_FD_bin_width = FD_bin_width
         best_bin_width = FD_bin_width
-        best_chi2 = initial_chi2_val
+        best_chi2 = np.inf
+        iterfit_cpuTime = []
+        iterfit_status = []
         while FD_bin_width > 0.5 * initial_FD_bin_width:
             FD_bin_width -= 0.05 * initial_FD_bin_width
             new_Nbins = (new_x_max - new_x_min) / FD_bin_width
@@ -452,7 +417,11 @@ def main():
             new_hist = ROOT.TH1F("new_hist","new_hist", int(new_Nbins) + 1, new_x_min, new_x_max)
             tree.Draw("{}>>new_hist".format(f'{variable_name}_ch{tile}'))
             new_data = ROOT.RooDataHist("new_data", "new_data", ROOT.RooArgSet(sigQ), new_hist)
-            result2 = poisson_gen.fitTo(new_data, ROOT.RooFit.PrintLevel(-1), ROOT.RooFit.Save(), ROOT.RooFit.Strategy(2))
+            start_time3 = time()
+            result3 = poisson_gen.fitTo(new_data, ROOT.RooFit.PrintLevel(-1), ROOT.RooFit.Save(), ROOT.RooFit.Strategy(2), ROOT.RooFit.NumCPU(cpu_count, 0))
+            end_time3 = time()
+            iterfit_cpuTime.append(end_time3 - start_time3)
+            iterfit_status.append(result3.status())
             shift_max = shift.getMax()
             shift_min = shift.getMin()
             threshold = 0.01 * (shift_max - shift_min)
@@ -460,20 +429,27 @@ def main():
             chi2 = ROOT.RooChi2Var("chi2", "chi2", poisson_gen, new_data)
             ## Get the chi-squared value
             tmp_chi2_val = chi2.getVal()
-            fit_status = result2.status()
-            if tmp_chi2_val < initial_chi2_val and fit_status != 4 and good_ap_fit:
+            if tmp_chi2_val < best_chi2 and result3.status() != 4 and good_ap_fit:
                 best_bin_width = FD_bin_width
                 best_chi2 = tmp_chi2_val
-        print(best_bin_width, initial_FD_bin_width, best_chi2, initial_chi2_val)
-        final_fit = True
-        if final_fit:
-            new_Nbins = (new_x_max - new_x_min) / best_bin_width
-            
-            new_hist = ROOT.TH1F("new_hist","new_hist", int(new_Nbins) + 1, new_x_min, new_x_max)
-            tree.Draw("{}>>new_hist".format(f'{variable_name}_ch{tile}'))
-            new_data = ROOT.RooDataHist("new_data", "new_data", ROOT.RooArgSet(sigQ), new_hist)
-            result2 = poisson_gen.fitTo(new_data, ROOT.RooFit.PrintLevel(-1), ROOT.RooFit.Save(), ROOT.RooFit.Strategy(2))
-            fit_status = result2.status()
+        iterfit_cpuTime = np.array(iterfit_cpuTime)
+        iterfit_status = np.array(iterfit_status)
+        iterfit_num = len(iterfit_cpuTime)
+        iterfit_average_cpuTime = np.mean(iterfit_cpuTime)
+        iterfit_num_success = np.sum(iterfit_status == 0)
+        
+
+        new_Nbins = (new_x_max - new_x_min) / best_bin_width
+        
+        new_hist = ROOT.TH1F("new_hist","new_hist", int(new_Nbins) + 1, new_x_min, new_x_max)
+        tree.Draw("{}>>new_hist".format(f'{variable_name}_ch{tile}'))
+        new_data = ROOT.RooDataHist("new_data", "new_data", ROOT.RooArgSet(sigQ), new_hist)
+        start_time4 = time()
+        result4 = poisson_gen.fitTo(new_data, ROOT.RooFit.PrintLevel(-1), ROOT.RooFit.Save(), ROOT.RooFit.Strategy(2), ROOT.RooFit.NumCPU(cpu_count, 0))
+        end_time4 = time()
+        finalfit_cpuTime = end_time4 - start_time4
+        finalfit_status = result4.status()
+        
             
 
         ## Create a chi-squared variable from the pdf and the data
@@ -481,7 +457,6 @@ def main():
         # Get the chi-squared value
         chi2_val = chi2.getVal()
         # Get number of degrees of freedom
-        #ndf = new_data.numEntries() - n_param #result.floatParsFinal().getSize()
         ndf = int(new_Nbins) - result2.floatParsFinal().getSize()
         # Calculate chi-squared per degree of freedom
         chi2_ndf = chi2_val / ndf
@@ -490,15 +465,7 @@ def main():
         tree.Draw("{}>>hists".format(f'{variable_name}_ch{tile} - {bl_mean}'))
         mean_sig = hist_sig.GetMean()
         stderr_sig = hist_sig.GetRMS()
-        def error_for_ap(mean, lambda_, gain, mu, lambda_error, gain_error, mu_error):
-            partial_lambda = -mean / (gain * mu)
-            partial_gain = -mean * (1 - lambda_) / (gain**2 * mu)
-            partial_mu = -mean * (1 - lambda_) / (gain * mu**2)
-        
-            dap = np.sqrt((partial_lambda * lambda_error)**2 + 
-                            (partial_gain * gain_error)**2 + 
-                            (partial_mu * mu_error)**2)
-            return dap
+
         gain_value = gain.getVal() #if ov <= 2 else average_gain 
         gain_error = gain.getError()
         
@@ -523,14 +490,19 @@ def main():
         f_corr = 1 - sigma0.getVal() **2 / stderr_sig ** 2
         enf_res = (enf_data * f_corr - enf_GP) / mu_val 
         rob_gain = float(mean_sig / (mu_val/(1-lambda_val)))
-        #rob_gain_err = np.sqrt(
-    #(-stderr_sig**2 * enf_data_err / (mean_sig * enf_data**2 * enf_GP))**2 +
-    #(-stderr_sig**2 * enf_GP_err / (mean_sig * enf_data * enf_GP**2))**2
         rob_gain_err = math.sqrt((mean_sig**2 * mu_err**2 * (1 - lambda_val)**2) / (mu_val**4) + 
                          (mean_sig**2 * lambda_err**2) / (mu_val**2))
         fit_info = {
-            #'prefit_status': int(prefit_status),
-            'status': int(fit_status),
+            'cpu_num' : int(cpu_count),
+            'prefit_status': int(prefit_status),
+            'prefit_cpuTime': float(prefit_cpuTime),
+            'mufit_status': int(mufit_status),
+            'mufit_cpuTime': float(mufit_cpuTime),
+            'finalfit_status': int(finalfit_status),
+            'finalfit_cpuTime': float(finalfit_cpuTime),
+            'iterfit_cpuTime': float(iterfit_average_cpuTime),
+            'iterfit_num': int(iterfit_num),
+            'iterfit_num_success': int(iterfit_num_success),
             'mu': float(mu_val),
             'mu_err': mu_err,
             'lambda': lambda_val,
@@ -553,8 +525,6 @@ def main():
             'ap_gain_err': float(shift.getError()),
             'rob_gain': float(rob_gain),
             'rob_gain_err': float(rob_gain_err),
-            'avg_gain': float(average_gain),
-            'avg_gain_err': float(average_gain_err),
             'gain_err': float(gain_error),  # Changed gain.getError() to gain_error
             'chi2': chi2_ndf,
             'charge_fit_ndf': float(ndf),
@@ -574,7 +544,7 @@ def main():
         }
 
         fit_info['events'] = n_entry
-        fit_info['run'] = run
+        fit_info['run'] = int(run)
         fit_info['vol'] = ov
         fit_info['ch'] = channel
         fit_info['pos'] = tile
