@@ -161,9 +161,12 @@ int main(int argc, char **argv) {
     Options options(argc, argv);
     YAML::Node const config = options.GetConfig();
     std::string outputName = "output.txt";
+    std::string outputSuffix = "output.txt";
     float cutOffFreq = Options::NodeAs<float>(config, {"Butterworth_cutoff_frequency"});
     unsigned int filterOrder = Options::NodeAs<unsigned int>(config, {"Butterworth_order"});
     if (options.Exists("output")) outputName = options.GetAs<std::string>("output");
+    if (options.Exists("name")) outputSuffix = options.GetAs<std::string>("name");
+    TFile *file1 = new TFile((outputName + "root" + outputSuffix + ".root").c_str(), "recreate");
     int runNumber = 0;
     if (options.Exists("run"))  runNumber = options.GetAs<int>("run");
     int maxEvents = 9999999;
@@ -250,7 +253,7 @@ int main(int argc, char **argv) {
     TH1F* dcr_n_bl_down[numHistograms];
     for (int i = 0; i < numHistograms; ++i) {
        float gap = gain_vec[i] / 45;
-       if (gap == 0) gap = 8./45.;
+       if (gain_vec[i] < 5) gap = 5./45.;
        dcr[i] = new TH1F(Form("dcrQ_ch%d", i), "DCR", 800 , 0, 4 * gap + 5 * sigma3_vec[i] / 45);
        dcr_bl_up[i] = new TH1F(Form("dcrQ_bl_up_ch%d", i), "DCR", 800 , 0, 4 * gap + 5 * sigma3_vec[i] / 45);
        dcr_bl_down[i] = new TH1F(Form("dcrQ_bl_down_ch%d", i), "DCR", 800 , 0, 4 * gap + 5 * sigma3_vec[i] / 45);
@@ -418,22 +421,23 @@ int main(int argc, char **argv) {
     //TFile *f_out = new TFile("testDCR.root", "recreate");
     TString formula = "(mu * TMath::Power((mu + 1 * lambda), 1-1) * TMath::Exp(-(mu + 1 * lambda)) / 1) * (1/sigma1 * TMath::Exp(- TMath::Power(sigQ - (ped + 1 * gain), 2)/(2 * TMath::Power(sigma1, 2))))+ (mu * TMath::Power((mu + 2 * lambda), 2-1) * TMath::Exp(-(mu + 2 * lambda)) / 2) * (1/sigma2 * TMath::Exp(- TMath::Power(sigQ - (ped + 2 * gain), 2)/(2 * TMath::Power(sigma2, 2))))+ (mu * TMath::Power((mu + 3 * lambda), 3-1) * TMath::Exp(-(mu + 3 * lambda)) / 6) * (1/sigma3 * TMath::Exp(- TMath::Power(sigQ - (ped + 3 * gain), 2)/(2 * TMath::Power(sigma3, 2))))+ (mu * TMath::Power((mu + 4 * lambda), 4-1) * TMath::Exp(-(mu + 4 * lambda)) / 24) * (1/sigma4 * TMath::Exp(- TMath::Power(sigQ - (ped + 4 * gain), 2)/(2 * TMath::Power(sigma4, 2))))"; 
     
-    std::string csv_path = outputName;//+ "/run" + std::to_string(run_vec[0]) + "_ch"+ std::to_string(ch_vec[0]) + ".csv";
+    std::string csv_path = outputName + "csv" + outputSuffix + ".csv";//+ "/run" + std::to_string(run_vec[0]) + "_ch"+ std::to_string(ch_vec[0]) + ".csv";
     //std::string csv_path = "output_test.csv";
     // Check if file exists and its size is greater than zero
     bool writeHeader = !(fileExists(csv_path) && std::ifstream(csv_path).peek() != std::ifstream::traits_type::eof());
 
-    std::ofstream csvFile(csv_path, std::ios::app);
+    //std::ofstream csvFile(csv_path, std::ios::app);
+    std::ofstream csvFile(csv_path);
     if(csvFile.is_open()){
         // Write the header
         if (writeHeader) {
-            csvFile << "run,ch,pos,vol,dcr,dcr_err";
+            csvFile << "run,ch,pos,vol,rate,dcr,dcr_err,dcr_cmf,dcr_norm_factor";
             csvFile << "\n";
         }
     
         for (int i = 0; i < numHistograms; ++i) {
-            //dcr[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
-            //dcr_n[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
+            dcr[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
+            dcr_n[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
             //dcr_bl_up[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
             //dcr_n_bl_up[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
             //dcr_bl_down[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
@@ -496,6 +500,8 @@ int main(int argc, char **argv) {
                 dcr_events =  dcr[i]->Integral();
                 dcr_events_err = TMath::Sqrt(dcr[i]->Integral());
             }
+
+            auto original_rate = dcr_events / 144. / (1155 * 8e-9 * events);
             auto rate = dcr_events / 144. / (1155 * 8e-9 * events) / cumulativeProbability;
             auto rate_err = dcr_events_err / 144. / (1155 * 8e-9 * events) / cumulativeProbability;
             auto rate_err_stat = dcr_events_err_stat / 144. / (1155 * 8e-9 * events) / cumulativeProbability;
@@ -519,12 +525,16 @@ int main(int argc, char **argv) {
                     << ch_vec[i] << ","
                     << pos_vec[i] << ","
                     << vol_vec[i] << ","
+                    << original_rate << ","
                     << rate << ","
-                    << rate_err_all
+                    << rate_err_all << ","
+                    << cumulativeProbability << ","
+                    << norm_factor
                     << "\n";
         }
         csvFile.close();
     }
+    file1->Close();
 
     //f_out->Close();
     return 0;
