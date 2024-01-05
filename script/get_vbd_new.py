@@ -55,20 +55,20 @@ def draw_linear_fit(fig, ax, x, x_with_bkv, y, y_err, intercept, slope, x_interc
     # Define the fitted line
     fit = slope * xplus + intercept
     # Plot the data points with error bars
-    ax.errorbar(x, y, yerr=y_err, fmt='o',markersize=2, color='black', label='Charge Data')
+    plt.errorbar(x, y, yerr=y_err, fmt='o',markersize=2, color='black', label='Charge Data')
 
     # Plot the fitted line
-    ax.plot(xplus, fit, color='red', label='Charge fit')
+    plt.plot(xplus, fit, color='red', label='Charge fit')
     # Set the limits for the twin y-axis
-    ax.set_ylim([0, np.max(y) * 1.1])
+    plt.ylim([0, np.max(y) * 1.1])
 
     # Add labels and legend
-    ax.set_xlabel('Voltage(V)')
-    ax.set_ylabel(f'Charge')
-    ax.legend()
+    plt.xlabel('Voltage(V)')
+    plt.ylabel(f'Charge')
+    plt.legend()
     # Add chi-square value
-    ax.text(0.05, 0.75, f'$\chi^2$/ndf: {chi2:.5f}', transform=ax.transAxes, verticalalignment='top')
-    ax.text(0.05, 0.65, f'Breakdown Voltage: {x_with_bkv[0]:.3f} $\pm$ {x_intercept_err:.3f}', transform=ax.transAxes, verticalalignment='top')
+    plt.text(0.05, 0.75, f'$\chi^2$/ndf: {chi2:.5f}', transform=plt.gca().transData, verticalalignment='top')
+    plt.text(0.05, 0.65, f'Breakdown Voltage: {x_with_bkv[0]:.3f} $\pm$ {x_intercept_err:.3f}', transform=plt.gca().transData, verticalalignment='top')
 
 def calculate_x_intercept_error(m, slope, m_err, slope_err):
     # Calculate the derivative of x_intercept with respect to m
@@ -99,11 +99,12 @@ def linear_fit_bootstrap(x_list, y_list, y_err_list, n_bootstrap=1000):
     x_intercept = -intercept / slope
     residuals = y - (slope * x + intercept)
     squared_residuals = residuals ** 2
+    var = np.mean(squared_residuals)
     # Calculate the sum of squared residuals (SSR)
     SSR = np.sum(squared_residuals)
     #print(SSR)
     degrees_of_freedom = len(x) - 2  # Number of data points minus number of fitted parameters
-    reduced_chi2 = SSR / degrees_of_freedom
+    reduced_chi2 = SSR/ var / degrees_of_freedom
 
     # bootstrap resampling
     bootstrap_slopes = []
@@ -220,6 +221,10 @@ for position in range(16):
     ndf_list = []
     slope_list = []
     slope_err_list = []
+    voltage_missing_list_all = []
+    fit_failure_list_all = []
+    large_chi2_list_all = []
+    parameter_miss_list_all = []
     # Create a PDF merger object
     #pdf_merger = PdfMerger()
     for channel in range(1,17):
@@ -233,20 +238,42 @@ for position in range(16):
         rob_gain_errors = []
         vols = []
         rob_vols = []
+        voltage_missing_list = []
+        fit_failure_list = []
+        large_chi2_list = []
+        parameter_miss_list = []
         for voltage in range(1,7):
             #print(position, channel, voltage)
             filtered_df = df.loc[ (df['ch'] == channel) &
                             (df['pos'] == position) &(df['vol'] == voltage)]
             #chi2 = filtered_df.head(1)['chi2'].values[0]
+            voltage_missing_list.append(0)
+            fit_failure_list.append(0)
+            large_chi2_list.append(0)
+            parameter_miss_list.append(0)
             if len(filtered_df['status'].tolist()) != 0:
+                deviance = filtered_df.head(1)['mean'].values[0] / filtered_df.head(1)['stderr'].values[0] 
+                if abs(deviance) < 0.1:
+                    prefit_gain.append(0)
+                    prefit_gain_err.append(0)
+                    voltage_missing_list[-1] = 1
+                    continue
                 status = filtered_df.head(1)['status'].values[0]
                 if status != 0:
                     prefit_gain.append(0)
                     prefit_gain_err.append(0)
+                    fit_failure_list[-1] = 1
+                    continue
+                charge_spectrum_fit_chi2 = filtered_df.head(1)['chi2'].values[0]
+                if charge_spectrum_fit_chi2 > 2:
+                    prefit_gain.append(0)
+                    prefit_gain_err.append(0)
+                    large_chi2_list[-1] = 1
                     continue
             else:
                 prefit_gain.append(0)
                 prefit_gain_err.append(0)
+                parameter_miss_list[-1] = 1
                 continue
             hasAvg = False
             hasNormGain = True
@@ -308,12 +335,12 @@ for position in range(16):
             if rob_chi2 / rob_ndf > 0.1:
                 rob_slope, rob_intercept, rob_x_intercept , rob_slope_err, rob_intercept_err, rob_x_intercept_err, rob_chi2, rob_ndf =  linear_fit_bootstrap(rob_vols[1:], rob_gains[1:], rob_gain_errors[1:], 500)
         if ndf != 0:
-            if chi2 / ndf > 0.1:
+            if chi2 / ndf > 0.02:
                 vols_plus = deepcopy(vols)
                 vols_plus.insert(0, x_intercept)
 
                 # Set the title of the plot
-                ax.set_title(f"Linear regression of gain (run{run} po{position} ch{channel})")
+                plt.title(f"Linear regression of gain (run{run} po{position} ch{channel})")
                 draw_linear_fit(fig, ax, vols,vols_plus ,gains, gain_errors, - x_intercept* slope, slope, x_intercept_err, chi2/ndf) 
                 # Set the y-axis limits
 
@@ -324,9 +351,9 @@ for position in range(16):
                 # Add the generated PDF file to the merger object
                 #pdf_merger.append(output_dir + "/pdf/" +filename)
                 # Clear the axes
-                ax.cla()
+                #plt.cla()
                 # Clear the figure
-                fig.clf()
+                #fig.clf()
                 plt.clf()
         for ov in range(1, 7):
             if len(gains) >= 2:
@@ -348,6 +375,11 @@ for position in range(16):
             vbd_err_dict.append(x_intercept_err)
             rob_vbd_dict.append(rob_x_intercept)
             rob_vbd_err_dict.append(rob_x_intercept_err)
+        for i in range(6):
+            voltage_missing_list_all.append(voltage_missing_list[i])
+            fit_failure_list_all.append(fit_failure_list[i])
+            large_chi2_list_all.append(large_chi2_list[i])
+            parameter_miss_list_all.append(parameter_miss_list[i])
 
         
     df_tmp['vbd'] = vbd_dict
@@ -367,6 +399,10 @@ for position in range(16):
     df_tmp['run'] = [run for i in range(96)]
     df_tmp['ch'] = [ch for ch in range(1,17) for _ in range(6)]
     df_tmp['vol'] = [ov for _ in range(16) for ov in range(1, 7)]
+    df_tmp['vol_missing'] = voltage_missing_list_all
+    df_tmp['fit_failure'] = fit_failure_list_all
+    df_tmp['large_chi2'] = large_chi2_list_all
+    df_tmp['params_missing'] = parameter_miss_list_all
     #df_tmp.to_csv(f"{output_dir}/csv/vbd_tile{position}.csv", index=False)
       
     file_path = f"{output_dir}/csv/get_vbd_run{run}.csv"
