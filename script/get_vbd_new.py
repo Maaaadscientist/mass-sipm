@@ -251,14 +251,14 @@ for position in range(16):
             fit_failure_list.append(0)
             large_chi2_list.append(0)
             parameter_miss_list.append(0)
-            if len(filtered_df['status'].tolist()) != 0:
+            if len(filtered_df['finalfit_status'].tolist()) != 0:
                 deviance = filtered_df.head(1)['mean'].values[0] / filtered_df.head(1)['stderr'].values[0] 
                 if abs(deviance) < 0.1:
                     prefit_gain.append(0)
                     prefit_gain_err.append(0)
                     voltage_missing_list[-1] = 1
                     continue
-                status = filtered_df.head(1)['status'].values[0]
+                status = filtered_df.head(1)['finalfit_status'].values[0]
                 if status != 0:
                     prefit_gain.append(0)
                     prefit_gain_err.append(0)
@@ -289,19 +289,10 @@ for position in range(16):
             else:
                 prefit_gain.append(0)
                 prefit_gain_err.append(0)
-            if len(filtered_df['avg_gain'].tolist()) != 0:
-                avg_gain = filtered_df.head(1)['avg_gain'].values[0]
-                avg_gain_err = filtered_df.head(1)['avg_gain_err'].values[0]
-                if avg_gain != 0 and avg_gain_err != 0:
-                    hasAvg = True
             print(position, channel, voltage, gain, gain_err)
             if gain_err / gain < 0.05 and gain_err / gain > 0.0001: # in case of fit failure
                 gains.append(gain)
                 gain_errors.append(gain_err)
-                vols.append(voltage + init_vol)
-            elif hasAvg:
-                gains.append(avg_gain)
-                gain_errors.append(avg_gain_err)
                 vols.append(voltage + init_vol)
             else:
                 hasNormGain = False
@@ -309,10 +300,6 @@ for position in range(16):
             if rob_gain_err / rob_gain < 0.05 and  rob_gain_err / rob_gain > 0.0001: # in case of fit failure:
                 rob_gains.append(rob_gain)
                 rob_gain_errors.append(rob_gain_err)
-                rob_vols.append(voltage + init_vol)
-            elif hasAvg:
-                rob_gains.append(avg_gain)
-                rob_gain_errors.append(avg_gain_err)
                 rob_vols.append(voltage + init_vol)
             else:
                 hasRobGain = False
