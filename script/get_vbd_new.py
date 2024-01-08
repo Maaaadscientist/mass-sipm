@@ -14,7 +14,7 @@ import statsmodels.api as sm
 
 special_runs = {425:48, 426:48, 427:48, 428:48, 429:50, 430:48, 431:48, 432:49, 433:49, 435:50, 436:47,}
 def remove_outliers(x_list, y_list, y_err_list, threshold=2):
-    if len(x_list) >= 4:
+    if len(x_list) >= 3:
         # Add a constant (intercept term) to predictors
         X = sm.add_constant(np.array(x_list))
         y = np.array(y_list)
@@ -134,7 +134,7 @@ def linear_fit_bootstrap(x_list, y_list, y_err_list, n_bootstrap=1000):
     slope_std_err = np.std(bootstrap_slopes)
     intercept_std_err = np.std(bootstrap_intercepts)
     x_intercept_std_err = np.std(bootstrap_x_intercepts)
-    x_intercept_err = np.sqrt(x_intercept_std_err ** 2 + (reduced_chi2 / slope**2) )
+    x_intercept_err = np.sqrt(x_intercept_std_err ** 2)
 
     return (
         slope,
@@ -275,8 +275,6 @@ for position in range(16):
                 prefit_gain_err.append(0)
                 parameter_miss_list[-1] = 1
                 continue
-            hasAvg = False
-            hasNormGain = True
             hasRobGain = True
             if len(filtered_df['rob_gain'].tolist()) != 0:
                 rob_gain = filtered_df.head(1)['rob_gain'].values[0]
@@ -290,19 +288,13 @@ for position in range(16):
                 prefit_gain.append(0)
                 prefit_gain_err.append(0)
             print(position, channel, voltage, gain, gain_err)
-            if gain_err / gain < 0.05 and gain_err / gain > 0.0001: # in case of fit failure
-                gains.append(gain)
-                gain_errors.append(gain_err)
-                vols.append(voltage + init_vol)
-            else:
-                hasNormGain = False
+            gains.append(gain)
+            gain_errors.append(gain_err)
+            vols.append(voltage + init_vol)
             
-            if rob_gain_err / rob_gain < 0.05 and  rob_gain_err / rob_gain > 0.0001: # in case of fit failure:
-                rob_gains.append(rob_gain)
-                rob_gain_errors.append(rob_gain_err)
-                rob_vols.append(voltage + init_vol)
-            else:
-                hasRobGain = False
+            rob_gains.append(rob_gain)
+            rob_gain_errors.append(rob_gain_err)
+            rob_vols.append(voltage + init_vol)
 
         vols, gains, gain_errors = remove_outliers(vols, gains, gain_errors)
         rob_vols, rob_gains, rob_gain_errors = remove_outliers(rob_vols, rob_gains, rob_gain_errors)
@@ -322,7 +314,7 @@ for position in range(16):
             if rob_chi2 / rob_ndf > 0.1:
                 rob_slope, rob_intercept, rob_x_intercept , rob_slope_err, rob_intercept_err, rob_x_intercept_err, rob_chi2, rob_ndf =  linear_fit_bootstrap(rob_vols[1:], rob_gains[1:], rob_gain_errors[1:], 500)
         if ndf != 0:
-            if chi2 / ndf > 0.02:
+            if chi2 / ndf > 0.000001:
                 vols_plus = deepcopy(vols)
                 vols_plus.insert(0, x_intercept)
 
