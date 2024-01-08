@@ -252,8 +252,9 @@ for position in range(16):
             large_chi2_list.append(0)
             parameter_miss_list.append(0)
             if len(filtered_df['finalfit_status'].tolist()) != 0:
-                deviance = filtered_df.head(1)['mean'].values[0] / filtered_df.head(1)['stderr'].values[0] 
-                if abs(deviance) < 0.1:
+                mean = filtered_df.head(1)['mean'].values[0] 
+                stderr = filtered_df.head(1)['stderr'].values[0] 
+                if abs(mean) < 10 and stderr < 10:
                     prefit_gain.append(0)
                     prefit_gain_err.append(0)
                     voltage_missing_list[-1] = 1
