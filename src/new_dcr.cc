@@ -156,7 +156,22 @@ std::vector<double> alighed_waveform(std::vector<double> &waveform) {
     }
     return charge_waveform;
 }
+double chargeIntegral(std::vector<double> &waveform, int signalStart, int signalEnd, double baseline) {
+    double sigQ = 0;
 
+    for (int j = signalStart; j < signalEnd; j++) {
+        sigQ += waveform[j] - baseline;
+    }
+    return sigQ;
+}
+
+double vecSum(std::vector<double> &sumVec) {
+    double sum;
+    for (int j = 0; j < sizeof(sumVec); j++) {
+        sum += sumVec[j];
+    }
+    return sum;
+}
 int main(int argc, char **argv) {
     Options options(argc, argv);
     YAML::Node const config = options.GetConfig();
@@ -230,7 +245,9 @@ int main(int argc, char **argv) {
 
     std::vector<double> robust_gain_vec = {15.259, 21.254, 27.663, 33.582, 39.673, 45.442};
     std::vector<double> robust_gain_err_vec = {3.487, 3.680, 4.115, 4.499, 4.991, 5.926}; 
-    std::vector<double> cmf_vec = {0.7257, 0.7382, 0.7496, 0.7575, 0.7649, 0.7705}; 
+    std::vector<double> rob_lambda_vec = {0.08398, 0.1411, 0.1998, 0.2304, 0.3179, 0.3817};
+    //std::vector<double> cmf_vec = {0.7257, 0.7382, 0.7496, 0.7575, 0.7649, 0.7705}; 
+    std::vector<double> cmf_vec = {0.5403, 0.5658, 0.5906, 0.6029, 0.6362, 0.6587}; 
     
     //input file name
     std::string filename;
@@ -265,12 +282,12 @@ int main(int argc, char **argv) {
        dcr_n[i] = new TH1F(Form("dcrQ_neg_ch%d", i), "DCR", 800 , 0, 4 * gap + 5 * sigma3 / 45);
        dcr_n_bl_up[i] = new TH1F(Form("dcrQ_bl_up_neg_ch%d", i), "DCR", 800 , 0, 4 * gap + 5 * sigma3 / 45);
        dcr_n_bl_down[i] = new TH1F(Form("dcrQ_neg_bl_down_ch%d", i), "DCR", 800 , 0, 4 * gap + 5 * sigma3 / 45);
-       robust_dcr[i] = new TH1F(Form("dcrQ_ch%d", i), "DCR", 800 , 0, 4 * robust_gap + 5 * 6.18 / 45);
-       robust_dcr_up[i] = new TH1F(Form("dcrQ_bl_up_ch%d", i), "DCR", 800 , 0, 4 * robust_gap + 5 * 6.18 / 45);
-       robust_dcr_down[i] = new TH1F(Form("dcrQ_bl_down_ch%d", i), "DCR", 800 , 0, 4 * robust_gap + 5 * 6.18 / 45);
-       robust_dcr_n[i] = new TH1F(Form("dcrQ_neg_ch%d", i), "DCR", 800 , 0, 4 * robust_gap + 5 * 6.18 / 45);
-       robust_dcr_n_up[i] = new TH1F(Form("dcrQ_bl_up_neg_ch%d", i), "DCR", 800 , 0, 4 * robust_gap + 5 * 6.18 / 45);
-       robust_dcr_n_down[i] = new TH1F(Form("dcrQ_neg_bl_down_ch%d", i), "DCR", 800 , 0, 4 * robust_gap + 5 * 6.18 / 45);
+       robust_dcr[i] = new TH1F(Form("rb_dcrQ_ch%d", i), "DCR", 800 , 0, 4 * robust_gap + 5 * 6.18 / 45);
+       robust_dcr_up[i] = new TH1F(Form("rb_dcrQ_up_ch%d", i), "DCR", 800 , 0, 4 * robust_gap + 5 * 6.18 / 45);
+       robust_dcr_down[i] = new TH1F(Form("rb_dcrQ_down_ch%d", i), "DCR", 800 , 0, 4 * robust_gap + 5 * 6.18 / 45);
+       robust_dcr_n[i] = new TH1F(Form("rb_dcrQ_neg_ch%d", i), "DCR", 800 , 0, 4 * robust_gap + 5 * 6.18 / 45);
+       robust_dcr_n_up[i] = new TH1F(Form("rb_dcrQ_neg_up_ch%d", i), "DCR", 800 , 0, 4 * robust_gap + 5 * 6.18 / 45);
+       robust_dcr_n_down[i] = new TH1F(Form("rb_dcrQ_neg_down_ch%d", i), "DCR", 800 , 0, 4 * robust_gap + 5 * 6.18 / 45);
     }
     FILE *fp;
     std::uint32_t uiEVENT_HEADER[3] = {0,0,0};
@@ -318,6 +335,7 @@ int main(int argc, char **argv) {
        //std::cout << i << "\t: "<< butterworthLowpassFilter(i*1.0,200, 5) << std::endl;
        lowpass[i] = butterworthLowpassFilter(i*1.0, cutOffFreq, filterOrder);
     }
+    std::vector<double> charge_vec(16,0.0);
     for (int nev = 0; nev < std::min(maxEvents, events); ++nev) {
         int offset = 0;
         std::uint32_t word;
@@ -386,13 +404,19 @@ int main(int argc, char **argv) {
            //for (auto wf: charge_wf) {
            //    std::cout << wf << " ";
            //}
+           //auto baseline = computeAverage(waveform, 300, 900);
+           auto baseline1 = bl_vec[ch] / 45; 
            auto baseline = computeAverage(waveform, 300, 900);
            //auto baseline_up = baseline + blrms_vec[ch];
            //auto baseline_down = baseline - blrms_vec[ch];
+           //std::cout << "ch: " << ch << "bl: " << baseline << "csv bl: "<< baseline1<< std::endl;
 
            double baseline_up = computeAverage(waveform, 500, 1100);
            double baseline_down = computeAverage(waveform, 100, 700);
            //std::cout << baseline << "\t" << bl_vec[ch] << std::endl;
+           auto total_charge = chargeIntegral(waveform, 1155, 1200, baseline);
+           auto total_charge1 = chargeIntegral(waveform, 1155, 1200, baseline1);
+           //std::cout << "total charge:" << total_charge << "csv charge:" << total_charge1 << std::endl;
            auto dcr_charges = findMaxAfterThreshold(charge_wf, 0, 1155, baseline + gain_vec[ch] / 45); 
            auto dcr_charges_bl_up = findMaxAfterThreshold(charge_wf, 0, 1155, baseline_up + gain_vec[ch] / 45); 
            auto dcr_charges_bl_down = findMaxAfterThreshold(charge_wf, 0, 1155, baseline_down + gain_vec[ch] / 45); 
@@ -452,78 +476,50 @@ int main(int argc, char **argv) {
            delete [] im_full;
            delete fft_back;
            delete fft;
+           charge_vec[ch] += total_charge1;
         }
     }
+    
     //TFile *f_out = new TFile("testDCR.root", "recreate");
     TString formula = "(mu * TMath::Power((mu + 1 * lambda), 1-1) * TMath::Exp(-(mu + 1 * lambda)) / 1) * (1/sigma1 * TMath::Exp(- TMath::Power(sigQ - (ped + 1 * gain), 2)/(2 * TMath::Power(sigma1, 2))))+ (mu * TMath::Power((mu + 2 * lambda), 2-1) * TMath::Exp(-(mu + 2 * lambda)) / 2) * (1/sigma2 * TMath::Exp(- TMath::Power(sigQ - (ped + 2 * gain), 2)/(2 * TMath::Power(sigma2, 2))))+ (mu * TMath::Power((mu + 3 * lambda), 3-1) * TMath::Exp(-(mu + 3 * lambda)) / 6) * (1/sigma3 * TMath::Exp(- TMath::Power(sigQ - (ped + 3 * gain), 2)/(2 * TMath::Power(sigma3, 2))))+ (mu * TMath::Power((mu + 4 * lambda), 4-1) * TMath::Exp(-(mu + 4 * lambda)) / 24) * (1/sigma4 * TMath::Exp(- TMath::Power(sigQ - (ped + 4 * gain), 2)/(2 * TMath::Power(sigma4, 2))))"; 
     
     std::string csv_path = outputName + "csv" + outputSuffix + ".csv";//+ "/run" + std::to_string(run_vec[0]) + "_ch"+ std::to_string(ch_vec[0]) + ".csv";
     //std::string csv_path = "output_test.csv";
     // Check if file exists and its size is greater than zero
-    bool writeHeader = !(fileExists(csv_path) && std::ifstream(csv_path).peek() != std::ifstream::traits_type::eof());
 
     //std::ofstream csvFile(csv_path, std::ios::app);
     std::ofstream csvFile(csv_path);
     if(csvFile.is_open()){
         // Write the header
-        if (writeHeader) {
-            csvFile << "run,ch,pos,vol,rate,dcr,dcr_err,dcr_cmf,dcr_norm_factor,robust_dcr,robust_dcr_err";
-            csvFile << "\n";
-        }
+        csvFile << "run,ch,pos,vol,rate,dcr,dcr_err,dcr_cmf,dcr_norm_factor,charge_dcr,charge_dcr_err,robust_dcr,robust_dcr_err";
+        csvFile << "\n";
     
         for (int i = 0; i < numHistograms; ++i) {
-            float sigma1_val = sqrt(pow(sigma0_vec[i], 2) + 1 * pow(sigmak_vec[i], 2));
-            float sigma2_val = sqrt(pow(sigma0_vec[i], 2) + 2 * pow(sigmak_vec[i], 2));
-            float sigma3_val = sqrt(pow(sigma0_vec[i], 2) + 3 * pow(sigmak_vec[i], 2));
-            float sigma4_val = sqrt(pow(sigma0_vec[i], 2) + 4 * pow(sigmak_vec[i], 2));
-            dcr[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
-            dcr_n[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
+            double expected_dcr_pe = 0.;
+            if (lambda_vec[i] > 0 && lambda_vec[i] < 0.6)
+                expected_dcr_pe = 1/(1-lambda_vec[i]);
+            else if (lambda_vec[i] <=0)
+                expected_dcr_pe = 1;
+            else
+                expected_dcr_pe = 1 / (1-0.6);
+            double charge_dcr_events = charge_vec[i] / expected_dcr_pe / robust_gain_vec[vol_vec[i]-1];
+            double charge_dcr_events_up = charge_vec[i] / expected_dcr_pe / (robust_gain_vec[vol_vec[i]-1] - robust_gain_err_vec[vol_vec[i]-1]);
+            double charge_dcr_events_down = charge_vec[i] / expected_dcr_pe / (robust_gain_vec[vol_vec[i]-1] + robust_gain_err_vec[vol_vec[i]-1]);
+            double charge_dcr_events_err = TMath::Sqrt(pow(charge_dcr_events_up - charge_dcr_events, 2) + pow(charge_dcr_events_down - charge_dcr_events, 2)) / 2;
             //dcr_bl_up[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
             //dcr_n_bl_up[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
             //dcr_bl_down[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
             //dcr_n_bl_down[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 80 , 82.,  90.);
-            auto sigQ = RooRealVar("sigQ", "sigQ", 0, gain_vec[i] * 4 + 5 * sigma4_val);
-            sigQ.setRange("integrationRange", gain_vec[i], gain_vec[i] * 4 + 5 * sigma4_val);
-            auto lambda_ = RooRealVar("lambda", "lambda", lambda_vec[i]);
-            auto mu = RooRealVar("mu", "mu", 1);
-            auto ped = RooRealVar("ped", "ped", 0);
-            auto gain = RooRealVar("gain", "gain", gain_vec[i]);
-            auto sigma1 = RooRealVar("sigma1", "sigma1", sigma1_val);
-            auto sigma2 = RooRealVar("sigma2", "sigma2", sigma2_val);
-            auto sigma3 = RooRealVar("sigma3", "sigma3", sigma3_val);
-            auto sigma4 = RooRealVar("sigma4", "sigma4", sigma4_val);
-            auto argList = RooArgList(lambda_, mu, sigQ, ped, gain, sigma1, sigma2, sigma3, sigma4);
-            RooGenericPdf GP("genPdf", formula, argList);
-            double integral_value_central = GP.createIntegral(sigQ, RooFit::NormSet(sigQ), RooFit::Range("integrationRange"))->getVal();
-
-            const int n_samples = 1000;
 
             // Given means and standard deviations for lambda and gain
             double lambda_mean = lambda_vec[i];
             double lambda_std = lambda_err_vec[i];  // Adjust accordingly
             if (fabs(lambda_std * 10 > lambda_mean)) lambda_std = lambda_mean * 0.1; //maximum 10% uncertainty
-            double gain_mean = gain_vec[i]; // Adjust accordingly
-            double gain_std = gain_err_vec[i];  // Adjust accordingly
-            if (fabs(gain_std * 10 > gain_mean)) gain_std == gain_mean * 0.1; //maximum 10% uncertainty
+            if (lambda_mean > 0.99) lambda_mean = 0.99; //maximum 0.99
+            if (lambda_mean < 0.01) lambda_mean = 0.01; //minimum 0.01
 
-            TRandom3 randGen;
-            std::vector<double> bootstrap_integral_values;
-
-            for (int i = 0; i < n_samples; ++i) {
-                // Resample lambda and gain
-                double lambda_resampled = randGen.Gaus(lambda_mean, lambda_std);
-                double gain_resampled = randGen.Gaus(gain_mean, gain_std);
-                
-                // Set the new values to the RooRealVars
-                lambda_.setVal(lambda_resampled);
-                gain.setVal(gain_resampled);
-
-                // Compute the integral
-                double integral_value = GP.createIntegral(sigQ, RooFit::NormSet(sigQ), RooFit::Range("integrationRange"))->getVal();
-                bootstrap_integral_values.push_back(integral_value);
-            }
-            auto cumulativeProbability = integral_value_central;//computeAverage(bootstrap_integral_values, 0 , bootstrap_integral_values.size());//GP.createIntegral(sigQ, RooFit::NormSet(sigQ), RooFit::Range("integrationRange"));
-            auto cumulativeProbability_std = computeStdDev(bootstrap_integral_values);
+            auto cumulativeProbability = 1 - 0.5*TMath::Exp(-lambda_mean);//integral_value_central;//computeAverage(bootstrap_integral_values, 0 , bootstrap_integral_values.size());//GP.createIntegral(sigQ, RooFit::NormSet(sigQ), RooFit::Range("integrationRange"));
+            auto cumulativeProbability_std = TMath::Sqrt(TMath::Power(0.5*TMath::Exp(-lambda_mean) - 0.5*TMath::Exp(-lambda_mean + lambda_std),2) + TMath::Power(0.5*TMath::Exp(-lambda_mean)- 0.5*TMath::Exp(-lambda_mean-lambda_std),2));//computeStdDev(bootstrap_integral_values);
             auto norm_factor = 1 / cumulativeProbability;
             auto norm_factor_err = 1 / (cumulativeProbability - cumulativeProbability_std) - 1 /( cumulativeProbability + cumulativeProbability_std ); 
             norm_factor_err /= 2.;
@@ -546,6 +542,8 @@ int main(int argc, char **argv) {
                 dcr_events_err = TMath::Sqrt(dcr[i]->Integral());
             }
 
+            auto charge_dcr_rate = charge_dcr_events / 144. / (45 * 8e-9 * events);
+            auto charge_dcr_rate_err = charge_dcr_events_err /  144. / (45 * 8e-9 * events);
             auto original_rate = dcr_events / 144. / (1155 * 8e-9 * events);
             auto rate = dcr_events / 144. / (1155 * 8e-9 * events) / cumulativeProbability;
             auto robust_rate = robust_dcr_events / 144. / (1155 * 8e-9 * events) / cmf_vec[vol_vec[i]-1];
@@ -577,11 +575,27 @@ int main(int argc, char **argv) {
                     << rate_err_all << ","
                     << cumulativeProbability << ","
                     << norm_factor << ","
+                    << charge_dcr_rate << ","
+                    << charge_dcr_rate_err << ","
                     << robust_rate << ","
                     << robust_rate_err 
                     << "\n";
         }
         csvFile.close();
+    }
+    for (int i = 0; i < numHistograms; ++i) {
+       dcr[i]->Write();// = new TH1F(Form("dcrQ_ch%d", i), "DCR", 800 , 0, 4 * gap + 5 * sigma3 / 45);
+       dcr_bl_up[i]->Write();//= new TH1F(Form("dcrQ_bl_up_ch%d", i), "DCR", 800 , 0, 4 * gap + 5 * sigma3 / 45);
+       dcr_bl_down[i]->Write();// = new TH1F(Form("dcrQ_bl_down_ch%d", i), "DCR", 800 , 0, 4 * gap + 5 * sigma3 / 45);
+       dcr_n[i]->Write();// = new TH1F(Form("dcrQ_neg_ch%d", i), "DCR", 800 , 0, 4 * gap + 5 * sigma3 / 45);
+       dcr_n_bl_up[i]->Write();// = new TH1F(Form("dcrQ_bl_up_neg_ch%d", i), "DCR", 800 , 0, 4 * gap + 5 * sigma3 / 45);
+       dcr_n_bl_down[i]->Write();// = new TH1F(Form("dcrQ_neg_bl_down_ch%d", i), "DCR", 800 , 0, 4 * gap + 5 * sigma3 / 45);
+       robust_dcr[i]->Write();// = new TH1F(Form("rb_dcrQ_ch%d", i), "DCR", 800 , 0, 4 * robust_gap + 5 * 6.18 / 45);
+       robust_dcr_up[i]->Write();// = new TH1F(Form("rb_dcrQ_up_ch%d", i), "DCR", 800 , 0, 4 * robust_gap + 5 * 6.18 / 45);
+       robust_dcr_down[i]->Write();// = new TH1F(Form("rb_dcrQ_down_ch%d", i), "DCR", 800 , 0, 4 * robust_gap + 5 * 6.18 / 45);
+       robust_dcr_n[i]->Write();// = new TH1F(Form("rb_dcrQ_neg_ch%d", i), "DCR", 800 , 0, 4 * robust_gap + 5 * 6.18 / 45);
+       robust_dcr_n_up[i]->Write();// = new TH1F(Form("rb_dcrQ_neg_up_ch%d", i), "DCR", 800 , 0, 4 * robust_gap + 5 * 6.18 / 45);
+       robust_dcr_n_down[i]->Write();// = new TH1F(Form("rb_dcrQ_neg_down_ch%d", i), "DCR", 800 , 0, 4 * robust_gap + 5 * 6.18 / 45);
     }
     file1->Close();
 
