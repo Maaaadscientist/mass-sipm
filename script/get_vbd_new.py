@@ -392,4 +392,4 @@ for position in range(16):
         df_tmp.to_csv(file_path, index=False)
     else:
         # File exists and is not empty, so append without header
-        df_tmp.to_csv(file_path, header=False, index=False)
+        df_tmp.to_csv(file_path, index=False)
