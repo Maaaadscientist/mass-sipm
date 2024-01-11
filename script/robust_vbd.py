@@ -146,7 +146,7 @@ def remove_outliers(x_list, y_list, y_err_list, threshold=0.5):
     median_slope = np.median(filtered_params[:, 2])
     median_x_intercept = np.median(filtered_params[:, 3])
    # Step 4: Filter the original x_list and y_list based on valid indices
-    valid_x_list = [x_list[i] for i in range(len(x_list)) if i in valid_indices]
+    valid_x_list = [x_list[i] + 48 for i in range(len(x_list)) if i in valid_indices]
     valid_y_list = [y_list[i] for i in range(len(y_list)) if i in valid_indices]
     valid_y_err_list = [y_err_list[i] for i in range(len(y_list)) if i in valid_indices]
 
@@ -413,6 +413,7 @@ for position in range(16):
         for i in range(len(filtered_df['gain_err'].to_numpy())):
             prefit_gain_err.append(filtered_df['gain_err'].to_numpy()[i])
         vols, gains, gain_errors, median_slope, median_vbd = remove_outliers(vols, gains, gain_errors)
+        vols = [vol + 48 for vol in vols]
         #slope, x_intercept, x_intercept_err, chi2ndf =  linear_fit(vols,gains,gain_errors)
         if len(gains) >= 2:
             slope, intercept, x_intercept , slope_err, intercept_err, x_intercept_err, chi2, ndf =  linear_fit_bootstrap(vols,gains, gain_errors, 500)
