@@ -144,9 +144,9 @@ def remove_outliers(x_list, y_list, y_err_list, threshold=0.5):
 
     # Step 4: Calculate median slope and x_intercept
     median_slope = np.median(filtered_params[:, 2])
-    median_x_intercept = np.median(filtered_params[:, 3])
+    median_x_intercept = np.median(filtered_params[:, 3]) + 48
    # Step 4: Filter the original x_list and y_list based on valid indices
-    valid_x_list = [x_list[i] + 48 for i in range(len(x_list)) if i in valid_indices]
+    valid_x_list = [x_list[i] for i in range(len(x_list)) if i in valid_indices]
     valid_y_list = [y_list[i] for i in range(len(y_list)) if i in valid_indices]
     valid_y_err_list = [y_err_list[i] for i in range(len(y_list)) if i in valid_indices]
 
