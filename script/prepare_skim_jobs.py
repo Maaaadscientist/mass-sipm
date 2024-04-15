@@ -35,6 +35,7 @@ script += '  echo "Directory already exists."\n'
 script += 'fi\n'
 
 
+general_run_number = 0
 with open(file_list, "r") as f:
     files = f.read().splitlines()
 
@@ -47,20 +48,21 @@ if not os.path.isdir(output_dir + "/root"):
 
 count = 0
 for file_path in files:
+    file_name = file_path.split("/")[-1]
+    components = file_name.split("_")
+    run_type = components[0]
     if "path=" in file_path:
         continue 
     if not ".data" in file_path:
         continue
-    file_name = file_path.split("/")[-1]
     if isDCR and 'reff' in file_name:
         continue
-    if isMain and 'reff' in file_name:
+    if run_type == "main" and 'reff' in file_name:
         continue
     count += 1
-    components = file_name.split("_")
-    run_type = components[0]
     if run_type == "main":
         run_number = components[2]
+        general_run_number = run_number
         ov = int(float(components[4]))
         channel = int(components[6])
         sipm_type = components[7]
@@ -86,7 +88,7 @@ for file_path in files:
         script_tmp += f'/usr/bin/eos cp {file_path} $directory\n'
         script_tmp += 'cd $directory\n'
         script_tmp += 'sleep 3\n'
-        script_tmp += f'cp {parrent_path}/config/*.yaml .\n'
+        script_tmp += f'cp {parrent_path}/config/new.yaml .\n'
         script_tmp += f'cp {parrent_path}/env_lcg.sh .\n'
         script_tmp += '. ./env_lcg.sh\n'
         output_name = "_".join(components[0:-3])
@@ -118,17 +120,17 @@ if not isDCR:
     if "main" in name_short and count != 96:
         print(f"{name_short} : WARNING, there are only {count} lines and it's less than 96")
         with open(f"incompleteDataInfo-{name_short.split('_')[0]}.log", 'a') as file:
-            line_of_text = f"main run {run_number} {count} 96"
+            line_of_text = f"main run {general_run_number} {count} 96"
             file.write(line_of_text + '\n')
     elif "light" in name_short and count != 64:
         print(f"{name_short} : WARNING, there are only {count} lines and it's less than 64")
         with open(f"incompleteDataInfo-{name_short.split('_')[0]}.log", 'a') as file:
-            line_of_text = f"light run {run_number} {count} 64"
+            line_of_text = f"light run {general_run_number} {count} 64"
             file.write(line_of_text + '\n')
     else:
         print(f"{name_short} : Success, there are {count} lines in the datasets ({'64 for light' if name_short.split('_')[0] == 'light' else '96 for main'})")
         with open(f"completeDataInfo-{name_short.split('_')[0]}.log", 'a') as file:
-            line_of_text = f"{name_short.split('_')[0]} run {run_number} {count} {64 if name_short.split('_')[0] == 'light' else 96}"
+            line_of_text = f"{name_short.split('_')[0]} run {general_run_number} {count} {64 if name_short.split('_')[0] == 'light' else 96}"
             file.write(line_of_text + '\n')
 else:
     print(f"{name_short} DCR jobs are created")

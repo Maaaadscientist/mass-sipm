@@ -1,4 +1,5 @@
 import os, sys
+import re
 import subprocess
 import glob
 import yaml
@@ -68,18 +69,46 @@ elif analysis_type == "vbd":
 elif analysis_type == "harvest":
     runType = "main"
     
-print(analysis_type, analysis_type == "signal-refit")
+#print(analysis_type, analysis_type == "signal-refit")
 if not os.path.isdir(f'{output_dir}/{analysis_type}'):
     if not (analysis_type == "signal-refit"):
         os.makedirs(f'{output_dir}/{analysis_type}')
-        print("test")
+        #print("test")
 main_runs = []
 light_runs = []
 
-with open(table_path, 'r') as yaml_file:
-    yaml_data = yaml.safe_load(yaml_file)   
-    light_runs = yaml_data["light_runs"]
-    main_runs = yaml_data["main_runs"]
+print(table_path)
+if os.path.isfile(table_path):
+    with open(table_path, 'r') as yaml_file:
+        yaml_data = yaml.safe_load(yaml_file)   
+        print(yaml_data)
+        light_runs = yaml_data["light_runs"]
+        main_runs = yaml_data["main_runs"]
+else:
+    print(f"User defined single run number: {input_tmp}")
+    
+    def separate_string_and_number(input_string):
+        # Using regular expression to split alphabetic and numeric parts
+        match = re.match(r"([a-zA-Z]+)_(\d+)", input_string)
+        
+        if match:
+            # Extracting string and number parts
+            string_part = match.group(1)
+            number_part = int(match.group(2))
+            return string_part, number_part
+        else:
+            # If the input string doesn't match the pattern
+            return None, None
+    string_part, number_part = separate_string_and_number(input_tmp)
+    if string_part is not None and number_part is not None:
+        print("Run Type:", string_part)
+        print("Number:", number_part)
+        if string_part == "main":
+            main_runs.append(number_part)
+        else:
+            light_runs.append(number_part)
+    else:
+        print("Invalid input string format.")
     #for line in file:
     #    line = line.strip()
     #    if line:
@@ -87,12 +116,13 @@ with open(table_path, 'r') as yaml_file:
     #        main_runs.append(int(key.strip()))
     #        light_runs.append(int(value.strip()))
 
+print(main_runs)
 if not os.path.isdir(output_dir):
     os.makedirs(output_dir)
 output_dir = os.path.abspath(output_tmp)
 
-if analysis_type == "main" or analysis_type == "light":
-    os.system("sh get_datasets.sh")
+#if analysis_type == "main" or analysis_type == "light":
+#    os.system("sh get_datasets.sh")
 # Get the current directory
 current_directory = os.getcwd()
 
@@ -110,7 +140,6 @@ sorted_list = sorted(filtered_list, key=lambda x: int(x.split('_')[2][:-4]))
 # Group the "light_run" elements together while preserving the original order
 grouped_list = sorted(sorted_list, key=lambda x: ("light_run" not in x, sorted_list.index(x)))
 
-print(main_runs)
 for aFile in grouped_list:
     name_short = aFile.split("/")[-1].replace(".txt", "")
     run = int(name_short.split("_")[-1])
@@ -123,12 +152,11 @@ for aFile in grouped_list:
         continue
     if run_type != "main" and run_type != "light":
         continue
-    print(name_short)
     #os.system(f"python3 script/prepare_skim_jobs.py datasets/{aFile} {output_dir} {input_table}")
     if analysis_type == "signal-fit":
         subprocess.run(['python', 'script/prepare_signal_jobs.py', f'{output_dir}/main/{name_short}', f'{output_dir}/{analysis_type}/{name_short}', f'{binary_path}'])
     elif analysis_type == "signal-refit":
-        subprocess.run(['python', 'script/prepare_refit_jobs.py', f'{output_dir}/main/{name_short}', f'{output_dir}/signal-fit/{name_short}', f'{binary_path}'])
+        subprocess.run(['python', 'script/prepare_refit_jobs.py', f'{output_dir}/main/{name_short}', f'{output_dir}/signal-refit/{name_short}', f'{binary_path}'])
     elif analysis_type == "dcr-fit":
         subprocess.run(['python', 'script/prepare_dcr_jobs.py', f'{output_dir}/dcr/{name_short}',f'{output_dir}/signal-fit/{name_short}', f'{output_dir}/{analysis_type}/{name_short}'])
     elif analysis_type == "light-fit":
@@ -142,7 +170,8 @@ for aFile in grouped_list:
     elif analysis_type == "main" or analysis_type == "light" or analysis_type == "dcr":
         subprocess.run(['python', 'script/prepare_skim_jobs.py',f'datasets/{aFile}', f'{output_dir}/{analysis_type}', f'{binary_path}'])
     elif analysis_type == 'new-dcr':
-        subprocess.run(['python', 'script/prepare_new_dcr_jobs.py',f'datasets/{aFile}', f'{output_dir}/{analysis_type}', f'{binary_path}', f'{output_dir}/signal-fit'])
+        subprocess.run(['python', 'script/prepare_new_dcr_jobs.py',f'datasets/{aFile}', f'{output_dir}/{analysis_type}', f'{binary_path}', f'{output_dir}/signal-refit'])
+        #subprocess.run(['python', 'script/prepare_new_dcr_jobs.py',f'datasets/{aFile}', f'{output_dir}/{analysis_type}', f'{binary_path}', f'{output_dir}/signal-fit'])
     elif analysis_type == "light-match":
         subprocess.run(['python', 'script/prepare_match_jobs.py',f'datasets/{aFile}', f'{output_dir}/{analysis_type}', f'{binary_path}'])
     elif analysis_type == "main-match":
