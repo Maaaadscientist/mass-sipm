@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 from copy import deepcopy
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 def column_to_list(rdf, column_name):
     """
     Convert a specific column of an RDataFrame to a Python list.
@@ -54,7 +55,11 @@ def csv_to_root_rdataframe(csv_file):
 
 def plot_variables_ch(df, selection, var1_name, var2_name, var1_error_name="", var2_error_name=""):
     plt.figure(figsize=(10, 6))
+    # Define a list of markers
+    markers = ['o', 's', 'D', '^', 'v', '<', '>', 'p', '*', 'h', 'H', '+', 'x', 'd', '|', '_']
+
     for i in range(1,17):
+        marker = markers[0] if i <= 10 else markers[4]
         selections = selection + f" and ch=={i}"
         print(selections)
         # Apply the selection filter
@@ -94,9 +99,9 @@ def plot_variables_ch(df, selection, var1_name, var2_name, var1_error_name="", v
             var2_data = np.array(result[v])[sort_indices]
             if var2_error_names:
                 var2_error_data = np.array(result[var2_error_names[idx]])[sort_indices]
-                plt.errorbar(var1_data, var2_data, xerr=var1_error_data, yerr=var2_error_data, fmt='-o', alpha=0.7, capsize=5, markersize=3, label=f"ch {i}")
+                plt.errorbar(var1_data, var2_data, xerr=var1_error_data, yerr=var2_error_data, fmt=f'-{marker}', alpha=0.7, capsize=5, markersize=5, label=f"ch {i}")
             else:
-                plt.plot(var1_data, var2_data, '-o', alpha=0.5, markersize=3, label=f"ch {i}")
+                plt.plot(var1_data, var2_data, f'-{marker}', alpha=0.5, markersize=5, label=f"ch {i}")
 
     plt.xlabel(var1_name)
     plt.ylabel("Value")
@@ -112,6 +117,20 @@ def plot_variables_ch(df, selection, var1_name, var2_name, var1_error_name="", v
         plt.close()
 
 def plot_variables_vs(df, selection, var1_name, var2_name, var1_error_name="", var2_error_name=""):
+    local_variables = locals()
+    column_names = df.GetColumnNames()
+    for name, value in local_variables.items():
+        if value == "" or name == "df" or name == "selection":
+            continue
+        name_match = False
+        for df_name in column_names:
+            if value == f'{df_name}':
+                name_match = True
+        if not name_match:
+            try:
+                df = df.Define(value.replace("/", "_").replace("*", "_"),value)
+            except Exception as e:
+                print(f"Error encountered: {e}")
     # Apply the selection filter
     filtered_data = df.Filter(selection)
     
@@ -133,10 +152,13 @@ def plot_variables_vs(df, selection, var1_name, var2_name, var1_error_name="", v
     if var1_error_name:
         columns_to_extract.append(var1_error_name)
     columns_to_extract += var2_error_names
+    columns_redefined = []
+    for name in columns_to_extract:
+        columns_redefined.append(name.replace("/", "_").replace("*", "_"))
 
-    result = filtered_data.AsNumpy(columns=columns_to_extract)
-    var1_data = np.array(result[var1_name])
-    var1_error_data = np.array(result[var1_error_name]) if var1_error_name else None
+    result = filtered_data.AsNumpy(columns=columns_redefined)
+    var1_data = np.array(result[var1_name.replace("/", "_").replace("*", "_")])
+    var1_error_data = np.array(result[var1_error_name.replace("/", "_").replace("*", "_")]) if var1_error_name else None
     # Sort data by var1_data
     sort_indices = np.argsort(var1_data)
     var1_data = var1_data[sort_indices]
@@ -147,9 +169,9 @@ def plot_variables_vs(df, selection, var1_name, var2_name, var1_error_name="", v
     
     # Plot data for each variable in var2_names
     for idx, v in enumerate(var2_names):
-        var2_data = np.array(result[v])[sort_indices]
+        var2_data = np.array(result[v.replace("/", "_").replace("*", "_")])[sort_indices]
         if var2_error_names:
-            var2_error_data = np.array(result[var2_error_names[idx]])[sort_indices]
+            var2_error_data = np.array(result[var2_error_names[idx].replace("/", "_").replace("*", "_")])[sort_indices]
             plt.errorbar(var1_data, var2_data, xerr=var1_error_data, yerr=var2_error_data, label=v, fmt='o', alpha=0.7, capsize=5, markersize=2)
         else:
             plt.plot(var1_data, var2_data, 'o', label=v, alpha=0.5, markersize=2)
@@ -242,6 +264,7 @@ if __name__ == '__main__':
             query_help += "* \033[1;93mshowallcol\033[0m       show all column names\n"
             query_help += "* \033[1;93mshowAcol\033[0m         display all unique values of a specified column\n"
             query_help += "* \033[1;93mshowValues\033[0m       show all column names\n"
+            query_help += "* \033[1;93mmean\033[0m             calculate the average value of the given expression and selections\n"
             query_help += "* \033[1;93mruns\033[0m             display all values of the 'run' column\n"
             query_help += "* \033[1;93mcol\033[0m              enter the column names to show in the table\n"
             query_help += "* \033[1;93mdraw\033[0m             draw the results var1 vs var2\n"
@@ -340,6 +363,33 @@ if __name__ == '__main__':
             #            print(", ".join(map(str, unique_col_values[i:i+values_per_line])))
             #    else:
             #        print(f"\033[1;91mColumn '{col_name}' doesn't exist. Please provide a valid column name.\033[0m")
+            elif query.lower() == "mean":
+                columns_input = input("\033[1;93mEnter the name of the column or the expression to calculate the average value (e.g. gain):\033[0m ").strip()
+                
+                # Check if all provided column names exist
+                # Ask user if they want to apply a selection
+                apply_filter = input("\033[1;93mDo you want to apply a selection/filter? (yes/no):\033[0m ").strip().lower()
+                if apply_filter == "yes":
+                    simple_filter = input("\033[1;93mDo you want to apply a simple selection? otherwise from a input text file. (yes/no):\033[0m ").strip().lower()
+                    if simple_filter == "yes":
+                        selection = input("\033[1;93mEnter your selection (e.g. run>5000):\033[0m ").strip()
+                    else:
+                        selection_file =  input("\033[1;93mEnter your selection file path:\033[0m ").strip()
+                        # Open the file in read mode ('r')
+                        with open(selection_file, 'r') as file:
+                            # Read the content of the file into a string variable
+                            selection = file.read()
+                    filtered_df = df.Filter(selection)
+                else:
+                    filtered_df = df
+                
+                # Extract unique combinations of the specified columns
+                filtered_df = filtered_df.Define("variable_tmp",columns_input)
+                values = filtered_df.AsNumpy(columns=["variable_tmp"])["variable_tmp"]
+                
+                print(f"mean value and standard error of {columns_input}:")
+                print(np.mean(values), np.sqrt(np.var(values)))
+
             elif query.lower() == "showvalues":
                 columns_input = input("\033[1;93mEnter the names of the columns separated by commas (e.g. run,pos,ch):\033[0m ").strip()
                 input_columns = [col.strip() for col in columns_input.split(',')]
@@ -349,7 +399,15 @@ if __name__ == '__main__':
                     # Ask user if they want to apply a selection
                     apply_filter = input("\033[1;93mDo you want to apply a selection/filter? (yes/no):\033[0m ").strip().lower()
                     if apply_filter == "yes":
-                        selection = input("\033[1;93mEnter your selection (e.g. run>5000):\033[0m ").strip()
+                        simple_filter = input("\033[1;93mDo you want to apply a simple selection? otherwise from a input text file. (yes/no):\033[0m ").strip().lower()
+                        if simple_filter == "yes":
+                            selection = input("\033[1;93mEnter your selection (e.g. run>5000):\033[0m ").strip()
+                        else:
+                            selection_file =  input("\033[1;93mEnter your selection file path:\033[0m ").strip()
+                            # Open the file in read mode ('r')
+                            with open(selection_file, 'r') as file:
+                                # Read the content of the file into a string variable
+                                selection = file.read()
                         filtered_df = df.Filter(selection)
                     else:
                         filtered_df = df
